@@ -85,7 +85,8 @@ export default function Live() {
   useEffect(() => { loadMatches().then(setD); }, []);
   useEffect(() => { const v = clip.current?.video; if (v) { v.playbackRate = rate; running ? v.play().catch(() => {}) : v.pause(); } }, [rate, running, i]);
   const m = d?.matches[0];
-  const done = useMemo(() => (m ? m.rallies.slice(0, i) : []), [m, i]);
+  // during the break the rally that just ended already counts on the scoreboard
+  const done = useMemo(() => (m ? m.rallies.slice(0, i + (pause ? 1 : 0)) : []), [m, i, pause]);
   // count down the break; a paused stream also pauses the countdown
   useEffect(() => {
     if (!pause) return;
@@ -158,7 +159,7 @@ export default function Live() {
                 <span>{m.names[p]}</span><b className="mono">{games[p]}</b><strong className="mono">{score[p === "A" ? 0 : 1]}</strong>
               </div>
             ))}
-            <p className="tiny muted">Game {r.set} · rally {done.length + 1} of {m.rallies.length}</p>
+            <p className="tiny muted">Game {r.set} · rally {i + 1} of {m.rallies.length}</p>
           </div>
           <div className="live-stats">
             {["A", "B"].map((p) => { const s = stat(p); return <div key={p}><span>{m.names[p].split(" ")[0]}</span><b className="mono">{s.w}</b><em>winners</em><b className="mono">{s.e}</b><em>errors</em></div>; })}
