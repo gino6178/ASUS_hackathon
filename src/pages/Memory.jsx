@@ -13,11 +13,13 @@ export default function Memory() {
 
   return (
     <div className="page memory">
-      <header className="sec-head">
+      <header className="report-head">
+        <div>
         <span className="tag">Player memory · RAG</span>
         <h1 className="h1">What your coaches remember about you</h1>
         <p className="muted">Goals, injuries, routines and past sessions. Every coach retrieves the most relevant entries before it answers,
           so advice adapts to you over time. Stored on this device only.</p>
+        </div>
       </header>
 
       <div className="mem-grid">

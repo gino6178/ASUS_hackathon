@@ -6,10 +6,12 @@ export default function Coaches({ data, video }) {
   return (
     <div className="page coaches">
       {video && <div className="notice" role="note"><b>Demo mode.</b> “{video.name}” stayed on this device. The coaches below analyse the precomputed sample match.</div>}
-      <header className="sec-head">
+      <header className="report-head">
+        <div>
         <span className="tag">Your coaching staff · {data?.event ?? ""}</span>
         <h1 className="h1">Who do you want to talk to?</h1>
         <p className="muted">Four specialist agents run on this machine. Each one reads the match database, retrieves what it remembers about you, and explains its findings on the visual it owns.</p>
+        </div>
       </header>
       <div className="coach-grid">
         {COACHES.map((c) => (
@@ -29,7 +31,7 @@ export default function Coaches({ data, video }) {
         <span className="cc-go">Start meeting →</span>
       </button>
       <div className="coach-links">
-        <button className="btn ghost" onClick={() => go("report")}>Open the full match report</button>
+        <button className="btn ghost" onClick={() => go("match")}>Open the match analysis</button>
         <button className="btn ghost" onClick={() => go("memory")}>Player memory</button>
       </div>
     </div>

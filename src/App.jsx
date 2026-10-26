@@ -19,7 +19,7 @@ const base = (p) => p.split("/")[0];
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
 function Nav({ page }) {
-  const items = [["home", "Overview"], ["analyze", "Analyze"], ["live", "Live"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["scout", "Scout"], ["memory", "Memory"]];
+  const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["live", "Live"], ["scout", "Scout"], ["memory", "Memory"]];
   return (
     <header className="nav">
       <a className="brand" href="#/" aria-label="ShuttleCoach home">

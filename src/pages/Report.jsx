@@ -1,13 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import RallyPlayer from "../components/RallyPlayer.jsx";
 import Court3D from "../components/Court3D.jsx";
 import SpeedChart from "../components/SpeedChart.jsx";
 import CourtMap from "../components/CourtMap.jsx";
-import Agents from "../components/Agents.jsx";
 import Sparring from "../components/Sparring.jsx";
-import BodyMap from "../components/BodyMap.jsx";
-import Heatmaps from "../components/Heatmaps.jsx";
-import { bestBase, simulate, speedColor, zoneName } from "../data.js";
+import { speedColor, zoneName } from "../data.js";
 import { go } from "../App.jsx";
 
 const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -16,15 +13,6 @@ export default function Report({ data, video }) {
   const [frame, setFrame] = useState(0);
   const [hl, setHl] = useState(null); // highlighted stroke ids on the landing map
   const seek = useRef(null);
-
-  const ctx = useMemo(() => {
-    if (!data) return null;
-    const ins = data.insights, shots = ins.oppAttack;
-    const best = bestBase(shots, "attacker");
-    const cur = simulate(shots, "attacker", ins.base).rate;
-    const check = { cur: simulate(shots, "attacker", ins.base, 2000, 99).rate, best: simulate(shots, "attacker", best.base, 2000, 99).rate };
-    return { ins, rally: data.rally, players: { near: "you", far: "your opponent" }, sim: { best, cur, check } };
-  }, [data]);
 
   if (!data) return <div className="page"><p className="muted">Loading the analysis…</p></div>;
   const { rally, match, insights: ins } = data;
@@ -37,12 +25,6 @@ export default function Report({ data, video }) {
     xy: s.land, c: hl ? "var(--accent)" : "var(--far)", r: hl ? 5 : 3.4, o: hl ? .95 : .55,
   }));
 
-  const onEvidence = (e) => {
-    if (e.frame != null) { seek.current?.(e.frame); document.getElementById("replay")?.scrollIntoView({ behavior: "smooth" }); }
-    if (e.ids) { setHl(e.ids.length > 1 ? e.ids : (hl?.includes(e.ids[0]) ? null : e.ids)); document.getElementById("patterns")?.scrollIntoView({ behavior: "smooth" }); }
-    if (e.anchor) document.getElementById(e.anchor)?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <div className="page report">
       {video && (
@@ -53,7 +35,7 @@ export default function Report({ data, video }) {
       )}
       <header className="report-head">
         <div>
-          <span className="tag">Match report · {data.event}</span>
+          <span className="tag">Rally 3D · {data.event}</span>
           <h1 className="h1">{data.players.near} <span className="vs">vs</span> {data.players.far}</h1>
           <p className="muted">Coaching the near-side player · rally {data.rallyId} replayed in 3D · {match.n} shots in the match database</p>
         </div>
@@ -122,22 +104,6 @@ export default function Report({ data, video }) {
             <p className="tiny muted">Average horizontal speed = landing distance ÷ flight time, median per stroke type.</p>
           </div>
         </div>
-      </section>
-
-      <section id="heat" className="block">
-        <header className="sec-head"><span className="tag">Heat zones</span><h2>Where you score, and where you get beaten</h2></header>
-        <Heatmaps outcomes={data.outcomes} names={data.names} />
-      </section>
-
-      <section id="coach" className="block">
-        <header className="sec-head"><span className="tag">Coaching staff</span><h2>Ask your agents</h2></header>
-        <Agents ctx={ctx} onEvidence={onEvidence} />
-      </section>
-
-      <section id="body" className="block">
-        <header className="sec-head"><span className="tag">Body focus</span><h2>What to strengthen, and why</h2>
-          <p className="muted">Each highlighted area is loaded by a finding from this match. Click a body part to see the evidence and the drills.</p></header>
-        <BodyMap ins={ins} rally={rally} />
       </section>
 
       <section id="sparring" className="block">

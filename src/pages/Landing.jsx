@@ -1,19 +1,13 @@
 import Court3D from "../components/Court3D.jsx";
 import { go } from "../App.jsx";
+import { COACHES } from "../coaches/personas.js";
+import Avatar from "../coaches/Avatar.jsx";
 
 const STEPS = [
   ["01", "Record", "Any fixed camera behind the court. A phone on a tripod is enough."],
   ["02", "Reconstruct", "The shuttle's flight in metric 3D, every hit, both players' positions."],
   ["03", "Measure", "Launch speed, apex, landing zone and stroke type for every shot."],
-  ["04", "Coach", "Five local agents turn the numbers into positioning advice and a drill plan."],
-];
-
-const AGENTS = [
-  ["Head Coach", "Splits your question, assigns the work, merges one answer."],
-  ["Stats Analyst", "Queries the match database. Reports only what it finds."],
-  ["Positioning", "Finds coverage gaps and tests a better base in the simulator."],
-  ["Training Planner", "Turns the weak zone into a weekly drill plan with targets."],
-  ["Evidence Verifier", "Re-runs every count. No citation, no claim."],
+  ["04", "Coach", "Four coach agents explain the numbers, then meet at a round table to agree your week."],
 ];
 
 export default function Landing({ data }) {
@@ -64,11 +58,22 @@ export default function Landing({ data }) {
       </section>
 
       <section className="band">
-        <header className="sec-head"><span className="tag">03 · Agents</span><h2>A coaching staff of five, running locally</h2></header>
-        <div className="agents-row">
-          {AGENTS.map(([h, b], i) => (
-            <article key={h} className="agent-card"><span className={`agent-dot a${i}`} aria-hidden="true" /><h3>{h}</h3><p>{b}</p></article>
+        <header className="sec-head"><span className="tag">03 · Coaching staff</span><h2>Four coach agents and a round table, running locally</h2></header>
+        <div className="staff-row">
+          {COACHES.map((c) => (
+            <button key={c.id} className="staff-card" style={{ "--cc": c.color }} onClick={() => go(`coach/${c.id}`)}>
+              <Avatar coach={c} size={72} />
+              <span className="tag">{c.kicker}</span>
+              <h3>{c.name}</h3>
+              <p>{c.blurb}</p>
+            </button>
           ))}
+          <button className="staff-card rt" onClick={() => go("roundtable")}>
+            <span className="rt-faces">{COACHES.map((c) => <Avatar key={c.id} coach={c} size={40} />)}</span>
+            <span className="tag">Round table</span>
+            <h3>Agree the week</h3>
+            <p>All four debate the match against your memory and agree four goals and a 7-day schedule.</p>
+          </button>
         </div>
       </section>
 

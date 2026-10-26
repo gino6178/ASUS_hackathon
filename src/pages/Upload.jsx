@@ -30,10 +30,12 @@ export default function Upload({ onVideo }) {
 
   return (
     <div className="page upload">
-      <header className="sec-head">
+      <header className="report-head">
+        <div>
         <span className="tag">New analysis</span>
         <h1 className="h1">Add a match video</h1>
         <p className="muted">Singles, one fixed camera behind a baseline. The file is opened by your browser and never leaves this device.</p>
+        </div>
       </header>
 
       <div className="upload-grid">

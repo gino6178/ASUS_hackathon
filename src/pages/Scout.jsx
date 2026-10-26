@@ -27,12 +27,19 @@ export default function Scout() {
 
   return (
     <div className="page scout">
-      <div className="scout-bar noprint">
-        <div className="seg" role="radiogroup" aria-label="Player">
-          {players.map((n) => <button key={n} role="radio" aria-checked={name === n} onClick={() => setName(n)}>{n}</button>)}
+      <header className="report-head noprint">
+        <div>
+          <span className="tag">Scouting report</span>
+          <h1 className="h1">Know the opponent before you play</h1>
+          <p className="muted">Pick a player. The one-page report is built from every labelled shot they hit, and prints as a PDF.</p>
         </div>
-        <button className="btn primary" onClick={() => window.print()}>Save as PDF</button>
-      </div>
+        <div className="cta-row">
+          <div className="seg" role="radiogroup" aria-label="Player">
+            {players.map((n) => <button key={n} role="radio" aria-checked={name === n} onClick={() => setName(n)}>{n}</button>)}
+          </div>
+          <button className="btn primary" onClick={() => window.print()}>Save as PDF</button>
+        </div>
+      </header>
       <article className="sheet">
         <header>
           <span className="tag">ShuttleCoach · scouting report</span>

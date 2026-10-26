@@ -138,3 +138,4 @@
 .rfilters .seg button, .scout-bar .seg button, .tabs-who button { white-space: nowrap; }
 .sheet h2 + .bars + h2, .sheet .bars + h2 { margin-top: 22px; }
 .rclip-cap { left: auto; right: 14px; }
+.rt-seat b, .rt-seat span { white-space: nowrap; }
