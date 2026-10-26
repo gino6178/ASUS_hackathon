@@ -47,10 +47,21 @@ export function brief(m, done) {
     const short = serves.filter((s) => /short/i.test(s.type)).length;
     out.push({ c: "analyst", t: `${names[opp].split(" ")[0]} serves: short ${pct(short, serves.length)}% so far. Stand ${short / serves.length > .6 ? "tight to the front service line" : "a half step back"}.` });
   }
+  if (r.winner === ME) {
+    // our serve next: which serve has won more rallies so far
+    const mine = done.filter((x) => x.shots[0]?.p === ME && /serve/i.test(x.shots[0].type));
+    const by = (re) => { const g = mine.filter((x) => re.test(x.shots[0].type)); return [g.filter((x) => x.winner === ME).length, g.length]; };
+    const [sw, sn] = by(/short/i), [lw, ln] = by(/long|high/i);
+    if (sn + ln >= 3) out.push({ c: "analyst", t: `Your serve: short won ${sw} of ${sn}${ln ? `, long ${lw} of ${ln}` : ""}. ${!ln || sw / Math.max(1, sn) >= lw / ln ? "Stay short" : "Mix in a long serve"}.` });
+  }
+  const attacks = done.flatMap((x) => x.shots.filter((s) => s.p === opp && s.land && /smash|drive|rush|drop/i.test(s.type)))
+    .map((s) => zoneOf(s.land[1] < 6.7 ? [6.1 - s.land[0], 13.4 - s.land[1]] : s.land, "near"));
+  const hot = Object.entries(attacks.reduce((a, z) => ({ ...a, [z]: (a[z] || 0) + 1 }), {})).sort((a, b) => b[1] - a[1])[0];
   const beaten = done.slice(-8).filter((x) => ownWinner(x, opp)).map((x) => x.shots[x.shots.length - 1].land).filter(Boolean)
     .map((xy) => zoneOf(xy[1] < 6.7 ? [6.1 - xy[0], 13.4 - xy[1]] : xy, "near"));
   const top = Object.entries(beaten.reduce((a, z) => ({ ...a, [z]: (a[z] || 0) + 1 }), {})).sort((a, b) => b[1] - a[1])[0];
   if (top && top[1] >= 2) out.push({ c: "tactics", t: `${top[1]} of their last ${beaten.length} winners went to your ${top[0]}: start one step closer to it.` });
+  else if (hot && attacks.length >= 5) out.push({ c: "tactics", t: `Their attacks land most in your ${hot[0]} (${pct(hot[1], attacks.length)}% of ${attacks.length}): lean that way after you lift.` });
   const errs = done.slice(-4).filter((x) => ownError(x, ME));
   if (errs.length >= 2) out.push({ c: "technique", t: `${errs.length} own errors in the last 4 rallies (${errs.map((x) => x.reason).join(", ")}): play the next shot with more margin.` });
   if (r.shots.length >= 15) out.push({ c: "fitness", t: `${r.shots.length}-shot rally: use the full break, breathe out slowly before the serve.` });

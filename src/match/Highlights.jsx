@@ -211,7 +211,7 @@ export default function Highlights({ m, p }) {
     let rec, chunks = [], type;
     if (record) {
       type = TYPES.find((x) => MediaRecorder.isTypeSupported(x));
-      rec = new MediaRecorder(canvas.current.captureStream(30), { mimeType: type, videoBitsPerSecond: 8e6 });
+      rec = new MediaRecorder(canvas.current.captureStream(30), { mimeType: type, videoBitsPerSecond: 4e6 }); // ~4 Mbps: sharp at 720p, small enough to share
       rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
       rec.start(500);
     }
