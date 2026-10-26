@@ -105,16 +105,16 @@
 .rt-banner { width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 20px; align-items: center; text-align: left; margin: 18px 0; padding: 16px 22px; border-radius: 18px; border: 1px solid var(--rule); background: var(--surface); cursor: pointer; }
 .rt-banner:hover { border-color: var(--accent); }
 .rt-banner b { display: block; font-size: 18px; margin-bottom: 4px; }
-.rt-faces { display: flex; } .rt-faces svg { margin-left: -14px; } .rt-faces svg:first-child { margin-left: 0; }
+.rt-faces { display: flex; } .rt-faces .avatar { margin-left: -14px; } .rt-faces .avatar:first-child { margin-left: 0; }
 .rt-grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 20px; margin-bottom: 22px; }
 .rt-table { position: relative; aspect-ratio: 1; }
 .rt-svg { position: absolute; inset: 12%; width: 76%; height: 76%; }
 .rt-center { fill: var(--accent); font: 400 20px var(--display); text-transform: uppercase; } .rt-center.sub { fill: var(--ink-3); font: 500 11px var(--mono); letter-spacing: .14em; }
 .rt-seat { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; text-align: center; transition: transform .3s var(--ease); }
-.rt-seat svg { border-radius: 50%; box-shadow: 0 0 0 2px transparent; transition: box-shadow .3s; }
+.rt-seat .avatar { border-radius: 50%; box-shadow: 0 0 0 2px transparent; transition: box-shadow .3s; }
 .rt-seat b { font-size: 13px; margin-top: 4px; } .rt-seat span { font-size: 11px; color: var(--ink-3); }
 .rt-seat.speaking { transform: translate(-50%, -50%) scale(1.12); }
-.rt-seat.speaking svg { box-shadow: 0 0 0 3px var(--cc), 0 0 28px var(--cc); }
+.rt-seat.speaking .avatar { box-shadow: 0 0 0 3px var(--cc), 0 0 28px var(--cc); }
 .rt-seat.speaking b { color: var(--cc); }
 .rt-chat { max-height: 520px; overflow: auto; display: grid; gap: 10px; align-content: start; padding-right: 6px; }
 .rt-msg { display: grid; grid-template-columns: 34px 1fr; gap: 10px; background: var(--surface); border-left: 3px solid var(--cc); border-radius: 12px; padding: 10px 14px; animation: rise .35s var(--ease); }

@@ -1,5 +1,18 @@
-// Flat illustrated bust for each coach persona.
+import { useState } from "react";
+
+// Coach portrait: a photo from public/coaches/<id>.jpg (or .png) when present, else a flat illustrated bust.
+const missing = new Set();
 export default function Avatar({ coach, size = 120, talking = false }) {
+  const [, redraw] = useState(0);
+  const src = ["jpg", "png"].map((ext) => `coaches/${coach.id}.${ext}`).find((u) => !missing.has(u));
+  if (src) return (
+    <img className={`avatar photo ${talking ? "talking" : ""}`} src={src} width={size} height={size} alt={`${coach.name}, ${coach.role}`}
+      style={{ "--cc": coach.color }} onError={() => { missing.add(src); redraw((n) => n + 1); }} />
+  );
+  return <Drawn coach={coach} size={size} talking={talking} />;
+}
+
+function Drawn({ coach, size, talking }) {
   const { skin, hair, hairStyle, shirt, prop } = coach.look;
   const hairPath = {
     buzz: "M62 52 Q100 22 138 52 Q136 40 100 34 Q64 40 62 52Z",

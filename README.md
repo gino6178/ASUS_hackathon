@@ -59,6 +59,8 @@ React, Three.js and Vite. 2D tracking backbone: [TrackNetV5](https://github.com/
 
 ## Credits
 
+- Coach portraits in `public/coaches/` are AI-generated images of fictional people; they are not real coaches.
+
 - 3D anatomy (not included in this repository): BodyParts3D 4.0, © The Database Center for Life Science, licensed under
   CC BY 4.0, adapted via [Human Atlas](https://github.com/ashemag/human-atlas) (MIT).
 - Fonts: Michroma, Manrope and IBM Plex Mono via Google Fonts.
