@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { go } from "../App.jsx";
+import CourtCalib from "../components/CourtCalib.jsx";
 
 const fmtSize = (b) => (b > 1e9 ? (b / 1e9).toFixed(2) + " GB" : (b / 1e6).toFixed(1) + " MB");
 
@@ -20,6 +21,7 @@ export default function Upload({ onVideo }) {
   const [err, setErr] = useState("");
   const [meta, setMeta] = useState(null);
   const [opts, setOpts] = useState({ player: "near", hand: "right", level: "club" });
+  const [calib, setCalib] = useState(null);
 
   async function take(file) {
     setErr("");
@@ -91,10 +93,16 @@ export default function Upload({ onVideo }) {
             </div>
           </section>
 
-          <button className="btn primary wide" disabled={!meta} onClick={() => onVideo({ ...meta, ...opts })}>Start on-device analysis</button>
+          <button className="btn primary wide" disabled={!meta} onClick={() => onVideo({ ...meta, ...opts, calib })}>Start on-device analysis</button>
           <button className="btn ghost wide" onClick={() => { onVideo(null); }}>Use the sample match instead</button>
         </aside>
       </div>
+
+      <section className="panel calib-panel">
+        <h2 className="panel-h">Court calibration · {meta ? meta.name : "sample match"}</h2>
+        <p className="muted small">Maps every pixel to court metres. The corners are detected automatically; drag one if it is off, and check the projected lines and the top-down view.</p>
+        <CourtCalib src={meta ? meta.url : "/media/sample_rally.mp4"} onChange={setCalib} />
+      </section>
     </div>
   );
 }

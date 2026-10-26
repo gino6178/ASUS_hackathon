@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadMatches, scoreFlow, pointStats, patterns, footwork, fatigue, profile, sideOf, ownError, pct, load } from "../match/analytics.js";
+import { loadMatches, scoreFlow, pointStats, patterns, footwork, fatigue, profile, sideOf, ownError, pct, load, onto } from "../match/analytics.js";
 import { LineChart, Bars, Kpi } from "../match/charts.jsx";
 import { retrieve } from "../memory.js";
 import Highlights from "../match/Highlights.jsx";
@@ -15,6 +15,11 @@ const f1 = (v) => v.toFixed(1), f2 = (v) => v.toFixed(2);
 export default function Match() {
   const [d, setD] = useState(null);
   const [tab, setTab] = useState(() => location.hash.split("?tab=")[1] || "flow");
+  // voice commands and links can switch tabs while the page is open
+  useEffect(() => {
+    const on = () => { const t = location.hash.split("?tab=")[1]; if (t) setTab(t); };
+    addEventListener("hashchange", on); return () => removeEventListener("hashchange", on);
+  }, []);
   const [who, setWho] = useState("A");
   useEffect(() => { loadMatches().then(setD); }, []);
   if (!d) return <div className="page"><p className="muted">Loading the match…</p></div>;
@@ -30,6 +35,8 @@ export default function Match() {
         <div className="cta-row">
           <button className="btn primary" onClick={() => go("live")}>Live mode</button>
           <button className="btn ghost" onClick={() => go("scout")}>Scouting report</button>
+          <button className="btn ghost" onClick={() => exportShots(m, "csv")}>Export CSV</button>
+          <button className="btn ghost" onClick={() => exportShots(m, "json")}>JSON</button>
         </div>
       </header>
       <div className="tabs" role="tablist">
@@ -189,11 +196,63 @@ function Footwork({ m, p }) {
           heat={heatGrid(reads.map((r) => r.from), "near", .5)} heatColor="#ff5f56" />
         <p className="tiny muted">Heat: where {m.names[p]} stood at the opponent's contact on the hardest-to-reach shots.</p>
       </div>
+      <Positions m={m} p={p} />
     </section>
   );
 }
+// where a player stands: every position at their own contacts (heat) or each one as a dot (scatter), on their own half
+function Positions({ m, p }) {
+  const [mode, setMode] = useState("heat");
+  const pts = m.rallies.flatMap((r) => r.shots.filter((s) => s.p === p && s.pos).map((s) => onto(s.pos, "near")));
+  return (
+    <div className="panel span2">
+      <h3 className="panel-h">Where {m.names[p]} hits from · {pts.length} contacts</h3>
+      <div className="seg" role="radiogroup" aria-label="View">
+        {[["heat", "Heat map"], ["scatter", "Scatter"]].map(([k, l]) => <button key={k} role="radio" aria-checked={mode === k} onClick={() => setMode(k)}>{l}</button>)}
+      </div>
+      <div className="pos-map">
+        <CourtMap half="near" label={`${m.names[p]} contact positions`} heat={mode === "heat" ? heatGrid(pts, "near", .45) : null} heatColor="#6FB6FF"
+          points={mode === "scatter" ? pts.map((xy) => ({ xy, c: "var(--near)", r: 2.6, o: .5 })) : []} />
+      </div>
+      <p className="tiny muted">Positions from the labelled court coordinates, shown on {m.names[p]}'s own half with the net at the top.</p>
+    </div>
+  );
+}
+
+// every labelled shot as CSV (spreadsheet) or JSON, saved on this device
+function exportShots(m, fmt) {
+  const rows = m.rallies.flatMap((r) => r.shots.map((s, k) => ({ game: r.set, rally: r.rally, score: `${r.score[0]}-${r.score[1]}`, shot: k + 1, time_s: s.t,
+    player: m.names[s.p], type: s.type, land_x: s.land?.[0] ?? "", land_y: s.land?.[1] ?? "", pos_x: s.pos?.[0] ?? "", pos_y: s.pos?.[1] ?? "",
+    opp_x: s.opp?.[0] ?? "", opp_y: s.opp?.[1] ?? "", rally_winner: m.names[r.winner], end: r.reason })));
+  const body = fmt === "csv"
+    ? [Object.keys(rows[0]).join(","), ...rows.map((r) => Object.values(r).map((v) => (/[",]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v)).join(","))].join("\n")
+    : JSON.stringify({ match: `${m.names.A} vs ${m.names.B}`, event: m.event, units: "metres, full court 6.1 x 13.4, y from the far baseline", shots: rows }, null, 1);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([body], { type: fmt === "csv" ? "text/csv" : "application/json" }));
+  a.download = `shuttlecoach_shots.${fmt}`; a.click();
+}
+
+// knee bend at every hit of the replayed rally, from the pose skeleton (image-plane angles, one camera)
+function PoseCheck({ pose, joint }) {
+  const ev = pose.events.filter((e) => e.side === "near");
+  const deep = ev.filter((e) => e.flex >= 90);
+  const right = ev.filter((e) => e.leg === "right").length;
+  const sore = joint && (/right knee/i.test(joint.m.text) ? "right" : /left knee/i.test(joint.m.text) ? "left" : null);
+  const onSore = sore ? ev.filter((e) => e.leg === sore).length : 0;
+  return (
+    <div className={`risk ${sore && onSore > ev.length / 2 ? "high" : "watch"}`}>
+      <b>Pose check · replayed rally</b>
+      <p>Deepest knee bend per hit: {ev.map((e) => `${e.type.toLowerCase()} ${Math.round(e.flex)}° ${e.leg[0].toUpperCase()}`).join(" · ")}.</p>
+      <p>{deep.length ? `${deep.length} deep lunge${deep.length > 1 ? "s" : ""} past 90°. ` : ""}{right} of {ev.length} loading bends on the right leg{sore ? `, the ${sore} knee is the sore one in memory` : ""}.
+        {sore && onSore > ev.length / 2 ? " Train the lunge with a shorter step and load the other side in the gym." : ""}</p>
+    </div>
+  );
+}
+
 function Fatigue({ m, p }) {
   const fa = fatigue(m, p), ld = load(m, p);
+  const [pose, setPose] = useState(null);
+  useEffect(() => { fetch("/data/pose.json").then((r) => (r.ok ? r.json() : null)).then(setPose).catch(() => {}); }, []);
   const joint = retrieve("knee ankle injury sore", 1).find((h) => /knee|ankle/i.test(h.m.text));
   const marks = fa.series.map((x, i) => (i && x.set !== fa.series[i - 1].set ? { i, label: `Game ${x.set}` } : null)).filter(Boolean);
   const change = (o, lowerIsBetter = true) => {
@@ -226,7 +285,8 @@ function Fatigue({ m, p }) {
             {joint && <div className="risk mem"><b>Memory</b><p>“{joint.m.text}” Lunges and cuts are the knee-loading movements, so they are tracked against your own game 1 baseline.</p></div>}
             {ld.flags.length ? ld.flags.map((f, k) => <div key={k} className={`risk ${f.lvl}`}><b>{f.lvl === "high" ? "Warning" : "Watch"}</b><p>{f.t}</p></div>)
               : <div className="risk ok"><b>No warning</b><p>Load per rally stayed within 15% of the opening third ({f1(ld.early)} → {f1(ld.late)}).</p></div>}
-            <p className="tiny muted">Prototype proxy from positions. Stage II adds YOLO11-pose on the B70: knee and ankle angles, landing impact and asymmetry, live during the match.</p>
+            {pose && p === "A" && <PoseCheck pose={pose} joint={joint} />}
+            <p className="tiny muted">Match-wide load is a proxy from positions. Joint angles come from pose on the replayed rally; Stage II runs pose on every rally on the B70, live.</p>
           </div>
         </div>
       </div>

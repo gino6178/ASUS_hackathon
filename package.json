@@ -10,6 +10,7 @@
     "prep": "python -I scripts/prep_data.py"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "three": "^0.180.0"

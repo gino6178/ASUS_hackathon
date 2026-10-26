@@ -5,6 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const W = 720, H = 1280, VID = { y: 170, s: 720 };
 const COL = { A: "#6FB6FF", B: "#FF8A6B" };
 
+// average flight speed of a shot (km/h): hitter position to landing spot, over the time until the next contact
+export function shotSpeed(r, i) {
+  const s = r.shots[i], n = r.shots[i + 1];
+  if (!s.pos || !s.land || !n) return null;
+  const dt = n.t - s.t, d = Math.hypot(s.land[0] - s.pos[0], s.land[1] - s.pos[1]);
+  return dt > 0.2 ? (d / dt) * 3.6 : null;
+}
+
 export function pickHighlights(m, p, k = 5) {
   return m.rallies.filter((r) => r.winner === p && r.clip).map((r) => {
     const n = r.shots.length, clutch = Math.max(...r.score) >= 18, finish = r.reason === "winner" && r.lastBy === p;
@@ -39,7 +47,8 @@ function frame(ctx, h, k, total, names, video, t) {
     ctx.drawImage(video, sx, (video.videoHeight - s) / 2, s, s, 0, VID.y, VID.s, VID.s);
   }
   if (cur) {
-    const label = `${cur.type} · ${names[cur.p].split(" ")[0]}`;
+    const v = shotSpeed(r, shown.length - 1);
+    const label = `${cur.type} · ${names[cur.p].split(" ")[0]}${v ? ` · avg ${Math.round(v)} km/h` : ""}`;
     ctx.font = "700 28px Segoe UI, sans-serif"; const w = ctx.measureText(label).width + 56;
     ctx.fillStyle = "#04070AE0"; ctx.beginPath(); ctx.roundRect(24, VID.y + VID.s - 78, w, 54, 14); ctx.fill();
     ctx.fillStyle = COL[cur.p]; ctx.beginPath(); ctx.arc(48, VID.y + VID.s - 51, 8, 0, 7); ctx.fill();
@@ -49,11 +58,19 @@ function frame(ctx, h, k, total, names, video, t) {
   const y0 = VID.y + VID.s + 70;
   ctx.fillStyle = "#F2E6C9"; ctx.font = "800 54px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(h.why[0].replace(/^\w/, (c) => c.toUpperCase()), 40, y0);
   ctx.fillStyle = "#C3CACD"; ctx.font = "400 28px Segoe UI, sans-serif"; h.why.slice(1).forEach((w, i) => ctx.fillText(w, 40, y0 + 48 + i * 38));
-  ctx.fillStyle = "#8A979E"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText(`SHOT ${shown.length} / ${r.shots.length}`, 40, y0 + 150);
+  ctx.fillStyle = "#8A979E"; ctx.font = "600 22px Consolas, monospace"; const top = Math.max(0, ...r.shots.map((_, i) => shotSpeed(r, i) ?? 0));
+  ctx.fillText(`SHOT ${shown.length} / ${r.shots.length}${top ? `   FASTEST AVG ${Math.round(top)} KM/H` : ""}`, 40, y0 + 150);
   // shot progress
   r.shots.forEach((s, i) => { ctx.fillStyle = s.t <= t ? COL[s.p] : "#1E282E"; ctx.fillRect(40 + i * (420 / r.shots.length), y0 + 168, 420 / r.shots.length - 3, 10); });
   // landing map
   const { X, Y } = court(ctx, W - 40 - 120, y0 - 40, 120, 264);
+  shown.forEach((s, i) => {
+    if (!s.pos || !s.land) return;
+    const last = i === shown.length - 1, x0 = X(s.pos[0]), y0 = Y(s.pos[1]), x1 = X(s.land[0]), y1 = Y(s.land[1]);
+    ctx.globalAlpha = last ? 1 : .3; ctx.strokeStyle = COL[s.p]; ctx.lineWidth = last ? 3 : 1.5;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2 + (y1 - y0) * .18, (y0 + y1) / 2, x1, y1); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
   shown.filter((s) => s.land).forEach((s, i, a) => { ctx.globalAlpha = i === a.length - 1 ? 1 : .55; ctx.fillStyle = COL[s.p]; ctx.beginPath(); ctx.arc(X(s.land[0]), Y(s.land[1]), i === a.length - 1 ? 7 : 4, 0, 7); ctx.fill(); });
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#5FD39A"; ctx.font = "500 18px Consolas, monospace"; ctx.fillText("● analysed on-device · no upload", 40, H - 40);
@@ -121,7 +138,7 @@ export default function Highlights({ m, p }) {
     <section className="hl-grid">
       <div className="panel">
         <h3 className="panel-h">Auto-picked: best five rallies for {m.names[p]}</h3>
-        <p className="tiny muted">Scored from the labels: won with an outright winner, rally length, smash finish and pressure points (18+).</p>
+        <p className="tiny muted">Scored from the labels: won with an outright winner, rally length, smash finish and pressure points (18+). The landing map draws each shot's flight path; speeds are average flight speeds (hitter to landing over flight time), lower than launch speed.</p>
         <ol className="hl-list">
           {list.map((h, k) => (
             <li key={h.r.i} className={state !== "idle" && k === step ? "on" : ""}>

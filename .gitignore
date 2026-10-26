@@ -7,3 +7,4 @@ public/data/
 public/body/
 public/media/*
 !public/media/favicon.svg
+public/models/

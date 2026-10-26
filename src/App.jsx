@@ -11,6 +11,7 @@ import Scout from "./pages/Scout.jsx";
 import Live from "./pages/Live.jsx";
 import RoundTable from "./pages/RoundTable.jsx";
 import { memory } from "./memory.js";
+import VoiceCoach from "./voice/VoiceCoach.jsx";
 import { loadSample } from "./data.js";
 
 const route = () => (location.hash.replace(/^#\/?/, "").split("?")[0] || "home");
@@ -18,7 +19,7 @@ const base = (p) => p.split("/")[0];
 
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
-function Nav({ page }) {
+function Nav({ page, data }) {
   const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["live", "Live"], ["scout", "Scout"], ["memory", "Memory"]];
   return (
     <header className="nav">
@@ -31,6 +32,7 @@ function Nav({ page }) {
           <a key={k} href={`#/${k === "home" ? "" : k}`} aria-current={base(page) === k || (k === "coaches" && base(page) === "coach") ? "page" : undefined}>{label}</a>
         ))}
       </nav>
+      <VoiceCoach data={data} />
       <span className="nav-badge" title="Every model in this prototype runs in your browser or on this machine">
         <i /> On-device
       </span>
@@ -52,7 +54,7 @@ export default function App() {
 
   return (
     <>
-      <Nav page={page} />
+      <Nav page={page} data={data} />
       <main>
         {page === "home" && <Landing data={data} />}
         {page === "analyze" && <Upload onVideo={(v) => { setVideo(v); go("processing"); }} />}

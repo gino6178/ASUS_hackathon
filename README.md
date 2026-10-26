@@ -19,6 +19,9 @@ This repository holds the **web interface prototype**.
 | Match | Score flow, points won and lost, shot sequences, rally list with frame annotation, an auto-picked top-5 highlight reel exported as a 9:16 video in the browser, footwork and anticipation reads, fatigue with a load and injury-risk watch, and comparison across matches |
 | Live | Court-side mode: rallies stream in as they are played, with scoreboard, running stats, opponent landing map and coach alerts when a pattern appears |
 | Scout | One-page opponent scouting report (targets, weak zones, shot mix, patterns, game plan), saved as PDF |
+| Voice coach | Tap "Ask" and speak: Whisper tiny transcribes in the browser (ONNX, no audio leaves the device), the question is answered from the match database and the right view opens |
+| Rally 3D | Broadcast video with shuttle trail, both players' skeletons (MediaPipe pose), live movement stats (speed, top speed, distance) and a court mini-map; exports an annotated video |
+| Court calibration | On Analyze: the four court corners are detected automatically and can be dragged; the court model is projected back and a rectified top-down view checks the fit |
 | Memory | Player memory (RAG): goals, injuries, routines and past sessions, stored on the device and retrieved by each coach before it answers |
 | Report | Video and 3D court in sync; per-shot launch speed, apex, contact height and flight time; speed curve |
 | | Match patterns: stroke mix and opponent smash landings |
@@ -33,6 +36,12 @@ This repository holds the **web interface prototype**.
 - An uploaded video is opened and previewed locally, but the report shows a precomputed sample match.
 - Shuttle speeds are estimates from the reconstructed 3D track.
 - The body focus view is a coaching heuristic, not a medical or physiotherapy assessment.
+
+## Offline voice model
+
+The voice coach loads Whisper tiny from `public/models/Xenova/whisper-tiny.en/` (not in this repository, about 40 MB):
+`config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`, `tokenizer_config.json`, `special_tokens_map.json`
+and `onnx/encoder_model_quantized.onnx`, `onnx/decoder_model_merged_quantized.onnx` from https://huggingface.co/Xenova/whisper-tiny.en.
 
 ## Run
 
