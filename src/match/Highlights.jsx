@@ -84,9 +84,20 @@ function frame(ctx, F, h, k, total, m, video, t, cam, phase) {
     ctx.drawImage(video, sx * kx, sy * ky, cw * kx, ch * ky, vid.x, vid.y, vid.w, vid.h);
   }
   const vb = vid.y + vid.h;
-  if (phase === "replay") {
-    ctx.fillStyle = "#D6332A"; ctx.beginPath(); ctx.roundRect(vid.x + 24, vid.y + (F === FORMATS.wide ? 120 : 24), 200, 46, 8); ctx.fill();
-    ctx.fillStyle = "#fff"; ctx.font = "800 24px Consolas, monospace"; ctx.fillText("▶ REPLAY 0.4×", vid.x + 38, vid.y + (F === FORMATS.wide ? 151 : 55));
+  if (phase === "replay" || phase === "impact") {
+    // broadcast-replay look: vignette, letterbox bars, a slow-motion badge, and a flash on contact
+    const cx = vid.x + vid.w / 2, cy = vid.y + vid.h / 2, g = ctx.createRadialGradient(cx, cy, vid.h * .25, cx, cy, vid.h * .75);
+    g.addColorStop(0, "#04070A00"); g.addColorStop(1, "#04070AB0");
+    ctx.fillStyle = g; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
+    const bar = vid.h * .07;
+    ctx.fillStyle = "#000"; ctx.fillRect(vid.x, vid.y, vid.w, bar); ctx.fillRect(vid.x, vid.y + vid.h - bar, vid.w, bar);
+    const by = vid.y + bar + (F === FORMATS.wide ? 100 : 16);
+    ctx.fillStyle = "#D6332A"; ctx.beginPath(); ctx.roundRect(vid.x + 24, by, 230, 46, 8); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "800 24px Consolas, monospace"; ctx.fillText(phase === "impact" ? "● CONTACT" : "▶ REPLAY · SLOW-MO", vid.x + 38, by + 31);
+    if (phase === "impact") {
+      ctx.fillStyle = `rgba(255,255,255,${Math.max(0, .35 - (cam.t || 0) * .9)})`; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
+      ctx.strokeStyle = "#F2E6C9"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy - vid.h * .04, vid.h * (.16 + (cam.t || 0) * .1), 0, 7); ctx.stroke();
+    }
   }
   if (phase === "winner") {
     ctx.fillStyle = "#04070A99"; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
@@ -159,23 +170,54 @@ async function run(canvas, F, list, m, stopRef, onStep) {
     v.muted = true; v.playsInline = true; v.src = `/media/rallies/${r.clip}`;
     await Promise.all([new Promise((ok) => { v.oncanplay = ok; v.onerror = ok; }), wait(1000)]);
     const cam = { x: SRC.w / 2, y: SRC.h / 2, z: 1 };
-    const follow = (dt, zGoal, look, rate = 2.4) => {
-      const [tx, ty] = M ? project(M, look) : [SRC.w / 2, SRC.h / 2], a = 1 - Math.exp(-dt * rate);
-      cam.x += (tx - cam.x) * a; cam.y += (ty - 30 - cam.y) * a; cam.z += (zGoal - cam.z) * (1 - Math.exp(-dt * 1.6));
+    // camera: eases toward a point in clip pixels; zoom has its own (slower or faster) rate
+    const toward = (dt, zGoal, [tx, ty], rate = 2.4, zRate = 1.6) => {
+      const a = 1 - Math.exp(-dt * rate);
+      cam.x += (tx - cam.x) * a; cam.y += (ty - cam.y) * a; cam.z += (zGoal - cam.z) * (1 - Math.exp(-dt * zRate));
     };
+    const px = (court) => (M ? project(M, court) : [SRC.w / 2, SRC.h / 2]);
+    // a player's body in the clip: feet projected from the court, raised by about half a body height at that depth
+    const body = (court) => {
+      const [u, y] = px(court), [a] = px([court[0] - .5, court[1]]), [b] = px([court[0] + .5, court[1]]);
+      return [u, y - Math.abs(b - a) * 1.1];
+    };
+    const follow = (dt, zGoal, look, rate) => { const [x, y] = px(look); toward(dt, zGoal, [x, y - 30], rate); };
     // 1 live action with the follow-cam
     await v.play().catch(() => {});
     await playUntil(v, null, stopRef, (dt) => { follow(dt, F.zoom, target(r, v.currentTime)); frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "live"); });
     if (stopRef.current) break;
-    // 2 instant replay of the final shot: slow motion, punching in on where it landed
+    // 2 instant replay of the winning shot, built like a broadcast replay:
+    //    speed ramps down into slow motion while the camera pushes in tight on the player who hits it,
+    //    the frame holds on contact with a flash, then eases out toward where the shuttle lands
     if (last) {
-      const from = Math.max(0, last.t - 1.4);
+      const who = last.pos || target(r, last.t), spot = last.land || who;
+      const from = Math.max(0, last.t - 1.6);
       v.currentTime = from; await new Promise((ok) => { v.onseeked = ok; });
-      v.playbackRate = 0.4; await v.play().catch(() => {});
-      const spot = last.land || last.pos || [3.05, 6.7];
-      await playUntil(v, Math.min(v.duration - .05, last.t + 1.0), stopRef, (dt) => {
-        const u = Math.min(1, (v.currentTime - from) / 1.4);
-        follow(dt, F.zoom * (1 + 0.75 * u), lerp(target(r, v.currentTime), spot, u), 3);
+      v.playbackRate = 0.6; await v.play().catch(() => {});
+      await playUntil(v, last.t, stopRef, (dt) => {
+        const u = Math.min(1, (v.currentTime - from) / Math.max(.2, last.t - from));
+        v.playbackRate = Math.max(.25, .6 - .35 * u); // speed ramp into slow motion
+        toward(dt, F.zoom * (1 + 1.2 * u), body(who), 3.2, 2.2);
+        frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "replay");
+      });
+      if (stopRef.current) break;
+      // hold on contact
+      v.pause();
+      const t0 = performance.now();
+      await new Promise((done) => {
+        const tick = () => {
+          cam.t = (performance.now() - t0) / 1000;
+          toward(1 / 60, F.zoom * 2.3, body(who), 3.2, 3);
+          frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "impact");
+          cam.t < .8 && !stopRef.current ? requestAnimationFrame(tick) : done();
+        };
+        tick();
+      });
+      cam.t = 0;
+      v.playbackRate = .3; await v.play().catch(() => {});
+      await playUntil(v, Math.min(v.duration - .05, last.t + .9), stopRef, (dt) => {
+        const u = Math.min(1, (v.currentTime - last.t) / .9);
+        toward(dt, F.zoom * (2.2 - .8 * u), lerp(body(who), px(spot), u * .6), 2, 1.4);
         frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "replay");
       });
       v.pause();
@@ -254,7 +296,7 @@ export default function Highlights({ m, p }) {
         <div className="seg" role="radiogroup" aria-label="Format">
           {Object.entries(FORMATS).map(([k, f]) => <button key={k} role="radio" aria-checked={fmt === k} disabled={state !== "idle"} onClick={() => { setFmt(k); setFile(null); }}>{f.label}</button>)}
         </div>
-        <p className="tiny muted">Camera: follows the shuttle between hitter and receiver, replays the final shot at 0.4× with a punch-in on where it landed, then freezes on the winner. {F.note}.</p>
+        <p className="tiny muted">Camera: follows the shuttle between hitter and receiver; the replay ramps into slow motion and pushes in tight on the player who hits the winning shot, holds on contact, then eases out to where it lands and freezes on the winner. {F.note}.</p>
         <div className="hl-actions">
           {state === "idle" ? <>
             <button className="btn ghost" onClick={() => go(false)}>Preview reel</button>
