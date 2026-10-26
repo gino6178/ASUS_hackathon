@@ -185,10 +185,10 @@ function Footwork({ m, p }) {
       </div>
       <div className="panel">
         <h3 className="panel-h">Which opponent shots stretch {m.names[p]}</h3>
-        <table className="ptable"><thead><tr><th>Opponent shot</th><th>Time</th><th>Distance</th><th>Needed</th><th>With TELL +0.4 s</th></tr></thead>
+        <table className="ptable"><thead><tr><th>Opponent shot</th><th>Time</th><th>Distance</th><th>Needed</th><th>With an earlier read (+0.4 s)</th></tr></thead>
           <tbody>{fw.byType.map((r) => <tr key={r.t}><td>{r.t}</td><td className="mono">{f2(r.dt)} s</td><td className="mono">{f2(r.d)} m</td>
             <td className={`mono ${r.v > 3 ? "bad" : ""}`}>{f2(r.v)} m/s</td><td className="mono good">{f2(r.vEarly)} m/s</td></tr>)}</tbody></table>
-        <p className="tiny muted">Read and react: time from the opponent's contact to {m.names[p]}'s next contact, distance covered in that time. The last column is a what-if: the speed needed if our stroke-anticipation model (TELL, 400 ms before contact) gave the warning earlier. TELL itself is integrated in Stage II.</p>
+        <p className="tiny muted">Read and react: time from the opponent's contact to {m.names[p]}'s next contact, distance covered in that time. The last column is a what-if: the speed needed if the shot were read 0.4 s earlier, the head start our stroke-anticipation research (TELL) aims to give. TELL is integrated in Stage II.</p>
       </div>
       <div className="panel">
         <h3 className="panel-h">Where the stretched reaches started</h3>

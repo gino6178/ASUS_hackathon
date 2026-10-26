@@ -47,11 +47,13 @@ export default function Landing({ data }) {
       </section>
 
       <section className="band split">
-        <header className="sec-head"><span className="tag">02 · Measured, not guessed</span><h2>Built on perception research we have already validated</h2>
-          <p className="muted">The hard part, metric 3D from a single camera, is done and tested against an independent 10-camera capture.</p></header>
+        <header className="sec-head"><span className="tag">02 · Our own research</span><h2>Built on perception research from our lab</h2>
+          <p className="muted">The hard part, metric 3D from a single camera, comes from our own studies. SimTrack3D and TELL are under review, so their figures are not published here yet.</p></header>
         <div className="stats">
-          {[["0.42 m", "median 3D shuttle error vs. a 10-camera reference"], ["95.9%", "of 6,553 real strokes obey every court rule"],
-            ["400 ms", "stroke-type anticipation before contact, 27 fps"], ["98.1", "2D shuttle-tracking F1"]].map(([n, l]) => (
+          {[["TrackNetV5", "2D shuttle tracking in every broadcast frame · public code"],
+            ["SimTrack3D", "camera from the court lines, physics-trained lifting to metric 3D · under review"],
+            ["TELL", "the opponent's stroke read before contact, in real time · under review"],
+            ["On-device", "all of it runs on one local GPU · measured on the B70 in Stage II"]].map(([n, l]) => (
             <div className="stat" key={n}><b>{n}</b><span>{l}</span></div>
           ))}
         </div>

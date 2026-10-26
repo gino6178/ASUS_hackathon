@@ -148,7 +148,7 @@ export default function Live() {
             )}
           </RallyClip>
           <div className="live-hud mono">
-            <span>court cam 1080p30</span><span>tracker 27 fps</span><span>shot → stats &lt; 0.3 s</span><span className="ok">network: none</span>
+            <span>court cam 1080p30</span><span>tracker real-time</span><span>shot → stats &lt; 0.3 s</span><span className="ok">network: none</span>
           </div>
           <p className="tiny muted">Prototype: recorded rallies streamed as if live, with the between-point break compressed. In Stage II the same view runs on the B70 from the court camera, and the local 14B model turns each brief into one spoken sentence.</p>
         </div>
