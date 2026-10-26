@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShuttleCoach deployment on ASUS hardware</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #04070A; }
+  body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  canvas { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// 12 s loop, pure function of t (?export=1 for frame export). Hardware / software deployment on the ASUS platform.
+const L = 12;
+const params = new URLSearchParams(location.search);
+const SHOW_CAPTIONS = params.get('captions') !== '0';
+const C = {
+  bg: '#04070A', panel: '#0A1014', panel2: '#111A20', line: 'rgba(220,230,235,0.14)', edge: '#2A343A',
+  ink: '#EEF1F2', muted: '#8E989D', cream: '#F2E6C9', blue: '#6FB6FF', coral: '#FF8A6B',
+  green: '#5FD39A', amber: '#F2D46B', intel: '#0A7CFF', court: '#1F6B54',
+};
+const HEAD = 'Bahnschrift, "Segoe UI", sans-serif';
+const BODY = '"Segoe UI", Calibri, sans-serif';
+const MONO = 'Consolas, "IBM Plex Mono", monospace';
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+// ---------- layout ----------
+const WS = { x: 500, y: 250, w: 840, h: 735 };          // on-premise workstation
+const STACK = { x: 540, y: 345, w: 760, h: 62, gap: 12 };
+const VRAM = { x: 540, y: 686, w: 760, h: 38 };
+const GPU = { x: 540, y: 796, w: 540, h: 160 };
+const SSD = { x: 1110, y: 796, w: 190, h: 160 };
+const CAM = { x: 210, y: 610 };
+const LAN = { x: 1500, y: 610 };
+const TAB = { x: 1730, y: 470 };
+const LAP = { x: 1730, y: 760 };
+const SDV = { x: 1330, y: 112, w: 520, h: 104 };
+
+const LAYERS = [
+  { name: 'Local web app', sub: 'React + Three.js report · local web server', c: C.cream, t: 4.05 },
+  { name: 'ShuttleCoach services', sub: 'perception · 4 coach agents · RAG memory', c: C.amber, t: 3.45 },
+  { name: 'Intel AI runtime', sub: 'oneAPI · OpenVINO · IPEX-LLM', c: C.blue, t: 2.85 },
+  { name: 'OS + Intel GPU driver', sub: 'Linux / Windows · Level Zero', c: C.muted, t: 2.25 },
+];
+const BUDGET = [
+  { n: 'LLM 14B INT4', gb: 9, c: C.cream }, { n: 'Agent KV cache', gb: 7, c: C.amber }, { n: 'Clip reviewer 7B', gb: 5, c: C.coral },
+  { n: 'Simulator', gb: 4, c: C.green }, { n: '4B assistant', gb: 3, c: C.blue }, { n: 'Memory', gb: 1, c: C.green }, { n: 'Headroom', gb: 3, c: '#2A3A42' },
+];
+const STAGES = [
+  { t0: 0, t1: 2.2, n: '1', h: 'ASUS UGen Intel Arc Pro B70', d: '32 GB of GPU memory and up to 367 TOPS (INT8): one card runs every model.' },
+  { t0: 2.2, t1: 5.0, n: '2', h: 'Software stack on Intel', d: 'Intel GPU driver, oneAPI and OpenVINO / IPEX-LLM serve the vision models and the local LLM.' },
+  { t0: 5.0, t1: 7.8, n: '3', h: 'One card, scheduled by phase', d: 'Live perception first, a 4B model between points, the 14B coaches after the match (planned).' },
+  { t0: 7.8, t1: 10.2, n: '4', h: 'Local network only', d: 'Court camera in, coach’s tablet out. Video and match data never leave the workstation.' },
+  { t0: 10.2, t1: 12, n: '5', h: 'Built on ASUS SDV, deployed on-premise', d: 'Stage II: develop and validate on the organiser’s SDV host, then ship the same container to the club.' },
+];
+const FLOWS = [
+  { p: () => link(CAM.x + 95, CAM.y, WS.x - 4, 830), t0: 7.9, dur: 0.8, c: C.cream },
+  { p: () => link(WS.x + WS.w + 4, 500, LAN.x - 44, LAN.y), t0: 8.75, dur: 0.6, c: C.blue },
+  { p: () => link(LAN.x + 44, LAN.y, TAB.x - 92, TAB.y), t0: 9.35, dur: 0.5, c: C.blue },
+  { p: () => link(LAN.x + 44, LAN.y, LAP.x - 100, LAP.y), t0: 9.45, dur: 0.5, c: C.blue },
+  { p: () => sdvPath(true), t0: 10.35, dur: 0.75, c: C.amber },
+];
+function link(ax, ay, bx, by) { const mx = (ax + bx) / 2; return [{ x: ax, y: ay }, { x: mx, y: ay }, { x: mx, y: by }, { x: bx, y: by }]; }
+function sdvPath(down) {
+  const a = { x: SDV.x + 40, y: SDV.y + SDV.h }, b = { x: WS.x + WS.w - 60, y: WS.y - 4 };
+  const p = [a, { x: a.x, y: 236 }, { x: b.x, y: 200 }, b];
+  return down ? p : [p[3], p[2], p[1], p[0]];
+}
+
+const ease = (u) => (u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const win = (t, a, b) => (t >= a && t <= b ? Math.sin(Math.PI * (t - a) / (b - a)) : 0);
+function bez(p, u) {
+  const v = 1 - u;
+  return { x: v*v*v*p[0].x + 3*v*v*u*p[1].x + 3*v*u*u*p[2].x + u*u*u*p[3].x, y: v*v*v*p[0].y + 3*v*v*u*p[1].y + 3*v*u*u*p[2].y + u*u*u*p[3].y };
+}
+function glowDot(x, y, r, color, alpha, blur = 18) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.shadowColor = color; ctx.shadowBlur = blur; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+function strokePath(p, color, width, dash) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.bezierCurveTo(p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y); ctx.stroke(); ctx.restore();
+}
+function comet(p, u, color, size = 8, alpha = 1) {
+  for (let k = 14; k >= 0; k--) {
+    const uu = u - k * 0.016; if (uu < 0 || uu > 1) continue;
+    const q = bez(p, uu), f = 1 - k / 15;
+    glowDot(q.x, q.y, size * (0.35 + 0.65 * f), color, alpha * f * f, k === 0 ? 26 : 10);
+  }
+  if (u >= 0 && u <= 1) { const h = bez(p, u); glowDot(h.x, h.y, size * 0.45, '#FFFFFF', alpha, 0); }
+}
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function mix(c1, c2, f) {
+  const p = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+  const a = p(c1), b = p(c2);
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`;
+}
+function text(s, x, y, font, color, align = 'center', base = 'middle', alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.fillText(s, x, y); ctx.restore();
+}
+
+// ---------- components ----------
+function drawWorkstation(t) {
+  const br = 0.5 + 0.5 * Math.sin(t / L * Math.PI * 2 * 4);
+  ctx.save(); ctx.setLineDash([2, 10]); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(242,230,201,${0.32 + 0.14 * br})`;
+  rr(WS.x, WS.y, WS.w, WS.h, 30); ctx.stroke(); ctx.restore();
+  text('ON-PREMISE ASUS WORKSTATION', WS.x + 36, WS.y + 38, `24px ${MONO}`, C.cream, 'left');
+  text('at the club or school · no internet required', WS.x + 36, WS.y + 70, `21px ${BODY}`, C.muted, 'left');
+  // lock
+  const lx = WS.x + WS.w - 60, ly = WS.y + 44;
+  ctx.save(); ctx.strokeStyle = C.green; ctx.lineWidth = 4; ctx.fillStyle = 'rgba(95,211,154,0.12)';
+  rr(lx - 18, ly - 4, 36, 28, 6); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(lx, ly - 4, 11, Math.PI, 0); ctx.stroke(); ctx.restore();
+}
+
+function drawStack(t) {
+  LAYERS.forEach((l, i) => {
+    const y = STACK.y + i * (STACK.h + STACK.gap);
+    const a = clamp((t - l.t) / 0.45), rise = (1 - ease(a)) * 30;
+    if (a <= 0) {
+      ctx.save(); ctx.setLineDash([6, 8]); ctx.strokeStyle = '#1E282E'; ctx.lineWidth = 2; rr(STACK.x, y, STACK.w, STACK.h, 12); ctx.stroke(); ctx.restore();
+      return;
+    }
+    const flash = clamp(1 - (t - l.t - 0.45) / 0.8);
+    ctx.save(); ctx.globalAlpha = a; ctx.shadowColor = l.c; ctx.shadowBlur = 26 * flash;
+    rr(STACK.x, y + rise, STACK.w, STACK.h, 12); ctx.fillStyle = C.panel2; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = mix(C.edge, l.c, 0.45 + 0.55 * flash); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = l.c; rr(STACK.x + 14, y + rise + 18, 8, STACK.h - 36, 4); ctx.fill(); ctx.restore();
+    text(l.name, STACK.x + 36, y + rise + STACK.h / 2 - 1, `bold 26px ${HEAD}`, C.ink, 'left', 'middle', a);
+    text(l.sub, STACK.x + STACK.w - 24, y + rise + STACK.h / 2, `21px ${BODY}`, C.muted, 'right', 'middle', a);
+  });
+}
+
+function drawVram(t) {
+  const total = 32, x0 = VRAM.x, y0 = VRAM.y, W = VRAM.w;
+  // one label line: what the bar is, then how the models get there
+  text('GPU MEMORY · 32 GB (peak phase)', x0, y0 - 18, `18px ${MONO}`, C.muted, 'left');
+  if (t > 5) text('INT4 · OpenVINO / IPEX-LLM · loaded by phase', x0 + W, y0 - 18, `16px ${MONO}`, C.green, 'right', 'middle', clamp((t - 5) / 0.5));
+  ctx.save(); rr(x0, y0, W, VRAM.h, 10); ctx.fillStyle = '#0D1418'; ctx.fill(); ctx.strokeStyle = '#1E282E'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  let acc = 0;
+  BUDGET.forEach((b, i) => {
+    const ts = 5.15 + i * 0.38, a = clamp((t - ts) / 0.4);
+    const x = x0 + (acc / total) * W, w = (b.gb / total) * W * ease(a);
+    if (a > 0) {
+      ctx.save(); ctx.shadowColor = b.c; ctx.shadowBlur = 18 * clamp(1 - (t - ts - 0.4) / 0.6);
+      rr(x + 2, y0 + 4, Math.max(0, w - 4), VRAM.h - 8, 6); ctx.fillStyle = b.c; ctx.globalAlpha = b.n === 'Headroom' ? 0.9 : 0.88; ctx.fill(); ctx.restore();
+      if (a > 0.6) text(`${b.gb}`, x + (b.gb / total) * W / 2, y0 + VRAM.h / 2 + 1, `bold 20px ${MONO}`, b.n === 'Headroom' ? C.muted : C.bg, 'center', 'middle', clamp((a - 0.6) / 0.4));
+      const la = clamp((t - ts - 0.2) / 0.4) * (t < 7.9 || t > 11.6 ? 1 : 0.55);
+      if (la > 0) text(b.n, x + (b.gb / total) * W / 2, y0 + VRAM.h + (i % 2 ? 42 : 18), `18px ${BODY}`, C.muted, 'center', 'middle', la);
+    }
+    acc += b.gb;
+  });
+}
+
+function drawGpu(t) {
+  const hw = Math.max(win(t, 0, 2.2), win(t, 5.0, 7.8) * 0.7, win(t, 7.9, 10.2) * 0.5);
+  const { x, y, w, h } = GPU;
+  ctx.save(); ctx.shadowColor = C.intel; ctx.shadowBlur = 40 * hw;
+  rr(x, y, w, h, 16); ctx.fillStyle = '#0B1218'; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = mix('#3A444A', C.blue, 0.3 + 0.7 * hw); ctx.stroke(); ctx.restore();
+  // shroud stripe and PCIe fingers
+  ctx.save(); ctx.fillStyle = mix('#1A242A', C.intel, 0.25 + 0.5 * hw); rr(x + 16, y + 14, w - 32, 10, 5); ctx.fill();
+  ctx.fillStyle = '#C8A85A'; for (let k = 0; k < 18; k++) ctx.fillRect(x + 80 + k * 18, y + h, 10, 12); ctx.restore();
+  // two fans spinning faster under load
+  const spin = t * (2 + 6 * hw);
+  [x + 92, x + 212].forEach((fx) => {
+    const fy = y + 92;
+    ctx.save(); ctx.strokeStyle = '#3A444A'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(fx, fy, 52, 0, Math.PI * 2); ctx.stroke();
+    ctx.translate(fx, fy); ctx.rotate(spin);
+    for (let k = 0; k < 7; k++) {
+      ctx.rotate(Math.PI * 2 / 7); ctx.fillStyle = mix('#2C363C', C.blue, 0.2 + 0.4 * hw);
+      ctx.beginPath(); ctx.ellipse(26, 0, 22, 8.5, 0.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#0B1218'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+  text('ASUS UGen', x + 290, y + 62, `bold 26px ${HEAD}`, C.ink, 'left');
+  text('Intel Arc Pro B70', x + 290, y + 94, `bold 26px ${HEAD}`, mix(C.ink, C.blue, hw * 0.6), 'left');
+  const chip = (label, cx, cy, a, w = 78) => {
+    ctx.save(); ctx.globalAlpha = a; rr(cx, cy, w, 34, 8); ctx.fillStyle = 'rgba(111,182,255,0.12)'; ctx.fill();
+    ctx.strokeStyle = C.blue; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+    text(label, cx + w / 2, cy + 18, `bold 18px ${MONO}`, C.blue, 'center', 'middle', a);
+  };
+  chip('32 GB', x + 290, y + 116, clamp((t - 0.5) / 0.4) || (t > 0.9 ? 1 : 0));
+  chip('367 TOPS', x + 378, y + 116, clamp((t - 0.9) / 0.4) || (t > 1.3 ? 1 : 0), 104);
+}
+
+function drawSsd(t) {
+  const g = Math.max(win(t, 8.5, 9.6), 0);
+  const { x, y, w, h } = SSD;
+  ctx.save(); ctx.shadowColor = C.green; ctx.shadowBlur = 26 * g; rr(x, y, w, h, 16); ctx.fillStyle = '#0B1218'; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = mix('#3A444A', C.green, 0.3 + 0.7 * g); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.fillStyle = '#1A242A'; for (let k = 0; k < 4; k++) { rr(x + 24 + k * 38, y + 30, 28, 40, 4); ctx.fill(); } ctx.restore();
+  text('Encrypted SSD', x + w / 2, y + 104, `bold 22px ${HEAD}`, C.ink);
+  text('video · match DB', x + w / 2, y + 134, `19px ${BODY}`, C.muted);
+}
+
+function drawCamera(t) {
+  const g = win(t, 7.7, 8.5);
+  const { x, y } = CAM;
+  ctx.save(); ctx.shadowColor = C.cream; ctx.shadowBlur = 30 * g; ctx.lineWidth = 7; ctx.strokeStyle = mix('#C9CED8', C.cream, g); ctx.fillStyle = C.bg;
+  rr(x - 75, y - 45, 110, 90, 16); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 40, y - 18); ctx.lineTo(x + 82, y - 40); ctx.lineTo(x + 82, y + 40); ctx.lineTo(x + 40, y + 18); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x - 20, y, 18, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  text('Court camera', x, y + 92, `bold 28px ${HEAD}`, C.ink);
+  text('USB / IP · 1080p', x, y + 124, `21px ${BODY}`, C.muted);
+}
+
+function drawLan(t) {
+  const g = win(t, 9.1, 9.9);
+  ctx.save(); ctx.shadowColor = C.blue; ctx.shadowBlur = 24 * g; rr(LAN.x - 44, LAN.y - 26, 88, 52, 10); ctx.fillStyle = C.panel; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = mix('#3A444A', C.blue, 0.3 + 0.7 * g); ctx.stroke(); ctx.restore();
+  for (let k = 0; k < 4; k++) glowDot(LAN.x - 24 + k * 16, LAN.y + 4, 3.5, C.green, 0.4 + 0.6 * ((Math.floor(t * 6) + k) % 2), 6);
+  text('Local network', LAN.x, LAN.y + 58, `bold 22px ${HEAD}`, C.ink);
+}
+
+function drawDevice(d, label, sub, isTab, t, t0) {
+  const g = win(t, t0, t0 + 1.4);
+  const w = isTab ? 150 : 180, h = isTab ? 110 : 100;
+  ctx.save(); ctx.shadowColor = C.cream; ctx.shadowBlur = 30 * g; ctx.lineWidth = 6; ctx.strokeStyle = mix('#C9CED8', C.cream, g); ctx.fillStyle = C.bg;
+  rr(d.x - w / 2, d.y - h / 2, w, h, 12); ctx.fill(); ctx.stroke();
+  if (!isTab) { ctx.beginPath(); ctx.moveTo(d.x - w / 2 - 18, d.y + h / 2 + 12); ctx.lineTo(d.x + w / 2 + 18, d.y + h / 2 + 12); ctx.stroke(); }
+  ctx.restore();
+  ctx.save(); ctx.fillStyle = C.court; rr(d.x - w / 2 + 16, d.y - h / 2 + 14, w * 0.45, h - 28, 4); ctx.fill();
+  const hg = ctx.createRadialGradient(d.x - w / 2 + 40, d.y - 14, 2, d.x - w / 2 + 40, d.y - 14, 30);
+  hg.addColorStop(0, `rgba(255,95,86,${0.3 + 0.6 * g})`); hg.addColorStop(1, 'rgba(255,95,86,0)'); ctx.fillStyle = hg; ctx.fillRect(d.x - w / 2 + 16, d.y - h / 2 + 14, w * 0.45, h - 28);
+  ctx.fillStyle = mix('#3A444A', C.cream, 0.3 + 0.6 * g); [0, 1, 2].forEach((k) => { rr(d.x + 6, d.y - 22 + k * 20, k === 2 ? 34 : 54, 8, 4); ctx.fill(); });
+  ctx.restore();
+  text(label, d.x, d.y + h / 2 + (isTab ? 36 : 48), `bold 24px ${HEAD}`, C.ink);
+  text(sub, d.x, d.y + h / 2 + (isTab ? 66 : 78), `19px ${BODY}`, C.muted);
+}
+
+function drawSdv(t) {
+  const on = win(t, 10.2, 12);
+  const { x, y, w, h } = SDV;
+  ctx.save(); ctx.shadowColor = C.amber; ctx.shadowBlur = 30 * on; rr(x, y, w, h, 18); ctx.fillStyle = C.panel; ctx.fill();
+  ctx.setLineDash([8, 8]); ctx.lineWidth = 3; ctx.strokeStyle = mix('#3A444A', C.amber, 0.35 + 0.65 * on); ctx.stroke(); ctx.restore();
+  text('ASUS SDV virtual host', x + 28, y + 36, `bold 26px ${HEAD}`, mix(C.ink, C.amber, on * 0.6), 'left');
+  text('Stage II · B70 dev & validation environment', x + 28, y + 72, `19px ${BODY}`, C.muted, 'left');
+  strokePath(sdvPath(true), on > 0.02 ? `rgba(242,212,107,${0.25 + 0.5 * on})` : 'rgba(242,212,107,0.18)', 3, [8, 10]);
+  if (on > 0.05) text('same container', x + 70, 238, `bold 19px ${MONO}`, C.amber, 'left', 'middle', on);
+}
+
+function drawNoCloud() {
+  const x = 1760, y = 960;
+  ctx.save(); ctx.globalAlpha = 0.3; ctx.strokeStyle = '#C9CED8'; ctx.lineWidth = 5; ctx.beginPath();
+  ctx.arc(x - 32, y + 8, 24, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(x, y - 8, 32, Math.PI, 0); ctx.arc(x + 36, y + 8, 24, Math.PI * 1.5, Math.PI * 0.5);
+  ctx.closePath(); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - 56, y + 36); ctx.lineTo(x + 60, y - 40); ctx.stroke(); ctx.restore();
+  text('NO CLOUD', x - 92, y, `22px ${MONO}`, C.coral, 'right');
+}
+
+function render(t) {
+  t = ((t % L) + L) % L;
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, 1920, 1080);
+  FLOWS.slice(0, 4).forEach((f) => strokePath(f.p(), C.line, 3));
+  // ambient motes along the network links
+  FLOWS.slice(0, 4).forEach((f, j) => {
+    for (let m = 0; m < 3; m++) { const u = (t / 3 + m / 3 + j * 0.13) % 1; const q = bez(f.p(), u); glowDot(q.x, q.y, 3.2, j ? C.blue : C.cream, 0.5 * Math.sin(Math.PI * u), 10); }
+  });
+  drawWorkstation(t);
+  drawStack(t);
+  drawVram(t);
+  drawGpu(t);
+  drawSsd(t);
+  drawCamera(t);
+  drawLan(t);
+  drawDevice(TAB, 'Coach tablet', 'browser · same Wi-Fi', true, t, 9.8);
+  drawDevice(LAP, 'Analyst laptop', 'browser · same LAN', false, t, 9.9);
+  drawSdv(t);
+  drawNoCloud();
+  for (const f of FLOWS) {
+    const u = (t - f.t0) / f.dur; if (u < 0 || u > 1.25) continue;
+    comet(f.p(), ease(clamp(u)), f.c, 9, u > 1 ? 1 - (u - 1) / 0.25 : 1);
+  }
+  text('SHUTTLECOACH · HARDWARE & SOFTWARE DEPLOYMENT', 80, 70, `24px ${MONO}`, C.muted, 'left');
+  if (SHOW_CAPTIONS) drawCaption(t);
+}
+
+function drawCaption(t) {
+  const s = STAGES.find((st) => t >= st.t0 && t < st.t1); if (!s) return;
+  const fade = clamp(Math.min((t - s.t0) / 0.3, (s.t1 - t) / 0.3));
+  ctx.save(); ctx.globalAlpha = fade; glowDot(92, 128, 9, C.cream, 1, 16); ctx.restore();
+  text(`${s.n} · ${s.h}`, 116, 128, `bold 34px ${HEAD}`, C.cream, 'left', 'middle', fade);
+  text(s.d, 80, 176, `26px ${BODY}`, C.ink, 'left', 'middle', fade);
+  STAGES.forEach((st, i) => { ctx.save(); ctx.fillStyle = st === s ? C.cream : '#1E282E'; rr(80 + i * 64, 214, 52, 8, 4); ctx.fill(); ctx.restore(); });
+}
+
+window.render = render;
+window.LOOP_SECONDS = L;
+if (params.get('export') !== '1') {
+  const start = performance.now();
+  const loop = (now) => { if (!window.PAUSED) render((now - start) / 1000); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+} else render(0);
+</script>
+</body>
+</html>

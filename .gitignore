@@ -1,11 +1,39 @@
 node_modules/
 dist/
-
-# Not published: data-preparation scripts, derived match data, broadcast footage and the 3D anatomy model.
-scripts/
-public/data/
-public/body/
-public/media/*
-!public/media/favicon.svg
-public/models/
 *.local
+.env
+~$*
+
+# Not published
+# - the in-house perception methods and their design notes (under review): the research checkout is not in this repo
+docs/design.md
+web/scripts/out/
+# - broadcast footage is not ours to publish; model weights are downloaded (see the READMEs)
+web/public/media/*
+!web/public/media/favicon.svg
+web/public/models/
+llm-server/models/
+llm-server/env/
+# - runtime data on the coaching station: players, feedback, playbooks, knowledge base
+agent/data/
+# - deck: recorded clips and screenshots (broadcast frames), QA renders, scratch scripts, older versions
+deck/node_modules/
+deck/clips/
+deck/shots/
+deck/assets/
+deck/qa*/
+deck/verify/
+deck/_skill/
+deck/_*
+deck/anim/*.gif
+deck/anim/*.mp4
+deck/anim/*.jpg
+deck/anim/*.png
+deck/build.js
+deck/build2.bak.js
+deck/verify*.mjs
+deck/dbg_voice.mjs
+deck/ShuttleCoach_StageI_Proposal.pptx
+deck/*_v2*
+deck/*_v3*
+deck/anim/frames*/

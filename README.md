@@ -1,75 +1,66 @@
 # ShuttleCoach
 
-A private, on-device multi-agent badminton analyst. One camera in; 3D shuttle flight, shot speeds, heat zones,
-coaching advice and a training plan out. Every step runs on the local machine.
+A private, on-device multi-agent badminton coach. One camera in; 3D shuttle flight, shot speeds, heat zones, a
+coaching staff that debates the week at a round table, and a training plan out. Every model runs on the local
+machine; match video never leaves it.
 
 ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B70 32GB) · Theme: Everyday AI
 
-This repository holds the **web interface prototype**.
+## Repository
 
-## What the interface does
-
-| Page | Content |
+| Folder | What it is |
 |---|---|
-| Overview | Landing page with a live 3D replay of a reconstructed rally |
-| Analyze | Drop in a match video; the browser opens it locally and nothing is uploaded |
-| Processing | The on-device pipeline stages (2D tracking, camera calibration, 3D lifting, hit detection, player location, match database, agent briefing) |
-| Coaches | Four personified coach agents. Tactics flashes the heat zones that cost points; Technique replays and grades every flight; Fitness pulses the muscles to train on a 3D model; Data profiles a player's habits, heat zones and attack types |
-| Round table | All four coaches and a head coach debate the match. Conflicts follow a fixed rule (health limits from memory first, then points at stake, one owner per goal); the result is four measurable goals and a 7-day schedule, printable as PDF and saved to memory |
-| Match | Score flow, points won and lost, shot sequences, rally list with frame annotation, an auto-picked top-5 highlight reel exported as a 9:16 video in the browser, footwork and anticipation reads, fatigue with a load and injury-risk watch, and comparison across matches |
-| Live | Court-side mode: rallies stream in as they are played, with scoreboard, running stats, opponent landing map and coach alerts when a pattern appears |
-| Scout | One-page opponent scouting report (targets, weak zones, shot mix, patterns, game plan), saved as PDF |
-| Voice coach | Tap "Ask" and speak: Whisper tiny transcribes in the browser (ONNX, no audio leaves the device), the question is answered from the match database and the right view opens |
-| Rally 3D | Broadcast video with shuttle trail, both players' skeletons (MediaPipe pose), live movement stats (speed, top speed, distance) and a court mini-map; exports an annotated video |
-| Court calibration | On Analyze: the four court corners are detected automatically and can be dragged; the court model is projected back and a rectified top-down view checks the fit |
-| Memory | Player memory (RAG): goals, injuries, routines and past sessions, stored on the device and retrieved by each coach before it answers |
-| Report | Video and 3D court in sync; per-shot launch speed, apex, contact height and flight time; speed curve |
-| | Match patterns: stroke mix and opponent smash landings |
-| | Heat zones: where a player's attacks land and where they are beaten (rally outcomes from shot-level labels) |
-| | Five agents (Head Coach, Stats Analyst, Positioning, Training Planner, Evidence Verifier); every claim cites the shots behind it |
-| | Body focus: findings mapped to muscle groups on a 3D anatomy model, with drills |
-| | Sparring simulator: replay thousands of rallies against an opponent style and test a base position |
+| [`web/`](web) | The interface: React + Three.js (Vite). Match analysis, coaches, round table, live mode, voice coach, highlights, Lab |
+| [`agent/`](agent) | Agent gateway (Node): grounded coach chat on a local LLM with a number verifier, player memory, the research agent and knowledge base (RAG), self-evolving playbooks, and the 24-hour coach on Telegram |
+| [`llm-server/`](llm-server) | Qwen3-4B INT4 on OpenVINO GenAI behind an OpenAI-compatible API, for the Arc Pro B70 |
+| [`server/`](server) | `start.sh`: starts the LLM backend (Ollama or OpenVINO) and the gateway on the coaching station |
+| [`deck/`](deck) | Stage I proposal deck (PDF, PPTX) and the scripts that build it and record its clips |
+| [`docs/`](docs) | Demo video script, coach portrait prompts |
 
-## Prototype status
+## Run it
 
-- The agents' answers are generated from the computed match facts; the local LLM is connected in Stage II.
-- An uploaded video is opened and previewed locally, but the report shows a precomputed sample match.
-- Shuttle speeds are estimates from the reconstructed 3D track.
-- The body focus view is a coaching heuristic, not a medical or physiotherapy assessment.
-
-## Offline voice model
-
-The voice coach loads Whisper tiny from `public/models/Xenova/whisper-tiny.en/` (not in this repository, about 40 MB):
-`config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer.json`, `tokenizer_config.json`, `special_tokens_map.json`
-and `onnx/encoder_model_quantized.onnx`, `onnx/decoder_model_merged_quantized.onnx` from https://huggingface.co/Xenova/whisper-tiny.en.
-
-## Run
+On the coaching station (Linux, NVIDIA or Intel GPU):
 
 ```bash
-npm install
+cp agent/.env.example agent/.env          # set TELEGRAM_BOT_TOKEN to use the Telegram coach
+BACKEND=ollama ./server/start.sh          # or BACKEND=openvino on the Arc Pro B70
+```
+
+On any machine with a browser:
+
+```bash
+cd web && npm install
+echo VITE_AGENT_URL=http://<station-ip>:8787 > .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:5190.
+End-to-end test of the gateway and the Telegram bot (a fake Telegram API, the real local model): `cd agent && npm test`.
 
-## Not included
+## The coaching staff
 
-The following are **not** published here, so the report pages stay on "Loading" until they are added locally:
+- **Grounded replies.** Deterministic code computes every match number; the model only explains them. A verifier
+  checks each figure against the fact or study cited in the same sentence and rejects the reply otherwise.
+- **Round table.** Tactics, technique, fitness and data coaches argue; the head coach rules by fixed priorities
+  (health limits from memory first, then points at stake) and writes four measurable goals and a 7-day plan.
+- **Self-evolving.** A research agent searches OpenAlex, arXiv and Semantic Scholar every night and keeps findings
+  whose numbers appear in the abstract. Each coach then reflects on player feedback, rejected drafts and new findings,
+  and proposes changes to its own playbook. A change is adopted only if it cites a study in the coach's area, passes
+  the safety check and does not regress on the coach's test questions; anything about health waits for a human coach.
+  Every version can be rolled back (web: Lab).
+- **24-hour coach on Telegram.** Food at home and meals timed to training, the player's schedule with a reminder an
+  hour before each session, the training log with an evening check-in. Only text passes through Telegram;
+  `/forget` deletes everything stored about a player.
 
-| Path | Content |
-|---|---|
-| `public/data/sample.json` | Sample match data derived from the lab's research pipeline and shot-level annotations |
-| `public/media/sample_rally.mp4`, `sample_poster.jpg` | Sample rally clip (broadcast footage) |
-| `public/body/body.json`, `body.bin` | 3D muscles and skeleton extracted from BodyParts3D 4.0 |
+## Not in this repository
 
-## Built with
-
-React, Three.js and Vite. 2D tracking backbone: [TrackNetV5](https://github.com/gino6178/TrackNetV5).
+- The in-house monocular scene reconstruction and intent detection methods (closed blocks). The app ships their precomputed outputs for the sample match in `web/public/data/`.
+- The broadcast footage of the sample match (not ours to redistribute) and model weights (downloaded; see
+  `llm-server/README.md` and `web/README.md`).
+- Runtime data on the station: players, conversations, feedback, playbooks and the knowledge base.
 
 ## Credits
 
-- Coach portraits in `public/coaches/` are AI-generated images of fictional people; they are not real coaches.
-
-- 3D anatomy (not included in this repository): BodyParts3D 4.0, © The Database Center for Life Science, licensed under
-  CC BY 4.0, adapted via [Human Atlas](https://github.com/ashemag/human-atlas) (MIT).
-- Fonts: Michroma, Manrope and IBM Plex Mono via Google Fonts.
+TrackNetV3 (MIT) and TrackNetV5 ([github.com/gino6178/TrackNetV5](https://github.com/gino6178/TrackNetV5)) for 2D
+shuttle tracking; ShuttleSet (KDD 2023) labels; BodyParts3D 4.0, © The Database Center for Life Science, CC BY 4.0,
+adapted via Human Atlas (MIT); Whisper tiny.en (MIT) via Transformers.js (Apache-2.0); MediaPipe Pose Landmarker
+(Apache-2.0); Qwen3 (Apache-2.0). Coach portraits are AI-generated, fictional people.

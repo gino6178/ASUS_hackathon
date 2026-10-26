@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar.jsx";
-import { agentChat, agentStatus, AGENT_URL } from "../agent.js";
+import { agentChat, agentStatus, agentFeedback, AGENT_URL } from "../agent.js";
 import { memory } from "../memory.js";
 import { scrollBehavior } from "../hooks.js";
+import "../pages/lab.css";
 
 // Free conversation with one coach agent on the local LLM (Qwen3-4B on OpenVINO). Every reply is grounded in the
 // match facts sheet; the gateway's verifier checks every number before it is shown. "Remember this" also saves the
@@ -32,6 +33,12 @@ export default function CoachChat({ coach, onRemember }) {
     }
     setBusy(false);
   };
+  // 👍 / 👎 feeds the coaches' nightly reflection (see Lab)
+  const rate = (k, value) => {
+    const m = msgs[k], q = msgs.slice(0, k).reverse().find((x) => x.role === "user");
+    setMsgs((all) => all.map((x, i) => (i === k ? { ...x, rated: value } : x)));
+    agentFeedback({ coach: m.r.coach, question: q?.text, reply: m.text, value }).catch(() => {});
+  };
 
   const llm = status?.llm;
   return (
@@ -55,6 +62,18 @@ export default function CoachChat({ coach, onRemember }) {
                   {m.r.cites.length ? ` · cites ${m.r.cites.join(" ")}` : ""}
                   {m.r.timing ? ` · ${m.r.timing.seconds} s, ${m.r.timing.tokens_per_s} tok/s on ${m.r.timing.device}` : ""}
                   {m.r.verified.offline ? " · model offline, raw fact shown" : ""}
+                </span>
+              )}
+              {m.r?.evidence?.length > 0 && (
+                <ul className="tiny chat-sources">
+                  {m.r.evidence.map((e) => <li key={e.id}>{e.id} · {e.url ? <a href={e.url} target="_blank" rel="noreferrer">{e.cite}</a> : e.cite}</li>)}
+                </ul>
+              )}
+              {m.r && !m.r.verified.offline && (
+                <span className="chat-rate">
+                  <button type="button" className="chip" aria-pressed={m.rated === 1} disabled={!!m.rated} onClick={() => rate(k, 1)} aria-label="Helpful">👍</button>
+                  <button type="button" className="chip" aria-pressed={m.rated === -1} disabled={!!m.rated} onClick={() => rate(k, -1)} aria-label="Not helpful">👎</button>
+                  {m.rated ? <span className="tiny muted">Thanks, noted for the coaches.</span> : null}
                 </span>
               )}
             </div>

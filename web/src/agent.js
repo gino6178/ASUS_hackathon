@@ -12,3 +12,12 @@ export const agentPlayers = () => call("/api/players");
 export const agentChat = (coach, message, history) => call("/api/chat", { coach, message, history });
 export const agentNotify = (plan, text) => call("/api/notify", { plan, text });
 export const agentRemind = () => call("/api/remind", {});
+// the self-evolving staff: knowledge base from the research agent, playbooks, proposals and feedback
+export const agentKb = () => call("/api/kb");
+export const agentKbSearch = (q) => call(`/api/kb/search?q=${encodeURIComponent(q)}`);
+export const agentResearch = (topics) => call("/api/research/run", { topics, maxPapers: 6 });
+export const agentPlaybooks = () => call("/api/playbooks");
+export const agentEvolve = () => call("/api/evolve/run", {});
+export const agentDecide = (coach, id, approve) => call("/api/evolve/decide", { coach, id, approve });
+export const agentRollback = (coach) => call("/api/evolve/rollback", { coach });
+export const agentFeedback = (fb) => call("/api/feedback", fb);

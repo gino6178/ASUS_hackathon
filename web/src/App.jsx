@@ -11,6 +11,7 @@ import Scout from "./pages/Scout.jsx";
 import Live from "./pages/Live.jsx";
 import RoundTable from "./pages/RoundTable.jsx";
 import Messages from "./pages/Messages.jsx";
+import Lab from "./pages/Lab.jsx";
 import { memory } from "./memory.js";
 import VoiceCoach from "./voice/VoiceCoach.jsx";
 import { loadSample } from "./data.js";
@@ -32,6 +33,7 @@ const MAIN = [
 const MORE = [
   { k: "analyze", label: "Analyze a video", note: "Add a match from this device", icon: "plus" },
   { k: "messages", label: "Messages", note: "Coaches on Telegram", icon: "chat" },
+  { k: "lab", label: "Lab", note: "Research and self-improvement", icon: "memory" },
   { k: "memory", label: "Player memory", note: "What the coaches remember", icon: "memory" },
 ];
 const href = (k) => `#/${k === "home" ? "" : k}`;
@@ -150,6 +152,7 @@ export default function App() {
         {page === "live" && <Live data={data} />}
         {page === "roundtable" && <RoundTable data={data} />}
         {page === "messages" && <Messages />}
+        {page === "lab" && <Lab />}
       </main>
     </>
   );

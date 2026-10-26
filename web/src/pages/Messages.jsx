@@ -25,9 +25,9 @@ export default function Messages() {
     <div className="page messages">
       <header className="report-head">
         <div>
-          <span className="tag">Coaches on Telegram · local language model</span>
-          <h1 className="h1">Your coaches, between sessions</h1>
-          <p className="muted">Players chat with the coaching staff on Telegram. Every reply is written by the local model from the measured facts, checked by the verifier, and adapted to what the player has told the coaches before.</p>
+          <span className="tag">24-hour coach on Telegram · local language model</span>
+          <h1 className="h1">A coach in the pocket, 24 hours a day</h1>
+          <p className="muted">Between sessions the staff lives in Telegram: players tell it what food they have, their schedule and what they trained, and get meals timed around training, reminders an hour before each session and an evening check-in. Every reply is written by the local model from the measured facts, checked by the verifier, and adapted to what the player has told the coaches before.</p>
         </div>
         <div className="cta-row">
           <button className="btn ghost" disabled={!ps.some((p) => p.plan)} title={ps.some((p) => p.plan) ? undefined : "Send a plan from the round table first"}
@@ -62,6 +62,12 @@ export default function Messages() {
               {p.memories.length ? <ul className="msg-mem">{p.memories.map((m, k) => <li key={k}>{m.text}<span className="tiny muted"> · {when(m.at)}</span></li>)}</ul> : <p className="tiny muted">Nothing yet.</p>}
               <h4>Plan on file</h4>
               {p.plan ? <ul className="msg-mem">{p.plan.goals.map((g) => <li key={g}>{g}</li>)}</ul> : <p className="tiny muted">None sent yet: use “Send to players” on the round table.</p>}
+              <h4>Calendar</h4>
+              {p.events?.length ? <ul className="msg-mem">{p.events.slice(-8).map((e) => <li key={e.id}>{e.date} {e.start}{e.end ? `–${e.end}` : ""} · {e.title}<span className="tiny muted"> · {e.kind}</span></li>)}</ul> : <p className="tiny muted">Nothing yet: players tell the bot their sessions, matches and exams.</p>}
+              <h4>Training log</h4>
+              {p.logs?.length ? <ul className="msg-mem">{p.logs.slice(-6).reverse().map((l, k) => <li key={k}>{l.date} · {l.what}{l.minutes ? `, ${l.minutes} min` : ""}{l.pain ? <span className="bad"> · pain: {l.pain}</span> : null}</li>)}</ul> : <p className="tiny muted">No sessions logged yet.</p>}
+              <h4>Food at home</h4>
+              {p.pantry?.length ? <p className="small">{p.pantry.map((x) => x.item).join(", ")}</p> : <p className="tiny muted">Empty: players send /pantry or just say what they bought.</p>}
             </div>
             <div className="msg-log">
               {p.history.map((h, k) => {

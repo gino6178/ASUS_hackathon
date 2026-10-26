@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShuttleCoach architecture</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #04070A; }
+  body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  canvas { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// 12 s loop; every frame is a pure function of t, so frames can be exported one by one (?export=1).
+const L = 12;
+const params = new URLSearchParams(location.search);
+const SHOW_CAPTIONS = params.get('captions') !== '0';
+
+const C = {
+  bg: '#04070A', panel: '#0A1014', panel2: '#111A20', line: 'rgba(220,230,235,0.14)',
+  ink: '#EEF1F2', muted: '#8E989D', cream: '#F2E6C9', blue: '#6FB6FF', coral: '#FF8A6B',
+  green: '#5FD39A', amber: '#F2D46B', court: '#1F6B54',
+};
+const HEAD = 'Bahnschrift, "Segoe UI", sans-serif';
+const BODY = '"Segoe UI", Calibri, sans-serif';
+const MONO = 'Consolas, "IBM Plex Mono", monospace';
+
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+// ---------- layout ----------
+const CAM = { x: 190, y: 560 };
+const PER = { x: 610, y: 470 };
+const ANA = { x: 960, y: 470 };
+const AGT = { x: 1330, y: 470 };
+const SIM = { x: 1330, y: 850 };
+const OUT = { x: 1745, y: 560 };
+const GPU = { x: 420, y: 250, w: 1150, h: 760 };
+const CLOUD = { x: 1720, y: 175 };
+const AGENTS = [
+  { name: 'Tactics', c: C.cream, a: -Math.PI / 2 },
+  { name: 'Technique', c: C.blue, a: 0 },
+  { name: 'Fitness', c: C.coral, a: Math.PI / 2 },
+  { name: 'Data', c: C.green, a: Math.PI },
+];
+const MEM = { x: 960, y: 850 };
+const AR = 118;
+const agentPos = (i) => ({ x: AGT.x + Math.cos(AGENTS[i].a) * AR, y: AGT.y + Math.sin(AGENTS[i].a) * AR });
+
+const P = (a, b, bend = 0) => {
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  return [a, { x: mx, y: a.y + bend }, { x: mx, y: b.y + bend }, b];
+};
+const LINKS = {
+  camPer: P({ x: CAM.x + 95, y: CAM.y }, { x: PER.x - 120, y: PER.y + 20 }, 0),
+  perAna: P({ x: PER.x + 120, y: PER.y }, { x: ANA.x - 110, y: ANA.y }),
+  anaAgt: P({ x: ANA.x + 110, y: ANA.y }, { x: AGT.x - 165, y: AGT.y }),
+  agtSim: [{ x: AGT.x - 18, y: AGT.y + 236 }, { x: AGT.x - 18, y: 700 }, { x: SIM.x - 18, y: 730 }, { x: SIM.x - 18, y: SIM.y - 100 }],
+  simAgt: [{ x: SIM.x + 18, y: SIM.y - 100 }, { x: SIM.x + 18, y: 730 }, { x: AGT.x + 18, y: 700 }, { x: AGT.x + 18, y: AGT.y + 236 }],
+  agtOut: P({ x: AGT.x + 165, y: AGT.y }, { x: OUT.x - 105, y: OUT.y - 20 }),
+  memAgt: [{ x: MEM.x + 95, y: MEM.y - 20 }, { x: 1150, y: MEM.y - 20 }, { x: AGT.x - 150, y: 640 }, { x: AGT.x - 95, y: AGT.y + 95 }],
+  agtMem: [{ x: AGT.x - 80, y: AGT.y + 110 }, { x: AGT.x - 130, y: 660 }, { x: 1150, y: MEM.y + 20 }, { x: MEM.x + 95, y: MEM.y + 20 }],
+};
+const spoke = (i, out) => {
+  const p = agentPos(i), h = { x: AGT.x, y: AGT.y };
+  const a = out ? h : p, b = out ? p : h;
+  const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  return [a, m, m, b];
+};
+
+function bez(p, u) {
+  const v = 1 - u;
+  return {
+    x: v*v*v*p[0].x + 3*v*v*u*p[1].x + 3*v*u*u*p[2].x + u*u*u*p[3].x,
+    y: v*v*v*p[0].y + 3*v*v*u*p[1].y + 3*v*u*u*p[2].y + u*u*u*p[3].y,
+  };
+}
+
+// ---------- timeline ----------
+const EVENTS = [
+  { k: 'camPer', t0: 0.25, dur: 0.9, c: C.cream },
+  { k: 'perAna', t0: 2.35, dur: 0.75, c: C.blue },
+  { k: 'anaAgt', t0: 3.85, dur: 0.75, c: C.blue },
+  { k: 'memAgt', t0: 4.2, dur: 0.75, c: C.green },
+  ...[0, 1, 2, 3].flatMap((i) => [
+    { k: 'out' + i, t0: 4.75 + i * 0.32, dur: 0.45, c: AGENTS[i].c },
+    { k: 'in' + i, t0: 5.75 + i * 0.32, dur: 0.45, c: AGENTS[i].c },
+  ]),
+  { k: 'agtSim', t0: 7.55, dur: 0.6, c: C.amber },
+  { k: 'simAgt', t0: 8.85, dur: 0.6, c: C.green },
+  { k: 'agtOut', t0: 9.6, dur: 0.85, c: C.cream },
+  { k: 'agtMem', t0: 10.7, dur: 0.8, c: C.green },
+];
+const STAGES = [
+  { t0: 0, t1: 1.3, n: '1', h: 'Video in', d: 'One camera behind the court. The file is opened on this machine and never uploaded.' },
+  { t0: 1.3, t1: 3.3, n: '2', h: 'Perception', d: 'TrackNetV5 finds the shuttle in 2D; our monocular scene reconstruction gives its 3D flight; hits and poses.' },
+  { t0: 3.3, t1: 3.9, n: '3', h: 'Analytics', d: 'Every shot measured: speed, apex, landing zone, stroke type and rally outcome.' },
+  { t0: 3.9, t1: 7.5, n: '4', h: 'Four coach agents + round table', d: 'Each coach reads your memory (RAG) and the match database; the head coach settles conflicts, health first.' },
+  { t0: 7.5, t1: 9.55, n: '5', h: 'Sparring simulator', d: 'Advice is tested against elite opponent styles before it is given.' },
+  { t0: 9.55, t1: 12, n: '6', h: 'Coach, plan, reel, voice', d: 'Coach sessions, a weekly plan, highlight reels and spoken answers; all written back to memory.' },
+];
+
+const ease = (u) => (u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2);
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const path = (k) => (k.startsWith('out') ? spoke(+k[3], true) : k.startsWith('in') ? spoke(+k[2], false) : LINKS[k]);
+function arrived(t, k, len) {
+  let g = 0;
+  for (const e of EVENTS) if (e.k === k) { const dt = t - (e.t0 + e.dur); if (dt >= 0 && dt < len) g = Math.max(g, 1 - dt / len); }
+  return g;
+}
+const busyWindow = (t, a, b) => (t >= a && t <= b ? Math.sin(Math.PI * (t - a) / (b - a)) : 0);
+const stageAt = (t) => STAGES.find((s) => t >= s.t0 && t < s.t1);
+
+// ---------- drawing helpers ----------
+function glowDot(x, y, r, color, alpha, blur = 18) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.shadowColor = color; ctx.shadowBlur = blur; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+function strokePath(p, color, width, dash) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); ctx.bezierCurveTo(p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y); ctx.stroke(); ctx.restore();
+}
+function comet(p, u, color, size = 8, alpha = 1) {
+  const n = 14;
+  for (let k = n; k >= 0; k--) {
+    const uu = u - k * 0.016; if (uu < 0 || uu > 1) continue;
+    const q = bez(p, uu), f = 1 - k / (n + 1);
+    glowDot(q.x, q.y, size * (0.35 + 0.65 * f), color, alpha * f * f, k === 0 ? 26 : 10);
+  }
+  if (u >= 0 && u <= 1) { const h = bez(p, u); glowDot(h.x, h.y, size * 0.45, '#FFFFFF', alpha, 0); }
+}
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function mix(c1, c2, f) {
+  const p = (c) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+  const a = p(c1), b = p(c2);
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(',')})`;
+}
+function text(s, x, y, font, color, align = 'center', base = 'middle', alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+  ctx.fillText(s, x, y); ctx.restore();
+}
+function node(cx, cy, w, h, glow, color, title, sub) {
+  ctx.save();
+  ctx.shadowColor = color; ctx.shadowBlur = 34 * glow;
+  rr(cx - w / 2, cy - h / 2, w, h, 22);
+  ctx.fillStyle = C.panel; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = glow > 0.02 ? mix('#2A343A', color, glow) : '#2A343A'; ctx.stroke();
+  ctx.restore();
+  text(title, cx, cy + h / 2 + 34, `bold 30px ${HEAD}`, glow > 0.02 ? mix(C.ink, color, glow * 0.7) : C.ink);
+  if (sub) text(sub, cx, cy + h / 2 + 68, `22px ${BODY}`, C.muted);
+}
+
+// ---------- components ----------
+function drawGpu(t) {
+  const br = 0.5 + 0.5 * Math.sin(t / L * Math.PI * 2 * 4);
+  ctx.save();
+  ctx.setLineDash([2, 10]); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(242,230,201,${0.35 + 0.15 * br})`;
+  rr(GPU.x, GPU.y, GPU.w, GPU.h, 34); ctx.stroke();
+  ctx.restore();
+  text('INTEL ARC PRO B70 · 32 GB', GPU.x + 36, GPU.y + 40, `24px ${MONO}`, C.cream, 'left');
+  text('one card, models scheduled by phase: INT4 via OpenVINO / IPEX-LLM', GPU.x + 36, GPU.y + 74, `21px ${BODY}`, C.muted, 'left');
+  // lock badge
+  const lx = GPU.x + GPU.w - 70, ly = GPU.y + 50;
+  ctx.save(); ctx.strokeStyle = C.green; ctx.lineWidth = 4; ctx.fillStyle = 'rgba(95,211,154,0.12)';
+  rr(lx - 18, ly - 4, 36, 28, 6); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx, ly - 4, 11, Math.PI, 0); ctx.stroke(); ctx.restore();
+}
+
+function drawCamera(t) {
+  const g = Math.max(busyWindow(t, 0, 0.6), 0);
+  const { x, y } = CAM;
+  ctx.save(); ctx.shadowColor = C.cream; ctx.shadowBlur = 30 * g;
+  ctx.lineWidth = 7; ctx.strokeStyle = g > 0.02 ? mix('#C9CED8', C.cream, g) : '#C9CED8'; ctx.fillStyle = C.bg;
+  rr(x - 75, y - 45, 110, 90, 16); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 40, y - 18); ctx.lineTo(x + 82, y - 40); ctx.lineTo(x + 82, y + 40); ctx.lineTo(x + 40, y + 18); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x - 20, y, 18, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+  text('Match video', x, y + 92, `bold 30px ${HEAD}`, C.ink);
+  text('any fixed camera', x, y + 126, `22px ${BODY}`, C.muted);
+}
+
+function drawPerception(t) {
+  const g = Math.max(arrived(t, 'camPer', 0.7), busyWindow(t, 1.15, 2.4) * 0.8);
+  node(PER.x, PER.y, 240, 200, g, C.blue, 'Perception', '2D track · 3D lift · hits · pose');
+  // mini court with a shuttle arc drawn during processing
+  const x0 = PER.x - 92, y0 = PER.y + 52, w = 184;
+  ctx.save(); ctx.globalAlpha = 0.9; ctx.fillStyle = C.court;
+  ctx.beginPath(); ctx.moveTo(x0 + 20, y0 - 40); ctx.lineTo(x0 + w - 20, y0 - 40); ctx.lineTo(x0 + w, y0); ctx.lineTo(x0, y0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0 + w / 2, y0 - 40); ctx.lineTo(x0 + w / 2, y0); ctx.stroke();
+  ctx.restore();
+  const prog = clamp((t - 1.15) / 1.2);
+  const arc = [{ x: x0 + 30, y: y0 - 12 }, { x: x0 + 60, y: y0 - 150 }, { x: x0 + 130, y: y0 - 150 }, { x: x0 + 160, y: y0 - 26 }];
+  if (prog > 0 && t < 4.7) {
+    ctx.save(); ctx.strokeStyle = C.cream; ctx.lineWidth = 3.5; ctx.shadowColor = C.cream; ctx.shadowBlur = 12;
+    ctx.globalAlpha = t > 3.6 ? clamp((4.7 - t) / 1.1) : 1;
+    ctx.beginPath();
+    for (let k = 0; k <= 40 * prog; k++) { const q = bez(arc, k / 40); k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }
+    ctx.stroke(); ctx.restore();
+    const h = bez(arc, prog); glowDot(h.x, h.y, 6, C.cream, ctx.globalAlpha, 16);
+  }
+}
+
+function drawAnalytics(t) {
+  const g = Math.max(arrived(t, 'perAna', 0.7), busyWindow(t, 3.1, 4.0) * 0.8);
+  node(ANA.x, ANA.y, 220, 200, g, C.blue, 'Analytics', 'match database');
+  // bars growing while it computes
+  const grow = clamp((t - 3.1) / 0.7) * (t < 11.5 ? 1 : clamp((12 - t) / 0.5));
+  const vals = [0.55, 0.9, 0.4, 0.75, 0.6];
+  vals.forEach((v, i) => {
+    const bx = ANA.x - 70 + i * 30, by = ANA.y + 62, bh = 120 * v * Math.max(0.15, grow);
+    ctx.save(); ctx.fillStyle = i === 1 ? C.coral : mix('#3A4A50', C.blue, grow * 0.8); rr(bx, by - bh, 18, bh, 4); ctx.fill(); ctx.restore();
+  });
+}
+
+function drawAgents(t) {
+  const hub = Math.max(arrived(t, 'anaAgt', 0.7), busyWindow(t, 4.6, 7.5) * 0.6, arrived(t, 'simAgt', 0.7));
+  ctx.save();
+  const grd = ctx.createRadialGradient(AGT.x, AGT.y, 30, AGT.x, AGT.y, 190);
+  grd.addColorStop(0, `rgba(242,230,201,${0.05 + 0.08 * hub})`); grd.addColorStop(1, 'rgba(242,230,201,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(AGT.x, AGT.y, 190, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  for (let i = 0; i < 4; i++) strokePath(spoke(i, true), 'rgba(95,227,232,0.35)', 3);
+  // head coach
+  ctx.save(); ctx.shadowColor = C.cream; ctx.shadowBlur = 30 * hub; ctx.fillStyle = C.panel; ctx.lineWidth = 4;
+  ctx.strokeStyle = hub > 0.02 ? mix('#3A444A', C.cream, hub) : '#3A444A';
+  ctx.beginPath(); ctx.arc(AGT.x, AGT.y, 54, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+  text('Head', AGT.x, AGT.y - 12, `bold 22px ${HEAD}`, C.cream);
+  text('Coach', AGT.x, AGT.y + 14, `bold 22px ${HEAD}`, C.cream);
+  AGENTS.forEach((a, i) => {
+    const p = agentPos(i);
+    const g = Math.max(arrived(t, 'out' + i, 0.9), arrived(t, 'in' + i, 0.5) * 0.6);
+    const ver = i === 3 ? busyWindow(t, 6.9, 7.6) : 0;
+    ctx.save(); ctx.shadowColor = a.c; ctx.shadowBlur = 30 * Math.max(g, ver);
+    ctx.fillStyle = C.panel; ctx.lineWidth = 4; ctx.strokeStyle = mix('#3A444A', a.c, Math.max(0.45, g, ver));
+    ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+    glowDot(p.x, p.y, 9, a.c, 0.6 + 0.4 * g, 10);
+    const lx = p.x + (i === 1 ? 50 : 0), ly = p.y + (i === 0 ? -52 : i === 2 || i === 3 ? 54 : 0);
+    text(a.name, lx, ly, `bold 21px ${BODY}`, C.ink, i === 1 ? 'left' : 'center');
+    if (ver > 0.05) text('✓', p.x, p.y + 1, `bold 30px ${BODY}`, C.green, 'center', 'middle', ver);
+  });
+  text('Coaches + round table', AGT.x, AGT.y + 205, `bold 30px ${HEAD}`, hub > 0.02 ? mix(C.ink, C.cream, hub * 0.6) : C.ink);
+}
+
+function drawSim(t) {
+  const g = Math.max(arrived(t, 'agtSim', 0.6), busyWindow(t, 8.1, 8.9) * 0.9);
+  const w = 260, h = 140, x0 = SIM.x - w / 2, y0 = SIM.y - h / 2 + 10;
+  ctx.save(); ctx.shadowColor = C.amber; ctx.shadowBlur = 30 * g; rr(x0, y0, w, h, 18); ctx.fillStyle = C.panel; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = g > 0.02 ? mix('#2A343A', C.amber, g) : '#2A343A'; ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.fillStyle = C.court; rr(x0 + 30, y0 + 25, w - 60, h - 50, 4); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(SIM.x, y0 + 25); ctx.lineTo(SIM.x, y0 + h - 25); ctx.stroke(); ctx.restore();
+  // simulated rallies: shuttles bouncing across the net while it runs
+  const run = busyWindow(t, 8.1, 8.9);
+  for (let k = 0; k < 6; k++) {
+    const u = ((t * 2.2 + k / 6) % 1), dir = k % 2 ? 1 : -1;
+    const sx = SIM.x + dir * (0.5 - u) * 150, sy = y0 + 40 + ((k * 37) % 60);
+    glowDot(sx, sy - Math.sin(Math.PI * u) * 18, 4.5, k % 3 ? C.amber : C.coral, 0.25 + 0.75 * run, 10);
+  }
+  text('Sparring simulator', SIM.x, y0 + h + 34, `bold 30px ${HEAD}`, g > 0.02 ? mix(C.ink, C.amber, g * 0.7) : C.ink);
+  text('what-if before advice', SIM.x, y0 + h + 66, `22px ${BODY}`, C.muted);
+}
+
+function drawOutput(t) {
+  const g = Math.max(arrived(t, 'agtOut', 1.2), t > 10.4 ? busyWindow(t, 10.4, 12) * 0.5 : 0);
+  const { x, y } = OUT;
+  ctx.save(); ctx.shadowColor = C.cream; ctx.shadowBlur = 34 * g; ctx.lineWidth = 6;
+  ctx.strokeStyle = g > 0.02 ? mix('#C9CED8', C.cream, g) : '#C9CED8'; ctx.fillStyle = C.bg;
+  rr(x - 85, y - 110, 170, 220, 18); ctx.fill(); ctx.stroke(); ctx.restore();
+  // heat-zone half court + plan lines inside the report card
+  ctx.save(); ctx.fillStyle = C.court; rr(x - 55, y - 82, 110, 90, 4); ctx.fill();
+  const hg = ctx.createRadialGradient(x + 22, y - 60, 2, x + 22, y - 60, 40);
+  hg.addColorStop(0, `rgba(255,95,86,${0.4 + 0.5 * g})`); hg.addColorStop(1, 'rgba(255,95,86,0)');
+  ctx.fillStyle = hg; ctx.fillRect(x - 55, y - 82, 110, 90);
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.strokeRect(x - 55, y - 82, 110, 90);
+  ctx.fillStyle = mix('#3A444A', C.cream, 0.4 + 0.6 * g);
+  [0, 1, 2].forEach((k) => { rr(x - 55, y + 28 + k * 22, k === 2 ? 70 : 110, 9, 4); ctx.fill(); });
+  ctx.restore();
+  text('Coach sessions', x, y + 150, `bold 30px ${HEAD}`, C.ink);
+  text('plan · reel · voice', x, y + 184, `22px ${BODY}`, C.muted);
+}
+
+function drawCloud() {
+  const { x, y } = CLOUD;
+  ctx.save(); ctx.globalAlpha = 0.3; ctx.strokeStyle = '#C9CED8'; ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(x - 40, y + 10, 30, Math.PI * 0.5, Math.PI * 1.5); ctx.arc(x, y - 10, 40, Math.PI, 0); ctx.arc(x + 45, y + 10, 30, Math.PI * 1.5, Math.PI * 0.5);
+  ctx.closePath(); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x - 70, y + 45); ctx.lineTo(x + 75, y - 50); ctx.stroke(); ctx.restore();
+  text('NO CLOUD', x, y + 82, `24px ${MONO}`, C.coral);
+}
+
+
+function drawMemory(t) {
+  const g = Math.max(arrived(t, 'agtMem', 0.9), busyWindow(t, 4.0, 5.0) * 0.8);
+  const { x, y } = MEM;
+  ctx.save(); ctx.shadowColor = C.green; ctx.shadowBlur = 30 * g; ctx.lineWidth = 4;
+  ctx.strokeStyle = g > 0.02 ? mix('#3A444A', C.green, g) : '#3A444A'; ctx.fillStyle = C.panel;
+  // database cylinder
+  ctx.beginPath(); ctx.ellipse(x, y - 52, 70, 18, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 70, y - 52); ctx.lineTo(x - 70, y + 40); ctx.ellipse(x, y + 40, 70, 18, 0, Math.PI, 0, true); ctx.lineTo(x + 70, y - 52); ctx.fill(); ctx.stroke();
+  [-20, 12].forEach((dy) => { ctx.beginPath(); ctx.ellipse(x, y + dy, 70, 18, 0, 0, Math.PI); ctx.stroke(); });
+  ctx.restore();
+  text('Player memory', x, y + 96, `bold 30px ${HEAD}`, g > 0.02 ? mix(C.ink, C.green, g * 0.6) : C.ink);
+  text('RAG · goals, injuries, sessions', x, y + 130, `22px ${BODY}`, C.muted);
+}
+
+// ---------- VRAM residency ----------
+const VRAM = [
+  { n: 'Perception', gb: 3, c: C.blue, on: [[1.2, 3.4]] },
+  { n: 'Coach LLM 14B INT4', gb: 9, c: C.cream, on: [[3.9, 7.6], [9.5, 12]] },
+  { n: 'Agent KV cache', gb: 7, c: C.amber, on: [[4.6, 7.6]] },
+  { n: 'Clip reviewer 7B', gb: 5, c: C.coral, on: [[5.6, 7.0]] },
+  { n: 'Simulator', gb: 4, c: C.green, on: [[7.5, 9.6]] },
+  { n: 'Memory', gb: 1, c: C.green, on: [[4.0, 5.0], [10.6, 11.6]] },
+  { n: 'Headroom', gb: 3, c: '#2A3A42', on: [] },
+];
+function drawVram(t) {
+  const x0 = GPU.x + 36, y0 = GPU.y + GPU.h + 22, W = GPU.w - 72, H = 30;
+  text('VRAM 32 GB · all resident, lit while in use', x0, y0 - 2, `18px ${MONO}`, C.muted, 'left', 'bottom');
+  let acc = 0;
+  VRAM.forEach((b) => {
+    const x = x0 + (acc / 32) * W, w = (b.gb / 32) * W, a = Math.max(0, ...b.on.map(([s, e]) => busyWindow(t, s, e)));
+    ctx.save(); rr(x + 2, y0 + 4, w - 4, H, 6); ctx.fillStyle = b.c; ctx.globalAlpha = b.on.length ? 0.28 + 0.72 * a : 0.5;
+    if (a > 0.05) { ctx.shadowColor = b.c; ctx.shadowBlur = 22 * a; }
+    ctx.fill(); ctx.restore();
+    if (w > 70) text(`${b.n} · ${b.gb}`, x + w / 2, y0 + 4 + H / 2 + 1, `bold 15px ${BODY}`, a > 0.3 || !b.on.length ? C.bg : C.ink, 'center', 'middle', b.on.length ? 1 : 0.8);
+    else text(`${b.gb}`, x + w / 2, y0 + 4 + H / 2 + 1, `bold 15px ${MONO}`, C.bg, 'center', 'middle');
+    acc += b.gb;
+  });
+}
+
+// ---------- frame ----------
+function render(t) {
+  t = ((t % L) + L) % L;
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, 1920, 1080);
+  drawGpu(t);
+  // data-flow links: bright cyan with a soft glow so the path reads from across the room
+  ctx.save(); ctx.shadowColor = '#5FE3E8'; ctx.shadowBlur = 10;
+  Object.values(LINKS).forEach((p) => strokePath(p, 'rgba(95,227,232,0.55)', 3.5));
+  ctx.restore();
+
+
+  // ambient motes keep every link alive (3 s period divides the 12 s loop)
+  const fa = (u) => Math.sin(Math.PI * u);
+  Object.entries(LINKS).forEach(([k, p], j) => {
+    for (let m = 0; m < 3; m++) {
+      const u = (t / 3 + m / 3 + j * 0.11) % 1;
+      glowDot(bez(p, u).x, bez(p, u).y, 3.4, k === 'agtSim' || k === 'simAgt' ? C.amber : C.blue, 0.55 * fa(u), 10);
+    }
+  });
+
+  for (const e of EVENTS) {
+    const u = (t - e.t0) / e.dur;
+    if (u < 0 || u > 1.25) continue;
+    comet(path(e.k), ease(clamp(u)), e.c, 9, u > 1 ? 1 - (u - 1) / 0.25 : 1);
+  }
+
+  drawCloud();
+  drawCamera(t);
+  drawPerception(t);
+  drawAnalytics(t);
+  drawAgents(t);
+  drawSim(t);
+  drawMemory(t);
+  drawOutput(t);
+  // what travels on the two links into the coaches, drawn on top of everything
+  const tag2 = (label, x, y) => {
+    ctx.save(); ctx.font = `bold 15px ${MONO}`; const w = ctx.measureText(label).width + 16;
+    rr(x - w / 2, y - 13, w, 26, 6); ctx.fillStyle = '#04070A'; ctx.fill(); ctx.strokeStyle = '#5FE3E8'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+    text(label, x, y + 1, `bold 15px ${MONO}`, '#5FE3E8');
+  };
+  tag2('structured DB', 1118, ANA.y - 40);
+  tag2('RAG', 1150, 760);
+  text('SHUTTLECOACH · ON-DEVICE ARCHITECTURE', 80, 70, `24px ${MONO}`, C.muted, 'left');
+  if (SHOW_CAPTIONS) drawCaption(t);
+}
+
+function drawCaption(t) {
+  const s = stageAt(t); if (!s) return;
+  const fade = clamp(Math.min((t - s.t0) / 0.3, (s.t1 - t) / 0.3));
+  ctx.save(); ctx.globalAlpha = fade;
+  glowDot(92, 128, 9, C.cream, 1, 16);
+  text(`${s.n} · ${s.h}`, 116, 128, `bold 34px ${HEAD}`, C.cream, 'left');
+  text(s.d, 80, 176, `26px ${BODY}`, C.ink, 'left');
+  ctx.restore();
+  // progress pips for the six stages
+  STAGES.forEach((st, i) => {
+    const on = st === s;
+    ctx.save(); ctx.fillStyle = on ? C.cream : '#1E282E'; rr(1430 + i * 64, 54, 52, 10, 5); ctx.fill(); ctx.restore();
+  });
+}
+
+window.render = render;
+window.LOOP_SECONDS = L;
+if (params.get('export') !== '1') {
+  const start = performance.now();
+  const loop = (now) => { if (!window.PAUSED) render((now - start) / 1000); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+} else {
+  render(0);
+}
+</script>
+</body>
+</html>
