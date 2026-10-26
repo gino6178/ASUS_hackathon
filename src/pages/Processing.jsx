@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 const STAGES = [
   ["Decode video", "frames → 512×288 tensors", 900],
   ["Track the shuttle (2D)", "TrackNetV5 · 5-frame window", 1500],
-  ["Reconstruct the 3D flight", "SimTrack3D (in-house, under review)", 2500],
+  ["Reconstruct the 3D flight", "monocular scene reconstruction (in-house)", 2500],
   ["Detect hits & strokes", "HitNet · stroke classifier", 900],
   ["Locate players", "pose → floor homography", 900],
   ["Build the match database", "per-shot speed, apex, landing, zone", 700],
