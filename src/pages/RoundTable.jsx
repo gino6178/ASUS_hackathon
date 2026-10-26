@@ -6,6 +6,7 @@ import { REGIONS, findings, score } from "../components/BodyMap.jsx";
 import { loadMatches, pointStats, footwork, fatigue, patterns } from "../match/analytics.js";
 import { memory, retrieve } from "../memory.js";
 import RallyClip from "../match/RallyClip.jsx";
+import { agentNotify } from "../agent.js";
 
 // Round table: the four coach agents and the head coach discuss the match, resolve conflicts against the player's
 // memory, and agree a training plan with a weekly schedule. Every number comes from the analyses; the dialogue is
@@ -143,6 +144,7 @@ export default function RoundTable({ data }) {
   const [peek, setPeek] = useState(null);
   const [shown, setShown] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [sent, setSent] = useState("");
   const box = useRef(null);
   useEffect(() => { loadMatches().then((d) => setM(d.matches[0])); }, []);
   const meet = useMemo(() => (data && m ? buildMeeting(data, m) : null), [data, m]);
@@ -276,7 +278,11 @@ export default function RoundTable({ data }) {
             <button className="btn ghost" disabled={saved} onClick={() => { memory.add(`Round-table plan (${data.event}): ${meet.goals.map((g) => g.text).join("; ")}.`, "goal", "round table"); setSaved(true); }}>
               {saved ? "Saved to memory" : "Save goals to memory"}
             </button>
-            <span className="tiny muted">Saved goals are retrieved by every coach next session, and the next recorded match is scored against them.</span>
+            <button className="btn primary" disabled={!!sent && !sent.startsWith("!")} onClick={() => agentNotify({ event: data.event, goals: meet.goals.map((g) => g.text), days: meet.days })
+              .then((r) => setSent(r.sent.length ? `Sent to ${r.sent.length} player(s) on Telegram` : "!No player linked yet: send /start to the bot"))
+              .catch((e) => setSent("!Agent gateway not reachable: " + e.message))}>{sent && !sent.startsWith("!") ? sent : "Send to players on Telegram"}</button>
+            {sent.startsWith("!") && <span className="tiny bad">{sent.slice(1)}</span>}
+            <span className="tiny muted">Saved goals are retrieved by every coach next session, and the next recorded match is scored against them. Players get the week on Telegram, then a reminder each morning.</span>
           </div>
         </article>
       )}

@@ -203,3 +203,11 @@
 .rt-peek { position: fixed; inset: 0; z-index: 80; background: #000b; display: grid; place-items: center; padding: 20px; }
 .rt-peek > div { width: min(1100px, 100%); background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
 .rt-peek header { display: flex; justify-content: space-between; align-items: center; }
+.msg-status { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.msg-status b { font-size: 20px; } .msg-status .ok { color: var(--good); } .msg-status .bad { color: var(--bad); }
+.msg-player { margin-bottom: 14px; } .msg-player header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; } .msg-player h3 { margin: 0; }
+.msg-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; margin-top: 10px; }
+.msg-mem { padding-left: 18px; margin: 4px 0 14px; display: grid; gap: 4px; font-size: 14px; }
+.msg-log { max-height: 420px; overflow: auto; display: grid; gap: 10px; align-content: start; }
+.tiny.bad { color: var(--bad); }
+@media (max-width: 1100px) { .msg-status { grid-template-columns: 1fr 1fr; } .msg-grid { grid-template-columns: 1fr; } }

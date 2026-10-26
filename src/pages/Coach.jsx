@@ -7,6 +7,7 @@ import TechniqueCoach from "../coaches/TechniqueCoach.jsx";
 import AnalystCoach from "../coaches/AnalystCoach.jsx";
 import { memory, retrieve } from "../memory.js";
 import { go } from "../App.jsx";
+import CoachChat from "../coaches/CoachChat.jsx";
 
 const VIEWS = { fitness: FitnessCoach, tactics: TacticsCoach, technique: TechniqueCoach, analyst: AnalystCoach };
 
@@ -34,6 +35,7 @@ export default function Coach({ id, data }) {
         </nav>
       </header>
       <View key={coach.id} coach={coach} data={data} hits={hits} runKey={coach.id + run} onReplay={() => setRun((r) => r + 1)} />
+      <CoachChat key={"chat-" + coach.id} coach={coach} />
       <form className="coach-mem" onSubmit={(e) => { e.preventDefault(); memory.add(note, "note"); setNote(""); setRun((r) => r + 1); }}>
         <label htmlFor="mem-in" className="panel-h">Tell {coach.name} something to remember</label>
         <div>

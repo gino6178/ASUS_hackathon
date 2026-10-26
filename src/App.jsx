@@ -10,6 +10,7 @@ import Match from "./pages/Match.jsx";
 import Scout from "./pages/Scout.jsx";
 import Live from "./pages/Live.jsx";
 import RoundTable from "./pages/RoundTable.jsx";
+import Messages from "./pages/Messages.jsx";
 import { memory } from "./memory.js";
 import VoiceCoach from "./voice/VoiceCoach.jsx";
 import { loadSample } from "./data.js";
@@ -20,7 +21,7 @@ const base = (p) => p.split("/")[0];
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
 function Nav({ page, data }) {
-  const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["live", "Live"], ["scout", "Scout"], ["memory", "Memory"]];
+  const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["live", "Live"], ["scout", "Scout"], ["messages", "Messages"], ["memory", "Memory"]];
   return (
     <header className="nav">
       <a className="brand" href="#/" aria-label="ShuttleCoach home">
@@ -72,6 +73,7 @@ export default function App() {
         {page === "scout" && <Scout />}
         {page === "live" && <Live />}
         {page === "roundtable" && <RoundTable data={data} />}
+        {page === "messages" && <Messages />}
       </main>
     </>
   );
