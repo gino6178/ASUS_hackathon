@@ -39,8 +39,20 @@ function buildMeeting(data, m) {
       ["tactics", `Agreed. Half-court defence, fed at 70%, low base, and we judge it by recovery to base rather than intensity.`]] : []),
     ["technique", `Data, are the net errors a late-rally problem?`],
     ["analyst", `Partly: ${longNet} of the ${net} net errors came in rallies of 10 or more shots. Worst three-shot pattern: ${pt.worst[0]?.k} (${pt.worst[0]?.w}% won).`],
-    ["head", `Decision. Four goals for the next recorded match, each owned by one of you. Building the week now.`],
+    ["head", `Ruling. Health limits from memory are hard constraints; inside them I rank every request by the points it cost us in this match. ${knee ? "Lin's blocks stay at 70% with no jumps; Ren's plyometrics wait until the knee settles." : "No request breaks a health limit, so all four stand."} Four goals, one owner each. Building the week now.`],
   ];
+
+  // the head coach's arbitration: memory constraints first, then points at stake in this match
+  const lostTo = (fn) => m.rallies.filter((r) => r.winner !== "A" && fn(r)).length;
+  const ruling = [
+    { owner: "tactics", ask: `Smash-defence blocks into the ${t.weak[0][0]}`, stake: t.weak[0][1], unit: "winners conceded there",
+      check: knee ? "Clashes with memory: knee sore, no split-step jumps" : "No conflict", verdict: knee ? "Kept, modified: 70% pace, low base" : "Kept", tone: knee ? "mod" : "ok" },
+    { owner: "technique", ask: "Net-margin work on net shots and lifts", stake: net, unit: "own net errors", check: "No conflict", verdict: "Kept", tone: "ok" },
+    { owner: "analyst", ask: `Read-and-react against the ${hard.t.toLowerCase()}`, stake: lostTo((r) => r.lastBy === "B" && r.lastType === hard.t), unit: `points ended by a ${hard.t.toLowerCase()}`,
+      check: "No conflict", verdict: "Kept", tone: "ok" },
+    { owner: "fitness", ask: knee ? "Plyometric jump training" : `Leg power: ${REGIONS[muscles[0]].name.toLowerCase()}`, stake: lostTo((r) => r.shots.length >= 15), unit: "points lost in 15+ shot rallies",
+      check: knee ? "Blocked by memory: knee sore" : "No conflict", verdict: knee ? "Deferred: isometric strength instead" : "Kept", tone: knee ? "off" : "ok" },
+  ].sort((a, b) => b.stake - a.stake);
 
   const goals = [
     { owner: "tactics", text: `Concede no more than ${Math.max(2, Math.round(t.weak[0][1] / 2))} winners in the ${t.weak[0][0]}`, now: `${t.weak[0][1]} now` },
@@ -58,7 +70,7 @@ function buildMeeting(data, m) {
     { d: "Sat", kind: "match", min: 60, blocks: [["analyst", 60, "Practice match, recorded: ShuttleCoach re-measures the four goals"]] },
     { d: "Sun", kind: "rest", min: 20, blocks: [["fitness", 20, "Recovery walk and stretching"]] },
   ];
-  return { talk, goals, days, mem };
+  return { talk, goals, days, mem, ruling };
 }
 
 export default function RoundTable({ data }) {
@@ -121,6 +133,31 @@ export default function RoundTable({ data }) {
           {!done && <div className="rt-msg typing" style={{ "--cc": C[meet.talk[shown][0]].color }}><Avatar coach={C[meet.talk[shown][0]]} size={34} /><p className="dots"><i /><i /><i /></p></div>}
         </div>
       </div>
+
+      {done && (
+        <section className="panel ruling">
+          <h3 className="panel-h">How the head coach resolved the conflicts</h3>
+          <ol className="rule-steps">
+            <li><b>Health first.</b> Injuries and limits in the player's memory are hard constraints; no drill may break them.</li>
+            <li><b>Then points at stake.</b> Requests are ranked by how many points that weakness cost in this match.</li>
+            <li><b>One owner, one number.</b> Every kept request becomes a goal that the next recorded match re-measures.</li>
+          </ol>
+          <table className="ptable">
+            <thead><tr><th>Request</th><th>Coach</th><th>Points at stake</th><th>Memory check</th><th>Ruling</th></tr></thead>
+            <tbody>
+              {meet.ruling.map((r) => (
+                <tr key={r.owner}>
+                  <td>{r.ask}</td>
+                  <td style={{ color: C[r.owner].color }}>{C[r.owner].name}</td>
+                  <td><b className="mono">{r.stake}</b> <span className="tiny muted">{r.unit}</span></td>
+                  <td className={r.check === "No conflict" ? "muted" : "bad"}>{r.check}</td>
+                  <td><span className={`verdict ${r.tone}`}>{r.verdict}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {done && (
         <article className="sheet plan-sheet">

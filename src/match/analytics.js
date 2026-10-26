@@ -136,6 +136,46 @@ export function fatigue(m, p) {
     rec: cmp("rec"), req: cmp("req"), err: cmp("err"), tempo: cmp("tempo"), bySet };
 }
 
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+// ---- movement load and injury-risk watch -------------------------------------------------------------------------
+// Proxy from court positions only (where the player stood at every contact). Lunge: arriving within 2 m of the net after
+// moving more than 1.8 m. Cut: a change of direction sharper than 120 degrees between two moves of 0.8 m or more.
+// Load = metres + 1.5 per lunge + 1 per cut. Stage II replaces this with pose: joint angles and landing impact.
+export function load(m, p) {
+  const series = m.rallies.map((r) => {
+    const path = r.shots.map((s) => (s.p === p ? s.pos : s.opp)).filter(Boolean);
+    let metres = 0, lunges = 0, cuts = 0;
+    for (let i = 1; i < path.length; i++) {
+      const d = dist(path[i - 1], path[i]); metres += d;
+      if (d > 1.8 && Math.abs(path[i][1] - 6.7) < 2) lunges++;
+      if (i > 1) {
+        const a = [path[i - 1][0] - path[i - 2][0], path[i - 1][1] - path[i - 2][1]], b = [path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]];
+        const la = Math.hypot(...a), lb = Math.hypot(...b);
+        if (la > .8 && lb > .8 && (a[0] * b[0] + a[1] * b[1]) / (la * lb) < -0.5) cuts++;
+      }
+    }
+    return { i: r.i, set: r.set, rally: r.rally, metres, lunges, cuts, load: metres + 1.5 * lunges + cuts, shots: r.shots.length };
+  });
+  const bySet = [1, 2, 3].map((st) => {
+    const rs = series.filter((x) => x.set === st);
+    return rs.length ? { s: st, n: rs.length, lunges: rs.reduce((a, x) => a + x.lunges, 0), cuts: rs.reduce((a, x) => a + x.cuts, 0),
+      metres: rs.reduce((a, x) => a + x.metres, 0), perRally: mean(rs.map((x) => x.load)) } : null;
+  }).filter(Boolean);
+  const roll = series.map((_, i) => mean(series.slice(Math.max(0, i - 9), i + 1).map((x) => x.load)));
+  const third = Math.floor(series.length / 3);
+  const seg = (a, b) => mean(series.slice(a, b).map((x) => x.load));
+  const early = seg(0, third), late = seg(series.length - third, series.length);
+  const peak = [...series].sort((a, b) => b.load - a.load).slice(0, 3);
+  const g1 = bySet[0], gl = bySet[bySet.length - 1];
+  const flags = [];
+  if (late > early * 1.15) flags.push({ lvl: "high", t: `Load per rally is ${Math.round((late / early - 1) * 100)}% higher in the last third of the match than in the first.` });
+  if (gl && g1 && gl !== g1 && gl.lunges / gl.n > (g1.lunges / g1.n) * 1.3)
+    flags.push({ lvl: "high", t: `Front-court lunges per rally rose from ${(g1.lunges / g1.n).toFixed(1)} in game 1 to ${(gl.lunges / gl.n).toFixed(1)} in game ${gl.s}: the knee takes most of that load.` });
+  peak.filter((x) => x.load > early * 2.2).forEach((x) => flags.push({ lvl: "watch", t: `Game ${x.set}, rally ${x.rally}: ${x.shots} shots, ${x.metres.toFixed(0)} m, ${plural(x.lunges, "lunge")} and ${plural(x.cuts, "sharp cut")} in one point.` }));
+  return { series, bySet, roll, early, late, peak, flags };
+}
+
 // ---- profile used by comparison and scouting -------------------------------------------------------------
 export function profile(m, p) {
   const shots = m.rallies.flatMap((r) => r.shots.filter((s) => s.p === p));

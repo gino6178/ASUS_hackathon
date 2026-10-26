@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadMatches, scoreFlow, pointStats, patterns, footwork, fatigue, profile, sideOf, ownError, pct } from "../match/analytics.js";
+import { loadMatches, scoreFlow, pointStats, patterns, footwork, fatigue, profile, sideOf, ownError, pct, load } from "../match/analytics.js";
 import { LineChart, Bars, Kpi } from "../match/charts.jsx";
+import { retrieve } from "../memory.js";
+import Highlights from "../match/Highlights.jsx";
 import RallyClip from "../match/RallyClip.jsx";
 import Annotator from "../match/Annotator.jsx";
 import CourtMap, { heatGrid } from "../components/CourtMap.jsx";
 import { go } from "../App.jsx";
 
-const TABS = [["flow", "Score flow"], ["points", "Points won & lost"], ["patterns", "Shot sequences"], ["rallies", "Rallies & highlights"],
+const TABS = [["flow", "Score flow"], ["points", "Points won & lost"], ["patterns", "Shot sequences"], ["rallies", "Rallies & highlights"], ["reel", "Highlight reel"],
   ["footwork", "Footwork & reads"], ["fatigue", "Fatigue"], ["compare", "Match comparison"]];
 const f1 = (v) => v.toFixed(1), f2 = (v) => v.toFixed(2);
 
@@ -32,7 +34,7 @@ export default function Match() {
       </header>
       <div className="tabs" role="tablist">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
-        {["points", "patterns", "footwork", "fatigue"].includes(tab) && (
+        {["points", "patterns", "reel", "footwork", "fatigue"].includes(tab) && (
           <div className="seg tabs-who" role="radiogroup" aria-label="Player">
             {["A", "B"].map((k) => <button key={k} role="radio" aria-checked={who === k} onClick={() => setWho(k)}>{m.names[k]}</button>)}
           </div>
@@ -42,6 +44,7 @@ export default function Match() {
       {tab === "points" && <Points m={m} p={who} />}
       {tab === "patterns" && <Patterns m={m} p={who} />}
       {tab === "rallies" && <Rallies m={m} />}
+      {tab === "reel" && <Highlights m={m} p={who} />}
       {tab === "footwork" && <Footwork m={m} p={who} />}
       {tab === "fatigue" && <Fatigue m={m} p={who} />}
       {tab === "compare" && <Compare d={d} />}
@@ -190,7 +193,8 @@ function Footwork({ m, p }) {
   );
 }
 function Fatigue({ m, p }) {
-  const fa = fatigue(m, p);
+  const fa = fatigue(m, p), ld = load(m, p);
+  const joint = retrieve("knee ankle injury sore", 1).find((h) => /knee|ankle/i.test(h.m.text));
   const marks = fa.series.map((x, i) => (i && x.set !== fa.series[i - 1].set ? { i, label: `Game ${x.set}` } : null)).filter(Boolean);
   const change = (o, lowerIsBetter = true) => {
     const d = (o.late - o.early) / (o.early || 1) * 100;
@@ -208,6 +212,23 @@ function Fatigue({ m, p }) {
           <Kpi v={<>{pct(fa.err.early * 100, 100)} → {pct(fa.err.late * 100, 100)}% </>} l="rallies ending in own error" />
         </div>
         <p className="tiny muted">Rolling 10-rally averages below. A tiring player recovers less (distance from base rises), needs more speed and makes more errors; a shorter time between shots means the rally is getting faster.</p>
+      </div>
+      <div className="panel span2 riskwatch">
+        <h3 className="panel-h">Load and injury-risk watch · Coach Ren</h3>
+        <div className="risk-grid">
+          <div>
+            <table className="ptable"><thead><tr><th>Game</th><th>Metres per rally</th><th>Lunges per rally</th><th>Sharp cuts per rally</th></tr></thead>
+              <tbody>{ld.bySet.map((g) => <tr key={g.s}><td>Game {g.s}</td><td className="mono">{f1(g.metres / g.n)}</td><td className="mono">{f2(g.lunges / g.n)}</td><td className="mono">{f2(g.cuts / g.n)}</td></tr>)}</tbody></table>
+            <LineChart n={ld.series.length} marks={marks} label="Movement load" series={[{ label: "load", color: "#FF8A6B", values: ld.roll }]} yFmt={f1} />
+            <p className="tiny muted">Load per rally, rolling 10: metres moved + 1.5 per front-court lunge + 1 per sharp change of direction, from court positions at every contact.</p>
+          </div>
+          <div className="risk-feed">
+            {joint && <div className="risk mem"><b>Memory</b><p>“{joint.m.text}” Lunges and cuts are the knee-loading movements, so they are tracked against your own game 1 baseline.</p></div>}
+            {ld.flags.length ? ld.flags.map((f, k) => <div key={k} className={`risk ${f.lvl}`}><b>{f.lvl === "high" ? "Warning" : "Watch"}</b><p>{f.t}</p></div>)
+              : <div className="risk ok"><b>No warning</b><p>Load per rally stayed within 15% of the opening third ({f1(ld.early)} → {f1(ld.late)}).</p></div>}
+            <p className="tiny muted">Prototype proxy from positions. Stage II adds YOLO11-pose on the B70: knee and ankle angles, landing impact and asymmetry, live during the match.</p>
+          </div>
+        </div>
       </div>
       <div className="panel"><h3 className="panel-h">Recovery: distance from base (m)</h3>
         <LineChart n={fa.series.length} marks={marks} label="Recovery distance" series={[{ label: "rec", color: "var(--near)", values: fa.rollRec }]} yFmt={f2} /></div>
