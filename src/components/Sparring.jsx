@@ -32,8 +32,8 @@ export default function Sparring({ shots, start }) {
           <div className="good"><span>Best base</span><b className="mono">{pct(opt.rate)}%</b><small>{opt.same ? "your base is already the best found" : "after a 15 cm grid search"}</small></div>
         </div>
         <div className="sp-bar" aria-hidden="true">
-          <i style={{ width: `${pct(cur.rate)}%` }} className="you" />
-          <i style={{ width: `${pct(opt.rate)}%` }} className="best" />
+          <i style={{ transform: `scaleX(${cur.rate})` }} className="you" />
+          <i style={{ transform: `scaleX(${opt.rate})` }} className="best" />
         </div>
         <button className="btn ghost" onClick={() => setBase(best.base)}>Move to the best base</button>
         <p className="tiny muted">Opponent shots are resampled from this match's own {shots.length} attacking landings and flight times, weighted by style.

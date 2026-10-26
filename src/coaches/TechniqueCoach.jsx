@@ -68,7 +68,7 @@ export default function TechniqueCoach({ coach, data, hits, runKey, onReplay }) 
           {q.map((x) => (
             <li key={x.s.i}>
               <button className={`stroke ${x.s.hitter} ${x.s.i === cur.s.i ? "on" : ""}`} onClick={() => setManual(x.s.i)}>
-                <span className="mono">#{x.s.i + 1}</span><b>{x.s.type}</b><span className={`grade-sm g${x.grade}`}>{x.grade}</span>
+                <span className="who">{x.s.hitter === "near" ? "You" : "Opp"} · #{x.s.i + 1}</span><b>{x.s.type}</b><span className={`grade-sm g${x.grade}`}>{x.grade}</span>
               </button>
             </li>
           ))}

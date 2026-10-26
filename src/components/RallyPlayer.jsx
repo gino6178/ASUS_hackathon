@@ -79,7 +79,8 @@ export default function RallyPlayer({ rally, src, onFrame, seekRef, overlay = tr
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
   const [pose, setPose] = useState(null);
-  const [on, setOn] = useState({ trail: true, skeleton: true, stats: true, map: true });
+  // on a phone the movement boxes and mini-map would cover the players, so they start switched off
+  const [on, setOn] = useState(() => { const wide = innerWidth > 640; return { trail: true, skeleton: true, stats: wide, map: wide }; });
   const [exp, setExp] = useState(null); // null | { p } progress | { url }
   const onRef = useRef(on); onRef.current = on;
   const poseRef = useRef(pose); poseRef.current = pose;

@@ -8,15 +8,23 @@ export default function Coaches({ data, video }) {
       {video && <div className="notice" role="note"><b>Demo mode.</b> “{video.name}” stayed on this device. The coaches below analyse the precomputed sample match.</div>}
       <header className="report-head">
         <div>
-        <span className="tag">Your coaching staff · {data?.event ?? ""}</span>
-        <h1 className="h1">Who do you want to talk to?</h1>
-        <p className="muted">Four specialist agents run on this machine. Each one reads the match database, retrieves what it remembers about you, and explains its findings on the visual it owns.</p>
+          <span className="tag">Your coaching staff · {data?.event ?? ""}</span>
+          <h1 className="h1">Who do you want to talk to?</h1>
+          <p className="muted">Four specialist coaches and a head coach run on this machine. Each one reads the match, recalls what it knows about you, and explains its findings on the visual it owns. Together they meet at the round table.</p>
         </div>
       </header>
+      <button className="rt-banner" onClick={() => go("roundtable")}>
+        <span className="rt-faces">{COACHES.map((c) => <Avatar key={c.id} coach={c} size={56} />)}</span>
+        <span>
+          <b>Call a round table</b>
+          <span className="muted">The whole staff debates your match, settles conflicts against your memory, and agrees four goals and a 7-day plan.</span>
+        </span>
+        <span className="btn primary">Start meeting</span>
+      </button>
       <div className="coach-grid">
         {COACHES.map((c) => (
           <button key={c.id} className="coach-card" style={{ "--cc": c.color }} onClick={() => go(`coach/${c.id}`)}>
-            <Avatar coach={c} size={132} />
+            <Avatar coach={c} size={120} />
             <span className="cc-zh">{c.kicker}</span>
             <b>{c.name}</b>
             <span className="cc-role">{c.role}</span>
@@ -25,11 +33,6 @@ export default function Coaches({ data, video }) {
           </button>
         ))}
       </div>
-      <button className="rt-banner" onClick={() => go("roundtable")}>
-        <span className="rt-faces">{COACHES.map((c) => <Avatar key={c.id} coach={c} size={54} />)}</span>
-        <span><b>Call a round table</b><span className="muted">All four coaches debate your match together and agree a training plan with a weekly schedule.</span></span>
-        <span className="cc-go">Start meeting →</span>
-      </button>
       <div className="coach-links">
         <button className="btn ghost" onClick={() => go("match")}>Open the match analysis</button>
         <button className="btn ghost" onClick={() => go("memory")}>Player memory</button>

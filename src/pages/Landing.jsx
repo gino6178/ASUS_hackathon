@@ -2,6 +2,7 @@ import Court3D from "../components/Court3D.jsx";
 import { go } from "../App.jsx";
 import { COACHES } from "../coaches/personas.js";
 import Avatar from "../coaches/Avatar.jsx";
+import { useReducedMotion } from "../hooks.js";
 
 const STEPS = [
   ["01", "Record", "Any fixed camera behind the court. A phone on a tripod is enough."],
@@ -14,10 +15,11 @@ export default function Landing({ data }) {
   const rally = data?.rally;
   const top = rally ? Math.max(...rally.strokes.map((s) => s.v0)) : 200;
   const apex = rally ? Math.max(...rally.strokes.map((s) => s.apex)) : 4.65;
+  const still = useReducedMotion();
   return (
     <div className="landing">
       <section className="hero">
-        <Court3D rally={rally} loop autoRotate variant="hero" className="hero-court" />
+        <Court3D rally={rally} loop={!still} frame={rally ? rally.n - 1 : 0} autoRotate={!still} variant="hero" className="hero-court" />
         <div className="hero-shade" aria-hidden="true" />
         <div className="hero-copy">
           <p className="eyebrow">Private badminton intelligence</p>
@@ -38,7 +40,7 @@ export default function Landing({ data }) {
       </section>
 
       <section className="band">
-        <header className="sec-head"><span className="tag">01 · How it works</span><h2>From a phone video to a training plan</h2></header>
+        <header className="sec-head"><h2>From a phone video to a training plan</h2></header>
         <ol className="steps">
           {STEPS.map(([n, h, b]) => (
             <li key={n}><span className="mono step-n">{n}</span><h3>{h}</h3><p>{b}</p></li>
@@ -46,21 +48,8 @@ export default function Landing({ data }) {
         </ol>
       </section>
 
-      <section className="band split">
-        <header className="sec-head"><span className="tag">02 · Our own research</span><h2>Built on perception research from our lab</h2>
-          <p className="muted">The hard part, metric 3D from a single camera, comes from our own studies. Two of them are under review, so only what they do is shown here.</p></header>
-        <div className="stats">
-          {[["TrackNetV5", "2D shuttle tracking in every broadcast frame · public code"],
-            ["Monocular scene reconstruction", "broadcast video in, 3D shuttle flight in metres out · in-house, under review"],
-            ["Intent detection", "3D rally in, the opponent's next stroke out · in-house, under review"],
-            ["On-device", "all of it runs on one local GPU · measured on the B70 in Stage II"]].map(([n, l]) => (
-            <div className="stat" key={n}><b>{n}</b><span>{l}</span></div>
-          ))}
-        </div>
-      </section>
-
       <section className="band">
-        <header className="sec-head"><span className="tag">03 · Coaching staff</span><h2>Four coach agents and a round table, running locally</h2></header>
+        <header className="sec-head"><h2>Four coaches and a round table, running locally</h2></header>
         <div className="staff-row">
           {COACHES.map((c) => (
             <button key={c.id} className="staff-card" style={{ "--cc": c.color }} onClick={() => go(`coach/${c.id}`)}>
@@ -80,7 +69,7 @@ export default function Landing({ data }) {
       </section>
 
       <section className="band split">
-        <header className="sec-head"><span className="tag">04 · Sparring simulator</span><h2>Advice is tested before it is given</h2>
+        <header className="sec-head"><h2>Advice is tested before it is given</h2>
           <p className="muted">Opponent styles are learned from professional rallies. Move your base, replay thousands of rallies, keep the change only if fewer points are lost.</p>
           <button className="btn ghost" onClick={() => go("report")}>Try it on the sample match</button></header>
         <div className="privacy">
@@ -95,7 +84,7 @@ export default function Landing({ data }) {
 
       <footer className="foot">
         <span>ShuttleCoach · ASUS UGen AI League 2026 · Battlefield Thunderstorm (Intel Arc Pro B70 32GB)</span>
-        <span className="muted">Prototype: language models are not connected; agent answers are generated from the precomputed match data.</span>
+        <span className="muted">Prototype: coach briefings are generated from the precomputed match data; coach chat runs on the local language model.</span>
       </footer>
     </div>
   );

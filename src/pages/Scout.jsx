@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { loadMatches, profile, patterns, footwork, sideOf } from "../match/analytics.js";
 import CourtMap, { heatGrid } from "../components/CourtMap.jsx";
 import { zoneRect } from "../coaches/analysis.js";
+import { MatchNav } from "../App.jsx";
 
 // One-page scouting report on an opponent across every analysed match; "Save as PDF" uses the browser's print dialog.
 export default function Scout() {
@@ -27,6 +28,7 @@ export default function Scout() {
 
   return (
     <div className="page scout">
+      <MatchNav page="scout" />
       <header className="report-head noprint">
         <div>
           <span className="tag">Scouting report</span>
@@ -43,7 +45,7 @@ export default function Scout() {
       <article className="sheet">
         <header>
           <span className="tag">ShuttleCoach · scouting report</span>
-          <h1>{name}</h1>
+          <h2 className="sheet-title">{name}</h2>
           <p className="muted">{ms.map((x) => `${x.m.event} vs ${x.opp}`).join(" · ")} · {sum((x) => x.pr.shots)} shots analysed on-device</p>
         </header>
         <div className="sheet-kpis">
@@ -54,25 +56,7 @@ export default function Scout() {
           <div><b>{(sum((x) => x.pr.avgRally) / ms.length).toFixed(1)}</b><span>shots per rally</span></div>
         </div>
         <div className="sheet-grid">
-          <section>
-            <h2>Where the shots go</h2>
-            <CourtMap half="far" heat={heatGrid(land, "far", .55)} heatColor="#f2a33a" label="Landing heat"
-              blink={target ? [{ ...zoneRect(target[0], "far"), c: "#f2d46b", label: "1" }] : null} />
-            <p>Favourite target: <b>{target?.[0]}</b>, read from the receiver's side.</p>
-          </section>
-          <section>
-            <h2>Where they get beaten</h2>
-            <CourtMap half="near" heat={heatGrid(beaten, "near", .6)} heatColor="#ff5f56" label="Points lost to winners"
-              blink={weak ? [{ ...zoneRect(weak[0], "near"), c: "#ff5f56", label: "!" }] : null} />
-            <p>Weakest zone: <b>{weak?.[0] ?? "–"}</b> ({weak?.[1] ?? 0} winners conceded there).</p>
-          </section>
-          <section>
-            <h2>Shot mix</h2>
-            <ul className="bars">{mix.map(([t, p]) => <li key={t}><span>{t}</span><i style={{ width: `${p * 3}%` }} /><b className="mono">{Math.round(p)}%</b><em /></li>)}</ul>
-            <h2>Patterns</h2>
-            <p>Best for them: <b>{bestPat?.k}</b> ({bestPat?.w}% rallies won).<br />Worst for them: <b>{worstPat?.k}</b> ({worstPat?.w}%).</p>
-          </section>
-          <section>
+          <section className="plan-first">
             <h2>Game plan against {name.split(" ")[0]}</h2>
             <ol className="plan">
               <li>Attack the <b>{weak?.[0] ?? "rear court"}</b>: that is where their defence breaks most.</li>
@@ -81,6 +65,24 @@ export default function Scout() {
               {stretch && <li>Use the <b>{stretch.t.toLowerCase()}</b> to move them: it needs {stretch.v.toFixed(1)} m/s to cover.</li>}
               <li>{ms[0].pr.serveShort}% short serves: stand ready for the short serve and attack the net.</li>
             </ol>
+          </section>
+          <section>
+            <h2>Where the shots go</h2>
+            <CourtMap half="far" heat={heatGrid(land, "far", .55)} heatColor="var(--heat-attack)" label="Landing heat"
+              blink={target ? [{ ...zoneRect(target[0], "far"), c: "var(--sp3)", label: "1" }] : null} />
+            <p>Favourite target: <b>{target?.[0]}</b>, read from the receiver's side.</p>
+          </section>
+          <section>
+            <h2>Where they get beaten</h2>
+            <CourtMap half="near" heat={heatGrid(beaten, "near", .6)} heatColor="var(--heat-defence)" label="Points lost to winners"
+              blink={weak ? [{ ...zoneRect(weak[0], "near"), c: "var(--heat-defence)", label: "!" }] : null} />
+            <p>Weakest zone: <b>{weak?.[0] ?? "–"}</b> ({weak?.[1] ?? 0} winners conceded there).</p>
+          </section>
+          <section>
+            <h2>Shot mix</h2>
+            <ul className="bars">{mix.map(([t, p]) => <li key={t}><span>{t}</span><i style={{ width: `${Math.min(100, (p / mix[0][1]) * 100)}%` }} /><b className="mono">{Math.round(p)}%</b><em /></li>)}</ul>
+            <h2>Patterns</h2>
+            <p>Best for them: <b>{bestPat?.k}</b> ({bestPat?.w}% rallies won).<br />Worst for them: <b>{worstPat?.k}</b> ({worstPat?.w}%).</p>
           </section>
         </div>
         <footer className="tiny muted">Generated on this device from shot-level match data. Zones: front / mid / rear × forehand / middle / backhand for a right-handed receiver.</footer>

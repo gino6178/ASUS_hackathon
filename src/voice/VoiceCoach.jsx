@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadMatches } from "../match/analytics.js";
 import { answer, EXAMPLES } from "./intents.js";
 import { go } from "../App.jsx";
+import Icon from "../components/Icon.jsx";
 
 // Hands-free coach: tap the mic, ask a question, get a spoken answer and the view that shows it.
 // Speech is recognised in the browser by Whisper tiny; no audio or text leaves the device.
@@ -48,6 +49,13 @@ export default function VoiceCoach({ data }) {
   const [m, setM] = useState(null);
   const rec = useRef(null);
   useEffect(() => { loadMatches().then((d) => setM(d.matches[0])); }, []);
+  const btn = useRef(null);
+  // Escape closes the panel and gives focus back to the button that opened it
+  useEffect(() => {
+    if (!open) return;
+    const key = (e) => { if (e.key === "Escape") { setOpen(false); btn.current?.focus(); } };
+    addEventListener("keydown", key); return () => removeEventListener("keydown", key);
+  }, [open]);
 
   const respond = (text, ms) => {
     if (!m || !data) return;
@@ -87,13 +95,13 @@ export default function VoiceCoach({ data }) {
 
   return (
     <>
-      <button className={`voice-btn ${state}`} onClick={() => setOpen(!open)} aria-expanded={open} title="Voice coach: ask a question out loud">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1A7 7 0 0 0 19 12h-2Z" /></svg>
-        Ask
+      <button ref={btn} className={`voice-btn ${state}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Ask the voice coach" title="Voice coach: ask a question out loud">
+        <Icon name="mic" size={16} /><span className="lbl">Ask</span>
       </button>
       {open && (
-        <aside className="voice-panel" aria-live="polite">
-          <header><b>Voice coach</b><span className="tiny muted">Whisper tiny · runs in this browser · no audio leaves the device</span></header>
+        <aside className="voice-panel" role="dialog" aria-label="Voice coach">
+          <header><b>Voice coach</b><span className="tiny muted">Speech is recognised in this browser; no audio leaves the device.</span>
+            <button className="icon-btn sm" aria-label="Close voice coach" onClick={() => { setOpen(false); btn.current?.focus(); }}><Icon name="close" size={16} /></button></header>
           <button className={`voice-mic ${state}`} onClick={toggle} disabled={state === "thinking"}>
             <i />{state === "listening" ? "Listening… tap to stop" : state === "thinking" ? "Transcribing on-device…" : "Tap and ask a question"}
           </button>
@@ -102,7 +110,7 @@ export default function VoiceCoach({ data }) {
           </form>
           {!log.length && <ul className="voice-ex">{EXAMPLES.map((x) => <li key={x}><button onClick={() => respond(x)}>“{x}”</button></li>)}</ul>}
           {log.map((x, k) => (
-            <div key={k} className="voice-turn">
+            <div key={k} className="voice-turn" aria-live={k === 0 ? "polite" : undefined}>
               <p className="q">“{x.q}”{x.ms ? <span className="tiny muted"> · {x.ms} ms</span> : null}</p>
               <p className="a">{x.a}</p>
             </div>

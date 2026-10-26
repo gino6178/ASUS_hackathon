@@ -32,14 +32,14 @@ export default function TacticsCoach({ coach, data, hits, runKey, onReplay }) {
         <div className="panel">
           <span className="tag def">Defence failure zones</span>
           <h3>Where {opp} beat you</h3>
-          <CourtMap half="near" heat={defHeat} heatColor="#ff5f56" points={o.beaten.map((p) => ({ xy: p.xy, c: "#ffd0c9", r: 3.2, o: .85 }))}
-            blink={act.def ? zoneBlink(act.def, "near", "#ff5f56") : null} label="Points lost to the opponent's winners" />
+          <CourtMap half="near" heat={defHeat} heatColor="var(--heat-defence)" points={o.beaten.map((p) => ({ xy: p.xy, c: "#ffd0c9", r: 3.2, o: .85 }))}
+            blink={act.def ? zoneBlink(act.def, "near", "var(--heat-defence)") : null} label="Points lost to the opponent's winners" />
         </div>
         <div className="panel">
           <span className="tag">Attack heat zones</span>
           <h3>Where your winners land</h3>
-          <CourtMap half="far" heat={attHeat} heatColor="#f2a33a" points={o.winners.map((p) => ({ xy: p.xy, c: "var(--accent)", ring: true, r: 6 }))}
-            blink={act.att ? zoneBlink(act.att, "far", "#f2d46b") : null} label="Your winners on the opponent's half" />
+          <CourtMap half="far" heat={attHeat} heatColor="var(--heat-attack)" points={o.winners.map((p) => ({ xy: p.xy, c: "var(--accent)", ring: true, r: 6 }))}
+            blink={act.att ? zoneBlink(act.att, "far", "var(--sp3)") : null} label="Your winners on the opponent's half" />
         </div>
       </div>
     </div>

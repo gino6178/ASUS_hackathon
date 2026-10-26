@@ -73,7 +73,7 @@ export default function Processing({ video, onDone }) {
         <div className="proc-view">
           <video ref={vid} src={src} muted autoPlay loop playsInline className="sr-video" />
           <canvas ref={canvas} className="proc-canvas" aria-hidden="true" />
-          <div className="proc-bar"><i style={{ width: `${p * 100}%` }} /></div>
+          <div className="proc-bar"><i style={{ "--p": p }} /></div>
           <span className="proc-pct mono">{Math.round(p * 100)}%</span>
         </div>
         <ol className="stages">

@@ -1,10 +1,13 @@
+import { useId } from "react";
 import { COURT } from "../data.js";
 
 // Top view of the court, far baseline at the top. Points are [x, y] in court metres.
 // half: "full" | "near" | "far". heat: [{ x0, y0, x1, y1, a }] cells drawn in `heatColor`.
 // blink: [{ x0, y0, x1, y1, c, label }] zones that flash so a coach can point at them
+// The heat cells are blurred into a smooth density and clipped to the court floor.
 export default function CourtMap({ points = [], misses = [], bases = [], heat = null, heatColor = "var(--bad)", half = "full", label, onPick, blink = null }) {
   const S = 36, M = 22;
+  const uid = useId().replace(/:/g, "");
   const y0 = half === "near" ? COURT.NET - .4 : -0.5;
   const y1 = half === "far" ? COURT.NET + .4 : COURT.L + .5;
   const W = COURT.W * S + 2 * M, H = (y1 - y0) * S + 2 * M;
@@ -22,9 +25,21 @@ export default function CourtMap({ points = [], misses = [], bases = [], heat = 
         onPick([(px - M) / S, (py - M) / S + y0]);
       })}>
       <rect x={X(0)} y={Y(top)} width={w * S} height={(bot - top) * S} className="cm-floor" />
-      {heat && heat.map((c, i) => (
-        <rect key={i} x={X(c.x0)} y={Y(c.y0)} width={(c.x1 - c.x0) * S + .5} height={(c.y1 - c.y0) * S + .5} fill={heatColor} opacity={c.a} />
-      ))}
+      {heat && (
+        <>
+          <defs>
+            <filter id={`hb${uid}`} x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="7" /></filter>
+            <clipPath id={`hc${uid}`}><rect x={X(0)} y={Y(top)} width={w * S} height={(bot - top) * S} /></clipPath>
+          </defs>
+          <g clipPath={`url(#hc${uid})`}>
+            <g filter={`url(#hb${uid})`}>
+              {heat.map((c, i) => (
+                <rect key={i} x={X(c.x0)} y={Y(c.y0)} width={(c.x1 - c.x0) * S + .5} height={(c.y1 - c.y0) * S + .5} fill={heatColor} opacity={Math.min(1, c.a * 1.15)} />
+              ))}
+            </g>
+          </g>
+        </>
+      )}
       <g className="cm-lines">
         {[0, w, SINGLE, w - SINGLE].map((x, i) => line(x, top, x, bot, "v" + i))}
         {ys.map((y, i) => line(0, y, w, y, "h" + i))}

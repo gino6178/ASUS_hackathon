@@ -67,6 +67,7 @@ export default function Body3D({ scores, sel, onSel, view, pulse = null, height 
       });
       const box = new THREE.Box3().setFromObject(group), c = box.getCenter(new THREE.Vector3());
       group.position.sub(c); controls.target.set(0, 0, 0);
+      api.current.size = box.getSize(new THREE.Vector3());
       api.current.frame("front");
       setReady(true);
     }).catch(() => setErr("The 3D body model could not be loaded."));
@@ -77,8 +78,15 @@ export default function Body3D({ scores, sel, onSel, view, pulse = null, height 
       m.material.emissive.copy(r && r === sel ? new THREE.Color(0xf2e6c9) : c);
       m.material.emissiveIntensity = r && r === sel ? .45 : e;
     });
+    // camera distance that fits the whole body, head to feet, in this canvas's aspect ratio (with a margin)
+    api.current.fit = () => {
+      const s = api.current.size; if (!s) return 3.1;
+      const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), wide = Math.max(s.x, s.z);
+      return Math.max((s.y * .56) / t, (wide * .62) / (t * camera.aspect)) + wide / 2;
+    };
     api.current.frame = (v) => {
-      const d = 3.1, a = { front: 0, back: Math.PI, side: Math.PI / 2 }[v] ?? 0;
+      const d = api.current.fit(), a = { front: 0, back: Math.PI, side: Math.PI / 2 }[v] ?? 0;
+      controls.maxDistance = Math.max(5, d * 1.6);
       camera.position.set(Math.sin(a) * d, .05, Math.cos(a) * d); controls.update();
     };
 
@@ -98,6 +106,8 @@ export default function Body3D({ scores, sel, onSel, view, pulse = null, height 
     const resize = () => {
       const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
       renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+      // keep the whole body in view when the canvas changes shape
+      if (api.current.size) { const d = api.current.fit(); controls.maxDistance = Math.max(5, d * 1.6); camera.position.setLength(d); controls.update(); }
     };
     const ro = new ResizeObserver(resize); ro.observe(canvas); resize();
     // pulse: muscles in the listed regions throb so the coach can point at them
@@ -137,7 +147,7 @@ export default function Body3D({ scores, sel, onSel, view, pulse = null, height 
   return (
     <div className="body3d" style={height ? { height } : undefined}>
       <canvas ref={ref} aria-label="3D muscle model; click a muscle to see why it matters" />
-      {!ready && !err && <div className="body3d-load"><span className="mono">Loading anatomy · {Math.round(prog * 100)}%</span><i style={{ width: `${prog * 100}%` }} /></div>}
+      {!ready && !err && <div className="body3d-load"><span className="mono">Loading anatomy · {Math.round(prog * 100)}%</span><i style={{ transform: `scaleX(${prog})` }} /></div>}
       {err && <div className="body3d-load err">{err}</div>}
     </div>
   );

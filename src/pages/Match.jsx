@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadMatches, scoreFlow, pointStats, patterns, footwork, fatigue, profile, sideOf, ownError, pct, load, onto } from "../match/analytics.js";
 import { LineChart, Bars, Kpi } from "../match/charts.jsx";
 import { retrieve } from "../memory.js";
@@ -6,7 +6,8 @@ import Highlights from "../match/Highlights.jsx";
 import RallyClip from "../match/RallyClip.jsx";
 import Annotator from "../match/Annotator.jsx";
 import CourtMap, { heatGrid } from "../components/CourtMap.jsx";
-import { go } from "../App.jsx";
+import { go, MatchNav } from "../App.jsx";
+import Icon from "../components/Icon.jsx";
 
 const TABS = [["flow", "Score flow"], ["points", "Points won & lost"], ["patterns", "Shot sequences"], ["rallies", "Rallies & highlights"], ["reel", "Highlight reel"],
   ["footwork", "Footwork & reads"], ["fatigue", "Fatigue"], ["compare", "Match comparison"]];
@@ -21,41 +22,80 @@ export default function Match() {
     addEventListener("hashchange", on); return () => removeEventListener("hashchange", on);
   }, []);
   const [who, setWho] = useState("A");
+  const tabs = useRef(null);
   useEffect(() => { loadMatches().then(setD); }, []);
   if (!d) return <div className="page"><p className="muted">Loading the match…</p></div>;
   const m = d.matches[0];
+  // arrow keys move between tabs, as in any tab strip
+  const key = (e) => {
+    const k = TABS.findIndex(([t]) => t === tab), n = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (e.key === "Home" || e.key === "End" || n) {
+      e.preventDefault();
+      const j = e.key === "Home" ? 0 : e.key === "End" ? TABS.length - 1 : (k + n + TABS.length) % TABS.length;
+      setTab(TABS[j][0]); tabs.current?.children[j]?.focus();
+    }
+  };
+  const perPlayer = ["points", "patterns", "reel", "footwork", "fatigue"].includes(tab);
+  const closeMenu = (e) => { e.currentTarget.closest("details").open = false; };
   return (
     <div className="page match">
+      <MatchNav page="match" />
       <header className="report-head">
         <div>
           <span className="tag">Match analysis · {m.event}</span>
           <h1 className="h1">{m.names.A} <span className="vs">vs</span> {m.names.B}</h1>
-          <p className="muted">{m.rallies.length} labelled rallies, every shot with type, landing and both players' positions · a few rallies are missing from the annotation</p>
+          <p className="muted">{m.rallies.length} labelled rallies, every shot with its type, landing spot and both players' positions. A few rallies are missing from the annotation.</p>
         </div>
         <div className="cta-row">
-          <button className="btn primary" onClick={() => go("live")}>Live mode</button>
-          <button className="btn ghost" onClick={() => go("scout")}>Scouting report</button>
-          <button className="btn ghost" onClick={() => exportShots(m, "csv")}>Export CSV</button>
-          <button className="btn ghost" onClick={() => exportShots(m, "json")}>JSON</button>
+          <button className="btn primary" onClick={() => go("live")}><Icon name="live" size={18} />Live mode</button>
+          <details className="export-menu">
+            <summary className="btn ghost"><Icon name="download" size={18} />Export</summary>
+            <div className="menu-pop" role="menu">
+              <button role="menuitem" onClick={(e) => { exportShots(m, "csv"); closeMenu(e); }}><span><b>Shots as CSV</b><em>For a spreadsheet</em></span></button>
+              <button role="menuitem" onClick={(e) => { exportShots(m, "json"); closeMenu(e); }}><span><b>Shots as JSON</b><em>For your own tools</em></span></button>
+            </div>
+          </details>
         </div>
       </header>
-      <div className="tabs" role="tablist">
-        {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
-        {["points", "patterns", "reel", "footwork", "fatigue"].includes(tab) && (
-          <div className="seg tabs-who" role="radiogroup" aria-label="Player">
-            {["A", "B"].map((k) => <button key={k} role="radio" aria-checked={who === k} onClick={() => setWho(k)}>{m.names[k]}</button>)}
+      <Decided m={m} />
+      <div className="tabs-wrap">
+        <div className="tabs" role="tablist" aria-label="Match analysis" ref={tabs} onKeyDown={key}>
+          {TABS.map(([k, l]) => <button key={k} id={"tab-" + k} role="tab" aria-selected={tab === k} aria-controls="match-panel" tabIndex={tab === k ? 0 : -1} onClick={() => setTab(k)}>{l}</button>)}
+        </div>
+      </div>
+      <div id="match-panel" role="tabpanel" aria-labelledby={"tab-" + tab}>
+        {perPlayer && (
+          <div className="match-tools">
+            <div className="seg" role="radiogroup" aria-label="Player">
+              {["A", "B"].map((k) => <button key={k} role="radio" aria-checked={who === k} onClick={() => setWho(k)}>{m.names[k]}</button>)}
+            </div>
           </div>
         )}
+        {tab === "flow" && <Flow m={m} />}
+        {tab === "points" && <Points m={m} p={who} />}
+        {tab === "patterns" && <Patterns m={m} p={who} />}
+        {tab === "rallies" && <Rallies m={m} />}
+        {tab === "reel" && <Highlights m={m} p={who} />}
+        {tab === "footwork" && <Footwork m={m} p={who} />}
+        {tab === "fatigue" && <Fatigue m={m} p={who} />}
+        {tab === "compare" && <Compare d={d} />}
       </div>
-      {tab === "flow" && <Flow m={m} />}
-      {tab === "points" && <Points m={m} p={who} />}
-      {tab === "patterns" && <Patterns m={m} p={who} />}
-      {tab === "rallies" && <Rallies m={m} />}
-      {tab === "reel" && <Highlights m={m} p={who} />}
-      {tab === "footwork" && <Footwork m={m} p={who} />}
-      {tab === "fatigue" && <Fatigue m={m} p={who} />}
-      {tab === "compare" && <Compare d={d} />}
     </div>
+  );
+}
+
+// one line on what decided the match, from the same point labels as the tabs below
+function Decided({ m }) {
+  const { sets } = scoreFlow(m);
+  const g = { A: 0, B: 0 };
+  Object.values(sets).forEach((rs) => { const l = rs[rs.length - 1]; g[l.score[0] > l.score[1] ? "A" : "B"]++; });
+  const s = pointStats(m, "A"), sum = (a) => a.reduce((x, [, n]) => x + n, 0);
+  const W = g.A >= g.B ? "A" : "B", L = W === "A" ? "B" : "A", first = (p) => m.names[p].split(" ")[0];
+  return (
+    <section className="decided" aria-label="What decided this match">
+      <b>{m.names[W]} won {g[W]}–{g[L]}</b>
+      <p>{first("A")} won {s.won} points and lost {s.lost}. {sum(s.oppErrors)} of those points came from {first("B")}'s errors and {sum(s.winners)} from {first("A")}'s own winners; {first("A")} gave away {sum(s.errorReasons)} with own errors.</p>
+    </section>
   );
 }
 
@@ -69,8 +109,8 @@ function Flow({ m }) {
           <div key={s} className="panel">
             <h3 className="panel-h">Game {s} · {last.score[0]}–{last.score[1]}</h3>
             <LineChart n={rs.length} label={`Score difference in game ${s}`} zero={0} yFmt={(v) => (v > 0 ? "+" : "") + v.toFixed(0)}
-              series={[{ label: "diff", color: "var(--accent)", values: rs.map((r) => r.score[0] - r.score[1]), dots: true, dotColor: (i) => (rs[i].winner === "A" ? "var(--near)" : "var(--far)") }]} height={190} />
-            <p className="tiny muted">Above zero: {m.names.A} leads. Dots: who won each rally.</p>
+              series={[{ label: "diff", color: "var(--accent)", values: rs.map((r) => r.score[0] - r.score[1]), dots: true, dotColor: (i) => (rs[i].winner === "A" ? "var(--near)" : "var(--far)"), dotRing: (i) => rs[i].winner !== "A" }]} height={200} />
+            <p className="chart-key"><span>Above zero: {m.names.A.split(" ")[0]} leads</span><span><i style={{ background: "var(--near)" }} />{m.names.A.split(" ")[0]} won the rally</span><span><i className="ring" style={{ borderColor: "var(--far)" }} />{m.names.B.split(" ")[0]} won it</span></p>
           </div>
         );
       })}
@@ -99,7 +139,7 @@ function Points({ m, p }) {
       <div className="panel"><h3 className="panel-h">How points were won</h3>
         <Bars rows={[...s.winners.map(([k, v]) => ({ k: `${k} winner`, v, c: "var(--good)" })), ...s.oppErrors.map(([k, v]) => ({ k: `opponent ${k}`, v }))]} /></div>
       <div className="panel"><h3 className="panel-h">How points were lost</h3>
-        <Bars rows={[...s.oppWinners.map(([k, v]) => ({ k: `${k} by opponent`, v, c: "var(--bad)" })), ...s.errors.slice(0, 6).map(([k, v]) => ({ k, v, c: "#c96a5c" }))]} /></div>
+        <Bars rows={[...s.oppWinners.map(([k, v]) => ({ k: `${k} by opponent`, v, c: "var(--bad)" })), ...s.errors.slice(0, 6).map(([k, v]) => ({ k, v, c: "var(--bad-2)" }))]} /></div>
       <div className="panel span2"><h3 className="panel-h">Win rate by rally length</h3>
         <Bars rows={s.byLen.map((b) => ({ k: b.b, v: b.w, note: `${b.n} rallies` }))} max={100} fmt={(v) => v + "%"} /></div>
     </section>
@@ -110,8 +150,8 @@ function Patterns({ m, p }) {
   const t = patterns(m, p);
   const table = (rows, title) => (
     <div className="panel"><h3 className="panel-h">{title}</h3>
-      <table className="ptable"><thead><tr><th>Sequence</th><th>Times</th><th>Rally won</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.k}><td>{r.k}</td><td className="mono">{r.n}</td><td className={`mono ${r.w >= 60 ? "good" : r.w <= 40 ? "bad" : ""}`}>{r.w}%</td></tr>)}</tbody></table></div>
+      <div className="tscroll"><table className="ptable"><thead><tr><th>Sequence</th><th className="r">Times</th><th className="r">Rally won</th></tr></thead>
+        <tbody>{rows.map((r) => <tr key={r.k}><td>{r.k}</td><td className="mono">{r.n}</td><td className={`mono ${r.w >= 60 ? "good" : r.w <= 40 ? "bad" : ""}`}>{r.w}%{r.w >= 60 ? " ▲" : r.w <= 40 ? " ▼" : ""}</td></tr>)}</tbody></table></div></div>
   );
   return (
     <section className="mgrid">
@@ -154,12 +194,15 @@ function Rallies({ m }) {
           </RallyClip>
           <div className="rclip-actions">
             {queue && <span className="tag">Reel · {queue.length} left</span>}
-            <button className="btn ghost" onClick={() => setAnnot(true)} disabled={annot}>✎ Annotate frame</button>
+            <button className="btn ghost sm" onClick={() => setAnnot(true)} disabled={annot}>✎ Annotate frame</button>
+            <span className="tiny muted">W / L: whether {m.names.A.split(" ")[0]} won the rally.</span>
           </div>
         </div>
         <ol className="rlist">
           {rs.map((x) => (
-            <li key={x.i}><button className={`${x.i === cur ? "on" : ""} ${x.winner === "A" ? "w" : "l"}`} onClick={() => { setQueue(null); setCur(x.i); }}>
+            <li key={x.i}><button className={`${x.i === cur ? "on" : ""} ${x.winner === "A" ? "w" : "l"}`} aria-current={x.i === cur ? "true" : undefined} onClick={() => { setQueue(null); setCur(x.i); }}
+              aria-label={`Game ${x.set}, ${x.score[0]}–${x.score[1]}, ${x.winner === "A" ? "won" : "lost"} by ${m.names.A}, ${x.shots.length} shots`}>
+              <span className="wl" aria-hidden="true">{x.winner === "A" ? "W" : "L"}</span>
               <span className="mono">G{x.set} · {x.score[0]}–{x.score[1]}</span>
               <b>{x.shots.length} shots</b>
               <span>{x.reason === "winner" ? `${x.lastType} winner` : `${x.lastType} ${x.reason}`} · {m.names[x.lastBy].split(" ")[0]}</span>
@@ -185,15 +228,15 @@ function Footwork({ m, p }) {
       </div>
       <div className="panel">
         <h3 className="panel-h">Which opponent shots stretch {m.names[p]}</h3>
-        <table className="ptable"><thead><tr><th>Opponent shot</th><th>Time</th><th>Distance</th><th>Needed</th><th>With an earlier read (+0.4 s)</th></tr></thead>
+        <div className="tscroll"><table className="ptable"><thead><tr><th>Opponent shot</th><th className="r">Time</th><th className="r">Distance</th><th className="r">Needed</th><th className="r">Read 0.4 s earlier</th></tr></thead>
           <tbody>{fw.byType.map((r) => <tr key={r.t}><td>{r.t}</td><td className="mono">{f2(r.dt)} s</td><td className="mono">{f2(r.d)} m</td>
-            <td className={`mono ${r.v > 3 ? "bad" : ""}`}>{f2(r.v)} m/s</td><td className="mono good">{f2(r.vEarly)} m/s</td></tr>)}</tbody></table>
+            <td className={`mono ${r.v > 3 ? "bad" : ""}`}>{f2(r.v)} m/s</td><td className="mono good">{f2(r.vEarly)} m/s</td></tr>)}</tbody></table></div>
         <p className="tiny muted">Read and react: time from the opponent's contact to {m.names[p]}'s next contact, distance covered in that time. The last column is a what-if: the speed needed if the shot were read 0.4 s earlier, the head start our intent-detection block aims to give. It is integrated in Stage II.</p>
       </div>
       <div className="panel">
         <h3 className="panel-h">Where the stretched reaches started</h3>
         <CourtMap half="near" label="Positions when the opponent struck, for shots needing more than 3.5 m/s"
-          heat={heatGrid(reads.map((r) => r.from), "near", .5)} heatColor="#ff5f56" />
+          heat={heatGrid(reads.map((r) => r.from), "near", .5)} heatColor="var(--heat-defence)" />
         <p className="tiny muted">Heat: where {m.names[p]} stood at the opponent's contact on the hardest-to-reach shots.</p>
       </div>
       <Positions m={m} p={p} />
@@ -211,7 +254,7 @@ function Positions({ m, p }) {
         {[["heat", "Heat map"], ["scatter", "Scatter"]].map(([k, l]) => <button key={k} role="radio" aria-checked={mode === k} onClick={() => setMode(k)}>{l}</button>)}
       </div>
       <div className="pos-map">
-        <CourtMap half="near" label={`${m.names[p]} contact positions`} heat={mode === "heat" ? heatGrid(pts, "near", .45) : null} heatColor="#6FB6FF"
+        <CourtMap half="near" label={`${m.names[p]} contact positions`} heat={mode === "heat" ? heatGrid(pts, "near", .45) : null} heatColor="var(--near)"
           points={mode === "scatter" ? pts.map((xy) => ({ xy, c: "var(--near)", r: 2.6, o: .5 })) : []} />
       </div>
       <p className="tiny muted">Positions from the labelled court coordinates, shown on {m.names[p]}'s own half with the net at the top.</p>
@@ -260,6 +303,23 @@ function Fatigue({ m, p }) {
     const bad = lowerIsBetter ? d > 5 : d < -5;
     return <span className={bad ? "bad" : Math.abs(d) <= 5 ? "" : "good"}>{d > 0 ? "+" : ""}{d.toFixed(0)}%</span>;
   };
+  // the watch list: each knee-loading measure against the player's own baseline, with the same thresholds as Ren's flags
+  const g1 = ld.bySet[0], gl = ld.bySet[ld.bySet.length - 1], per = (g, k) => g[k] / g.n;
+  const LVL = { high: ["off", "▲ Warning"], watch: ["mod", "● Watch"], ok: ["ok", "✓ OK"] };
+  const row = (k, sub, a, b, fmt, warn, watch) => {
+    const d = ((b - a) / (a || 1)) * 100, lvl = d > warn ? "high" : d > watch ? "watch" : "ok";
+    return { k, sub, a: fmt(a), b: fmt(b), d: `${d > 0 ? "+" : ""}${d.toFixed(0)}%`, lvl };
+  };
+  const heavy = ld.peak.filter((x) => x.load > ld.early * 2.2);
+  const watchList = [
+    row("Load per rally", "first vs last third", ld.early, ld.late, f1, 15, 5),
+    ...(g1 && gl && gl !== g1 ? [
+      row("Front-court lunges per rally", `game 1 vs game ${gl.s}`, per(g1, "lunges"), per(gl, "lunges"), f2, 30, 10),
+      row("Sharp cuts per rally", `game 1 vs game ${gl.s}`, per(g1, "cuts"), per(gl, "cuts"), f2, 30, 10),
+      row("Metres per rally", `game 1 vs game ${gl.s}`, per(g1, "metres"), per(gl, "metres"), f1, 20, 8),
+    ] : []),
+    { k: "Very heavy rallies", sub: "over 2.2× the opening load", a: "–", b: String(heavy.length), d: "–", lvl: heavy.length ? "watch" : "ok" },
+  ];
   return (
     <section className="mgrid">
       <div className="panel span2">
@@ -276,15 +336,19 @@ function Fatigue({ m, p }) {
         <h3 className="panel-h">Load and injury-risk watch · Coach Ren</h3>
         <div className="risk-grid">
           <div>
-            <table className="ptable"><thead><tr><th>Game</th><th>Metres per rally</th><th>Lunges per rally</th><th>Sharp cuts per rally</th></tr></thead>
-              <tbody>{ld.bySet.map((g) => <tr key={g.s}><td>Game {g.s}</td><td className="mono">{f1(g.metres / g.n)}</td><td className="mono">{f2(g.lunges / g.n)}</td><td className="mono">{f2(g.cuts / g.n)}</td></tr>)}</tbody></table>
-            <LineChart n={ld.series.length} marks={marks} label="Movement load" series={[{ label: "load", color: "#FF8A6B", values: ld.roll }]} yFmt={f1} />
+            <h4>Watch list</h4>
+            <div className="tscroll"><table className="ptable watch-list"><thead><tr><th>Measure</th><th className="r">Start</th><th className="r">Late</th><th className="r">Change</th><th>Status</th></tr></thead>
+              <tbody>{watchList.map((w) => <tr key={w.k}><td>{w.k}<span className="tiny muted">{w.sub[0].toUpperCase() + w.sub.slice(1)}</span></td><td className="mono">{w.a}</td><td className="mono">{w.b}</td><td className="mono">{w.d}</td><td><span className={`verdict ${LVL[w.lvl][0]}`}>{LVL[w.lvl][1]}</span></td></tr>)}</tbody></table></div>
+            <h4>By game</h4>
+            <div className="tscroll"><table className="ptable"><thead><tr><th>Game</th><th className="r">Metres per rally</th><th className="r">Lunges per rally</th><th className="r">Sharp cuts per rally</th></tr></thead>
+              <tbody>{ld.bySet.map((g) => <tr key={g.s}><td>Game {g.s}</td><td className="mono">{f1(g.metres / g.n)}</td><td className="mono">{f2(g.lunges / g.n)}</td><td className="mono">{f2(g.cuts / g.n)}</td></tr>)}</tbody></table></div>
+            <LineChart n={ld.series.length} marks={marks} label="Movement load" series={[{ label: "load", color: "var(--far)", values: ld.roll }]} yFmt={f1} />
             <p className="tiny muted">Load per rally, rolling 10: metres moved + 1.5 per front-court lunge + 1 per sharp change of direction, from court positions at every contact.</p>
           </div>
           <div className="risk-feed">
             {joint && <div className="risk mem"><b>Memory</b><p>“{joint.m.text}” Lunges and cuts are the knee-loading movements, so they are tracked against your own game 1 baseline.</p></div>}
-            {ld.flags.length ? ld.flags.map((f, k) => <div key={k} className={`risk ${f.lvl}`}><b>{f.lvl === "high" ? "Warning" : "Watch"}</b><p>{f.t}</p></div>)
-              : <div className="risk ok"><b>No warning</b><p>Load per rally stayed within 15% of the opening third ({f1(ld.early)} → {f1(ld.late)}).</p></div>}
+            {ld.flags.map((f, k) => <div key={k} className={`risk ${f.lvl}`}><b>{f.lvl === "high" ? "▲ Warning" : "● Watch"}</b><p>{f.t}</p></div>)}
+            {!ld.flags.length && <div className="risk ok"><b>✓ No warning</b><p>Every measure on the watch list stayed close to the player's own opening baseline.</p></div>}
             {pose && p === "A" && <PoseCheck pose={pose} joint={joint} />}
             <p className="tiny muted">Match-wide load is a proxy from positions. Joint angles come from pose on the replayed rally; Stage II runs pose on every rally on the B70, live.</p>
           </div>
@@ -299,8 +363,8 @@ function Fatigue({ m, p }) {
       <div className="panel"><h3 className="panel-h">Time between shots (s)</h3>
         <LineChart n={fa.series.length} marks={marks} label="Tempo" series={[{ label: "tempo", color: "var(--accent)", values: fa.rollTempo }]} yFmt={f2} /></div>
       <div className="panel span2"><h3 className="panel-h">By game</h3>
-        <table className="ptable"><thead><tr><th>Game</th><th>From base</th><th>Speed needed</th><th>Own errors</th><th>Time between shots</th><th>Shots per rally</th></tr></thead>
-          <tbody>{fa.bySet.map((s) => <tr key={s.s}><td>Game {s.s}</td><td className="mono">{f2(s.rec)} m</td><td className="mono">{f2(s.req)} m/s</td><td className="mono">{s.err}%</td><td className="mono">{f2(s.tempo)} s</td><td className="mono">{f1(s.shots)}</td></tr>)}</tbody></table></div>
+        <div className="tscroll"><table className="ptable"><thead><tr><th>Game</th><th className="r">From base</th><th className="r">Speed needed</th><th className="r">Own errors</th><th className="r">Time between shots</th><th className="r">Shots per rally</th></tr></thead>
+          <tbody>{fa.bySet.map((s) => <tr key={s.s}><td>Game {s.s}</td><td className="mono">{f2(s.rec)} m</td><td className="mono">{f2(s.req)} m/s</td><td className="mono">{s.err}%</td><td className="mono">{f2(s.tempo)} s</td><td className="mono">{f1(s.shots)}</td></tr>)}</tbody></table></div></div>
     </section>
   );
 }
@@ -313,16 +377,16 @@ function Compare({ d }) {
     ["Distance from base", (x) => `${f2(x.recovery)} m`], ["Short serves", (x) => `${x.serveShort}%`], ["Top target", (x) => x.targets[0]?.[0] ?? "–"], ["Weakest zone", (x) => x.weak[0]?.[0] ?? "–"]];
   return (
     <section className="mgrid">
-      <div className="panel span2">
+      <div className="panel span2" style={{ maxWidth: 820 }}>
         <h3 className="panel-h">{name} across {cols.length} matches</h3>
-        <table className="ptable cmp"><thead><tr><th />{cols.map((c) => <th key={c.m.video}>{c.m.event}<br /><span className="muted">vs {c.opp}</span></th>)}</tr></thead>
-          <tbody>{rows.map(([l, fn]) => <tr key={l}><td>{l}</td>{cols.map((c) => <td key={c.m.video} className="mono">{fn(c.pr)}</td>)}</tr>)}</tbody></table>
+        <div className="tscroll"><table className="ptable cmp"><thead><tr><th />{cols.map((c) => <th key={c.m.video}>{c.m.event}<br /><span className="muted">vs {c.opp}</span></th>)}</tr></thead>
+          <tbody>{rows.map(([l, fn]) => <tr key={l}><td>{l}</td>{cols.map((c) => <td key={c.m.video} className="mono">{fn(c.pr)}</td>)}</tr>)}</tbody></table></div>
         <p className="tiny muted">Same metrics, computed the same way on both matches. Each analysed match is also saved to the player's memory, so coaches can compare over a season.</p>
       </div>
       {cols.map((c) => (
         <div key={c.m.video} className="panel">
           <h3 className="panel-h">{c.m.event} · where {name}'s shots land</h3>
-          <CourtMap half="far" heat={heatGrid(c.pr.land.map((x) => x.xy), "far", .55)} heatColor="#f2a33a" label="Landing heat" />
+          <CourtMap half="far" heat={heatGrid(c.pr.land.map((x) => x.xy), "far", .55)} heatColor="var(--heat-attack)" label="Landing heat" />
         </div>
       ))}
     </section>

@@ -1,15 +1,18 @@
 /* One ground, one ink, one accent (shuttle cream, for actions and the shuttle itself).
-   Blue / coral are the two players; the teal-to-red ramp is shuttle speed. Nothing else gets colour. */
+   Blue / coral are the two players; the teal-to-red ramp is shuttle speed. Status colours say good / watch / bad.
+   Coach colours live in coaches/personas.js and only tint that coach's own messages. */
 :root {
   --bg: #04070a;
-  --surface: #0a1014;
-  --surface-2: #111a20;
-  --control: #ffffff10;
-  --control-hover: #ffffff1f;
-  --rule: rgb(255 255 255 / .09);
+  --surface: #0c1418;
+  --surface-2: #142027;
+  --surface-3: #1c2a32;
+  --control: rgb(255 255 255 / .07);
+  --control-hover: rgb(255 255 255 / .13);
+  --rule: rgb(255 255 255 / .1);
+  --rule-strong: rgb(255 255 255 / .22);
   --ink: #eef1f2;
   --ink-2: #c3cacd;
-  --ink-3: #8e989d;
+  --ink-3: #97a2a7;
   --accent: #f2e6c9;
   --accent-ink: #04070a;
   --near: #6fb6ff;
@@ -18,21 +21,40 @@
   --good: #5fd39a;
   --warn: #f2c14e;
   --bad: #ff6b6b;
+  --bad-2: #d9786e;
+  --live: #e5443a;
+  --heat-attack: #f2a33a;
+  --heat-defence: #ff5f56;
   --sp1: #3fd0c9; --sp2: #9be37a; --sp3: #f2d46b; --sp4: #f5a25d; --sp5: #ef5f5c;
 
   --font: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: Michroma, Eurostile, "Arial Black", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 
-  --fs-display: clamp(40px, 6vw, 96px);
-  --fs-h2: clamp(28px, 3vw, 44px);
-  --fs-lead: 19px;
+  /* type: 12 / 14 / 16 / 20 / 24 / 32-40; nothing smaller than 12 */
+  --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-20: 20px; --fs-24: 24px;
+  --fs-h1: clamp(28px, 2.8vw, 40px);
+  --fs-h2: clamp(26px, 2.6vw, 36px);
+  --fs-display: clamp(44px, 6vw, 96px);
+  --fs-lead: 18px;
   --fs-body: 16px;
-  --fs-small: 13px;
+  --fs-small: 14px;
+
+  /* space: 4-point scale */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
   --gutter: clamp(16px, 4vw, 64px);
-  --ease: cubic-bezier(.2, .7, .2, 1);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-pill: 999px;
+
+  /* layers */
+  --z-sticky: 10; --z-nav: 30; --z-menu: 40; --z-sheet: 50; --z-modal: 70; --z-toast: 90;
+
+  --nav-h: 60px;
+  --tabbar-h: 0px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --dur-1: 150ms; --dur-2: 220ms;
   color-scheme: dark;
 }
+@media (max-width: 640px) { :root { --nav-h: 56px; --tabbar-h: 64px; } }
 
 * { box-sizing: border-box; }
 html { background: var(--bg); }
@@ -45,7 +67,9 @@ a { color: inherit; }
 button { font: inherit; color: inherit; }
 ::selection { background: var(--accent); color: var(--accent-ink); }
 :focus-visible { outline: 2px solid var(--near); outline-offset: 3px; border-radius: 4px; }
+::placeholder { color: var(--ink-3); opacity: 1; }
+img, video, canvas, svg { max-width: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

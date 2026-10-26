@@ -35,6 +35,8 @@ export const memory = {
     write([{ id: Math.random().toString(36).slice(2), kind, text: t, at: now(), source }, ...cache]);
   },
   remove(id) { write(cache.filter((m) => m.id !== id)); },
+  // undo a remove: put the entry back where it was
+  restore(entry, at = 0) { if (!cache.some((m) => m.id === entry.id)) write([...cache.slice(0, at), entry, ...cache.slice(at)]); },
   reset() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } write(read()); },
   subscribe(f) { listeners.add(f); return () => listeners.delete(f); },
   // keep one automatic summary per analysed match

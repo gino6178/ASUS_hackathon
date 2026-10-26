@@ -5,9 +5,13 @@ import RallyClip from "../match/RallyClip.jsx";
 import CourtMap from "../components/CourtMap.jsx";
 import { COACHES } from "../coaches/personas.js";
 import Avatar from "../coaches/Avatar.jsx";
+import Icon from "../components/Icon.jsx";
+import VoiceCoach from "../voice/VoiceCoach.jsx";
 
 // Live mode: the recorded rallies are streamed one after another as if from the court camera. Shots, score,
 // heat map and coach alerts update as each shot and rally happens. (Prototype: replay of a recorded match.)
+// It is a broadcast view of its own, built to be read from a tablet courtside in about 20 seconds: no app
+// navigation, the score on the video, and the between-point brief large and directly under it.
 const coach = (id) => COACHES.find((c) => c.id === id);
 const ME = "A";
 
@@ -73,7 +77,7 @@ export function brief(m, done) {
   return { kind, lines: out.slice(0, kind === "point" ? 3 : 5), ms: performance.now() - t0, at: `G${r.set} ${r.score[0]}–${r.score[1]}` };
 }
 
-export default function Live() {
+export default function Live({ data }) {
   const [d, setD] = useState(null);
   const [i, setI] = useState(0);
   const [running, setRunning] = useState(true);
@@ -81,8 +85,9 @@ export default function Live() {
   const [feed, setFeed] = useState([]);
   const [pause, setPause] = useState(null); // between-point brief while the next rally waits
   const [left, setLeft] = useState(0);
+  const [info, setInfo] = useState(false);
   const clip = useRef(null);
-  useEffect(() => { loadMatches().then(setD); }, []);
+  useEffect(() => { loadMatches().then(setD); window.scrollTo(0, 0); }, []);
   useEffect(() => { const v = clip.current?.video; if (v) { v.playbackRate = rate; running ? v.play().catch(() => {}) : v.pause(); } }, [rate, running, i]);
   const m = d?.matches[0];
   // during the break the rally that just ended already counts on the scoreboard
@@ -95,7 +100,7 @@ export default function Live() {
     return () => clearTimeout(id);
   }, [pause, left, running, rate]);
 
-  if (!m) return <div className="page"><p className="muted">Connecting to the court camera…</p></div>;
+  if (!m) return <div className="live-page"><div className="live-bar"><a className="btn ghost sm exit" href="#/match"><Icon name="back" size={16} />Exit live</a><span className="live-title">Connecting to the court camera…</span></div></div>;
   const r = m.rallies[i];
   const games = { A: 0, B: 0 };
   [1, 2, 3].forEach((s) => { const rs = done.filter((x) => x.set === s); const last = rs[rs.length - 1]; if (last && s < r.set) games[last.score[0] > last.score[1] ? "A" : "B"]++; });
@@ -112,71 +117,89 @@ export default function Live() {
     // the real break is ~20 s (60 s at 11 points); the replay compresses it
     const b = brief(m, now), secs = b.kind === "point" ? 6 : 10;
     window.__liveBrief = b;
-    setPause(b); setLeft(secs);
+    setPause({ ...b, secs }); setLeft(secs);
   };
   const skip = () => { setLeft(0); };
+  const R = 27, C = 2 * Math.PI * R;
 
   return (
-    <div className="page live">
-      <header className="live-head">
-        <span className="live-badge"><i /> LIVE</span>
-        <h1 className="h1">{m.names.A} <span className="vs">vs</span> {m.names.B}</h1>
+    <div className="live-page">
+      <header className="live-bar">
+        <a className="btn ghost sm exit" href="#/match"><Icon name="back" size={16} />Exit live</a>
+        <span className="live-badge"><i aria-hidden="true" /> LIVE</span>
+        <h1 className="live-title">{m.names.A} <span className="vs">vs</span> {m.names.B}</h1>
         <div className="live-ctl">
-          <button className="btn ghost" onClick={() => setRunning(!running)}>{running ? "Pause" : "Resume"}</button>
-          {[1, 2].map((x) => <button key={x} className={`btn ghost ${rate === x ? "on" : ""}`} onClick={() => setRate(x)}>{x}×</button>)}
-          <select value={i} onChange={(e) => { setFeed([]); setI(+e.target.value); }} aria-label="Jump to rally">
+          <button className="btn ghost sm" onClick={() => setRunning(!running)} aria-label={running ? "Pause" : "Resume"}><Icon name={running ? "pause" : "play"} size={16} /><span className="lbl">{running ? "Pause" : "Resume"}</span></button>
+          <div className="seg" role="radiogroup" aria-label="Replay speed">
+            {[1, 2].map((x) => <button key={x} role="radio" aria-checked={rate === x} onClick={() => setRate(x)}>{x}×</button>)}
+          </div>
+          <select value={i} onChange={(e) => { setFeed([]); setPause(null); setI(+e.target.value); }} aria-label="Jump to rally">
             {m.rallies.map((x) => <option key={x.i} value={x.i}>Game {x.set} · rally {x.rally}</option>)}
           </select>
+          <VoiceCoach data={data} />
         </div>
+        <button className="icon-btn live-info-btn" aria-label="Stream details" aria-expanded={info} onClick={() => setInfo(!info)}><Icon name="info" /></button>
       </header>
       <div className="live-grid">
-        <div>
+        <div className="live-main">
           <RallyClip ref={clip} rally={r} names={m.names} onEnded={next} minimap={false} live>
-            {pause && (
-              <div className={`brief ${pause.kind}`} role="status">
-                <header>
-                  <b>{pause.kind === "point" ? "Between points" : pause.kind === "interval" ? "11-point interval" : "Between games"} · {pause.at}</b>
-                  <span className="mono">brief ready in {pause.ms < 1 ? "<1" : pause.ms.toFixed(1)} ms · next serve in {left} s</span>
-                </header>
-                {pause.lines.map((l, k) => (
-                  <div key={k} className="brief-line" style={{ "--cc": coach(l.c).color }}>
-                    <Avatar coach={coach(l.c)} size={34} /><p>{l.t}</p>
-                  </div>
-                ))}
-                <footer><span className="tiny">Ask out loud: “what should I do next point?”</span><button className="btn ghost sm" onClick={skip}>Next serve →</button></footer>
-              </div>
-            )}
+            <div className="score-ov" aria-label={`Score: ${m.names.A} ${score[0]}, ${m.names.B} ${score[1]}; games ${games.A}–${games.B}`}>
+              {["A", "B"].map((p) => (
+                <div key={p} className={`score-row ${p === "A" ? "me" : ""}`}>
+                  <span>{m.names[p]}</span>
+                  <span className="pips" title={`Games won: ${games[p]}`}>{[0, 1].map((k) => <i key={k} className={k < games[p] ? "won" : ""} />)}</span>
+                  <strong>{score[p === "A" ? 0 : 1]}</strong>
+                </div>
+              ))}
+              <span className="score-meta">Game {r.set} · rally {i + 1} of {m.rallies.length} · dots: games won</span>
+            </div>
           </RallyClip>
-          <div className="live-hud mono">
-            <span>court cam 1080p30</span><span>tracker real-time</span><span>shot → stats &lt; 0.3 s</span><span className="ok">network: none</span>
-          </div>
-          <p className="tiny muted">Prototype: recorded rallies streamed as if live, with the between-point break compressed. In Stage II the same view runs on the B70 from the court camera, and the local 14B model turns each brief into one spoken sentence.</p>
+          {pause ? (
+            <section className={`live-brief ${pause.kind}`} role="status" aria-live="polite">
+              <header>
+                <div>
+                  <b>{pause.kind === "point" ? "Between points" : pause.kind === "interval" ? "11-point interval" : "Between games"} · {pause.at}</b>
+                  <span className="tiny">Brief ready in {pause.ms < 1 ? "<1" : pause.ms.toFixed(1)} ms, computed on this device</span>
+                </div>
+                <div className="countdown" role="timer" aria-label={`Next serve in ${left} seconds`}>
+                  <svg viewBox="0 0 64 64" aria-hidden="true"><circle className="track" cx="32" cy="32" r={R} /><circle className="arc" cx="32" cy="32" r={R} strokeDasharray={C} strokeDashoffset={C * (1 - left / pause.secs)} /></svg>
+                  <b>{left}</b>
+                </div>
+              </header>
+              {pause.lines.map((l, k) => (
+                <div key={k} className="brief-line" style={{ "--cc": coach(l.c).color }}>
+                  <Avatar coach={coach(l.c)} size={44} /><p><small>{coach(l.c).name}</small>{l.t}</p>
+                </div>
+              ))}
+              <footer><span className="tiny">Ask out loud: “what should I do next point?”</span><button className="btn primary lg" onClick={skip}>Next serve →</button></footer>
+            </section>
+          ) : (
+            <div className="live-wait"><p className="dots" aria-hidden="true"><i /><i /><i /></p>{running ? "Rally in play. The coaches' brief appears here when it ends." : "Stream paused."}</div>
+          )}
+          {info && (
+            <div className="live-info">
+              <p className="live-hud mono"><span>court cam 1080p30</span><span>tracker real-time</span><span>shot → stats &lt; 0.3 s</span><span className="ok">network: none</span></p>
+              <p className="tiny muted">Prototype: recorded rallies streamed as if live, with the between-point break compressed. In Stage II the same view runs on the B70 from the court camera, and the local 14B model turns each brief into one spoken sentence.</p>
+            </div>
+          )}
         </div>
         <aside className="live-side">
-          <div className="scoreboard">
-            {["A", "B"].map((p) => (
-              <div key={p} className={p === "A" ? "me" : ""}>
-                <span>{m.names[p]}</span><b className="mono">{games[p]}</b><strong className="mono">{score[p === "A" ? 0 : 1]}</strong>
-              </div>
-            ))}
-            <p className="tiny muted">Game {r.set} · rally {i + 1} of {m.rallies.length}</p>
-          </div>
-          <div className="live-stats">
-            {["A", "B"].map((p) => { const s = stat(p); return <div key={p}><span>{m.names[p].split(" ")[0]}</span><b className="mono">{s.w}</b><em>winners</em><b className="mono">{s.e}</b><em>errors</em></div>; })}
-          </div>
-          <div className="panel live-map">
-            <h3 className="panel-h">Opponent's landings so far</h3>
-            <CourtMap half="full" points={lands.map((xy) => ({ xy, c: "var(--far)", r: 3, o: .6 }))} label="Opponent landings" />
-          </div>
-          <div className="live-feed" aria-live="polite">
-            <h3 className="panel-h">Coach alerts</h3>
+          <section className="live-feed" aria-live="polite" aria-relevant="additions">
+            <h2>Coach alerts</h2>
             {!feed.length && <p className="tiny muted">Coaches speak up when a pattern appears.</p>}
             {feed.map((a) => (
               <div key={a.id} className="alert" style={{ "--cc": coach(a.c).color }}>
-                <Avatar coach={coach(a.c)} size={36} />
+                <Avatar coach={coach(a.c)} size={40} />
                 <div><b>{coach(a.c).name} · <span className="mono">{a.at}</span></b><p>{a.t}</p></div>
               </div>
             ))}
+          </section>
+          <div className="live-stats">
+            {["A", "B"].map((p) => { const s = stat(p); return <div key={p}><span>{m.names[p].split(" ")[0]}</span><b className="mono">{s.w}</b><em>winners</em><b className="mono">{s.e}</b><em>errors</em></div>; })}
+          </div>
+          <div className="live-map">
+            <h2>Opponent's landings so far</h2>
+            <CourtMap half="full" points={lands.map((xy) => ({ xy, c: "var(--far)", r: 3, o: .6 }))} label="Opponent landings" />
           </div>
         </aside>
       </div>

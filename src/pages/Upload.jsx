@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { go } from "../App.jsx";
 import CourtCalib from "../components/CourtCalib.jsx";
 
@@ -22,6 +22,8 @@ export default function Upload({ onVideo }) {
   const [meta, setMeta] = useState(null);
   const [opts, setOpts] = useState({ player: "near", hand: "right", level: "club" });
   const [calib, setCalib] = useState(null);
+  const [cal, setCal] = useState(false); // calibration opens by itself once a video is chosen
+  useEffect(() => { if (meta) setCal(true); }, [meta]);
 
   async function take(file) {
     setErr("");
@@ -34,15 +36,16 @@ export default function Upload({ onVideo }) {
     <div className="page upload">
       <header className="report-head">
         <div>
-        <span className="tag">New analysis</span>
-        <h1 className="h1">Add a match video</h1>
-        <p className="muted">Singles, one fixed camera behind a baseline. The file is opened by your browser and never leaves this device.</p>
+          <span className="tag">New analysis</span>
+          <h1 className="h1">Add a match video</h1>
+          <p className="muted">Singles, one fixed camera behind a baseline. The file is opened by your browser and never leaves this device.</p>
         </div>
       </header>
 
       <div className="upload-grid">
         <label
-          className={`drop ${drag ? "drag" : ""} ${meta ? "has" : ""}`}
+          className={`drop ${drag ? "drag" : ""} ${meta ? "has" : ""}`} tabIndex={meta ? -1 : 0} aria-label={meta ? undefined : "Choose a match video"}
+          onKeyDown={(e) => { if (!meta && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); input.current.click(); } }}
           onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); take(e.dataTransfer.files[0]); }}
@@ -93,16 +96,19 @@ export default function Upload({ onVideo }) {
             </div>
           </section>
 
-          <button className="btn primary wide" disabled={!meta} onClick={() => onVideo({ ...meta, ...opts, calib })}>Start on-device analysis</button>
+          <button className="btn primary wide" disabled={!meta} aria-describedby={meta ? undefined : "need-file"} onClick={() => onVideo({ ...meta, ...opts, calib })}>Start on-device analysis</button>
+          {!meta && <p id="need-file" className="tiny muted upload-hint">Choose a video first, or try the sample match.</p>}
           <button className="btn ghost wide" onClick={() => { onVideo(null); }}>Use the sample match instead</button>
         </aside>
       </div>
 
-      <section className="panel calib-panel">
-        <h2 className="panel-h">Court calibration · {meta ? meta.name : "sample match"}</h2>
-        <p className="muted small">Maps every pixel to court metres. The corners are detected automatically; drag one if it is off, and check the projected lines and the top-down view.</p>
-        <CourtCalib src={meta ? meta.url : "/media/sample_rally.mp4"} onChange={setCalib} />
-      </section>
+      <details className="disclose calib-panel" open={cal} onToggle={(e) => setCal(e.currentTarget.open)}>
+        <summary>Court calibration <span className="muted">{meta ? meta.name : "sample match"} · corners found automatically</span></summary>
+        <div className="disclose-body">
+          <p className="muted small">Maps every pixel to court metres. Drag a corner if it is off, and check the projected lines and the top-down view.</p>
+          {cal && <CourtCalib key={meta ? meta.url : "sample"} src={meta ? meta.url : "/media/sample_rally.mp4"} onChange={setCalib} />}
+        </div>
+      </details>
     </div>
   );
 }

@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import { createCourt } from "../court3d.js";
+import { useReducedMotion } from "../hooks.js";
 
 // frame: controlled frame index; when `loop` is set the component plays the rally by itself
 // range: [f0, f1] loops a single shot with its whole flight drawn as the trail
 export default function Court3D({ rally, frame = 0, loop = false, range = null, interactive = false, autoRotate = false, variant = "report", className = "" }) {
   const ref = useRef(null);
   const api = useRef(null);
+  const still = useReducedMotion();
+  autoRotate = autoRotate && !still; // no idle camera spin when the viewer asked for less motion
 
   useEffect(() => {
     api.current = createCourt(ref.current, { interactive, autoRotate, frame: variant });

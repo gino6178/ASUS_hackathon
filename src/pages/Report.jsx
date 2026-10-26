@@ -5,7 +5,7 @@ import SpeedChart from "../components/SpeedChart.jsx";
 import CourtMap from "../components/CourtMap.jsx";
 import Sparring from "../components/Sparring.jsx";
 import { speedColor, zoneName } from "../data.js";
-import { go } from "../App.jsx";
+import { go, MatchNav } from "../App.jsx";
 
 const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -27,6 +27,7 @@ export default function Report({ data, video }) {
 
   return (
     <div className="page report">
+      <MatchNav page="report" />
       {video && (
         <div className="notice" role="note">
           <b>Demo mode.</b> “{video.name}” was opened locally and never uploaded. This prototype does not run the models on new videos yet,
@@ -47,7 +48,7 @@ export default function Report({ data, video }) {
           <RallyPlayer rally={rally} src="/media/sample_rally.mp4" onFrame={setFrame} seekRef={seek} names={{ near: data.names.A, far: data.names.B }} />
           <div className="court-wrap">
             <Court3D rally={rally} frame={frame} interactive />
-            <span className="hud-tag mono">3D reconstruction · drag to orbit</span>
+            <span className="hud-tag">3D reconstruction · drag to orbit</span>
           </div>
         </div>
         <div className="telemetry">
@@ -59,12 +60,12 @@ export default function Report({ data, video }) {
           <div><span>Contact height</span><b className="mono">{cur.contact[2]}<small> m</small></b></div>
           <div><span>Flight</span><b className="mono">{cur.flight}<small> s</small></b></div>
         </div>
-        <SpeedChart rally={rally} frame={frame} onSeek={(f) => seek.current?.(f)} />
+        <div className="speed-wrap"><SpeedChart rally={rally} frame={frame} onSeek={(f) => seek.current?.(f)} /></div>
         <ol className="strip">
           {rally.strokes.map((s) => (
             <li key={s.i}>
               <button className={`stroke ${s.hitter} ${s.i === cur.i ? "on" : ""}`} onClick={() => seek.current?.(s.f0)}>
-                <span className="mono">{fmtT(s.t0)}</span>
+                <span className="who">{s.hitter === "near" ? "Near" : "Far"} · <span className="mono">{fmtT(s.t0)}</span></span>
                 <b>{s.type}</b>
                 <span className="mono" style={{ color: speedColor(s.v0) }}>{Math.round(s.v0)} km/h</span>
               </button>
@@ -75,7 +76,7 @@ export default function Report({ data, video }) {
       </section>
 
       <section id="patterns" className="block">
-        <header className="sec-head"><span className="tag">Match patterns</span><h2>Where the points are decided</h2></header>
+        <header className="sec-head"><h2>Where the points are decided</h2></header>
         <div className="kpis">
           <div><b className="mono">{match.n}</b><span>shots reconstructed</span></div>
           <div><b className="mono">{smashes.length}</b><span>smashes</span></div>

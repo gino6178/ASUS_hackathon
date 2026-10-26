@@ -7,7 +7,7 @@ export const COACHES = [
     query: "body injury knee shoulder back fatigue strength gym routine training load jump",
   },
   {
-    id: "tactics", name: "Coach Lin", role: "Badminton Tactics", kicker: "Tactics coach", color: "#F2E6C9",
+    id: "tactics", name: "Coach Lin", role: "Badminton Tactics", kicker: "Tactics coach", color: "#B9A2FF",
     look: { skin: "#F0C7A5", hair: "#1B1B1F", hairStyle: "bob", shirt: "#2F8F6F", prop: "whistle" },
     blurb: "Reads your match, opens the heat maps and flashes the zones that cost you points.",
     query: "goal tactics defence rear court opponent rally win point",

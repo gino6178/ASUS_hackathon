@@ -43,12 +43,12 @@ export default function AnalystCoach({ coach, data, hits, runKey, onReplay }) {
           <div className="panel">
             <span className="tag">Landing heat zones</span>
             <h3>Where {name}'s shots land</h3>
-            <CourtMap half="far" heat={landHeat} heatColor="#f2a33a" blink={act.land ? blinkOf(act.land, "far", "#f2d46b") : null} label="Shot landing density" />
+            <CourtMap half="far" heat={landHeat} heatColor="var(--heat-attack)" blink={act.land ? blinkOf(act.land, "far", "var(--sp3)") : null} label="Shot landing density" />
           </div>
           <div className="panel">
             <span className="tag">Court position</span>
             <h3>Where {name} hits from</h3>
-            <CourtMap half="near" heat={posHeat} heatColor="#6fb6ff" blink={act.pos ? blinkOf(act.pos, "near", "#6fb6ff") : null} label="Hitting position density" />
+            <CourtMap half="near" heat={posHeat} heatColor="var(--near)" blink={act.pos ? blinkOf(act.pos, "near", "var(--near)") : null} label="Hitting position density" />
           </div>
         </div>
         <div className="panel habit-bars">

@@ -297,7 +297,7 @@ export default function Highlights({ m, p }) {
           {Object.entries(FORMATS).map(([k, f]) => <button key={k} role="radio" aria-checked={fmt === k} disabled={state !== "idle"} onClick={() => { setFmt(k); setFile(null); }}>{f.label}</button>)}
         </div>
         <p className="tiny muted">Camera: follows the shuttle between hitter and receiver; the replay ramps into slow motion and pushes in tight on the player who hits the winning shot, holds on contact, then eases out to where it lands and freezes on the winner. {F.note}.</p>
-        <div className="hl-actions">
+        <div className="hl-actions hl-sticky">
           {state === "idle" ? <>
             <button className="btn ghost" onClick={() => go(false)}>Preview reel</button>
             <button className="btn primary" onClick={() => go(true)}>Create video</button>

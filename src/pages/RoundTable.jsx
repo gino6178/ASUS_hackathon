@@ -7,6 +7,8 @@ import { loadMatches, pointStats, footwork, fatigue, patterns } from "../match/a
 import { memory, retrieve } from "../memory.js";
 import RallyClip from "../match/RallyClip.jsx";
 import { agentNotify } from "../agent.js";
+import { prefersReducedMotion, scrollBehavior } from "../hooks.js";
+import Icon from "../components/Icon.jsx";
 
 // Round table: the four coach agents and the head coach discuss the match, resolve conflicts against the player's
 // memory, and agree a training plan with a weekly schedule. Every number comes from the analyses; the dialogue is
@@ -105,8 +107,10 @@ const SEATS = ["tactics", "technique", "fitness", "analyst", "head"];
 const seatXY = (id) => { const a = -Math.PI / 2 + (SEATS.indexOf(id) * 2 * Math.PI) / SEATS.length; return [50 + 41 * Math.cos(a), 50 + 41 * Math.sin(a)]; };
 
 function Evidence({ meta, onPeek }) {
+  const [all, setAll] = useState(false);
   if (!meta?.ev?.length && !meta?.checks?.length) return null;
   const ok = meta.checks?.every((c) => c.ok);
+  const ev = meta.ev ?? [], shown = all ? ev : ev.slice(0, 4);
   return (
     <div className="rt-ev">
       {meta.checks?.length > 0 && (
@@ -114,24 +118,39 @@ function Evidence({ meta, onPeek }) {
           {ok ? "✓" : "⚠"} {meta.checks.length} figure{meta.checks.length > 1 ? "s" : ""} re-computed{ok ? "" : ": mismatch"}
         </span>
       )}
-      {meta.ev?.slice(0, 4).map((e, k) => e.mem
+      {shown.map((e, k) => e.mem
         ? <span key={k} className="rt-chip mem" title={e.mem}>{e.label}</span>
         : <button key={k} className="rt-chip" onClick={() => onPeek(e)} title="Play this moment">{"▶"} {e.label}</button>)}
-      {meta.ev?.length > 4 && <span className="rt-chip more">+{meta.ev.length - 4} more</span>}
+      {ev.length > 4 && <button className="rt-chip more" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `+${ev.length - 4} more`}</button>}
     </div>
   );
 }
 
 function Peek({ e, names, onClose }) {
-  const clip = useRef(null);
+  const clip = useRef(null), box = useRef(null);
   useEffect(() => {
     const v = clip.current?.video; if (!v) return;
     const go = () => { v.currentTime = Math.max(0, e.t - 2); v.play().catch(() => {}); };
     v.readyState >= 1 ? go() : v.addEventListener("loadedmetadata", go, { once: true });
   }, [e]);
+  // a modal: focus moves in, Tab stays inside, Escape closes, focus returns to the chip that opened it
+  useEffect(() => {
+    const back = document.activeElement;
+    box.current?.querySelector("button")?.focus();
+    const key = (k) => {
+      if (k.key === "Escape") onClose();
+      if (k.key !== "Tab") return;
+      const f = [...box.current.querySelectorAll("button, video, [tabindex]:not([tabindex='-1'])")];
+      if (!f.length) return;
+      if (k.shiftKey && document.activeElement === f[0]) { k.preventDefault(); f[f.length - 1].focus(); }
+      else if (!k.shiftKey && document.activeElement === f[f.length - 1]) { k.preventDefault(); f[0].focus(); }
+    };
+    addEventListener("keydown", key);
+    return () => { removeEventListener("keydown", key); back?.focus?.(); };
+  }, []);
   return (
-    <div className="rt-peek" role="dialog" aria-label="Evidence clip" onClick={onClose}>
-      <div onClick={(x) => x.stopPropagation()}>
+    <div className="rt-peek" onClick={onClose}>
+      <div ref={box} role="dialog" aria-modal="true" aria-label={`Evidence clip, ${e.label}`} onClick={(x) => x.stopPropagation()}>
         <header><b>Evidence · {e.label}</b><button className="btn ghost sm" onClick={onClose}>Close</button></header>
         <RallyClip ref={clip} rally={e.r} names={names} autoPlay minimap />
       </div>
@@ -143,17 +162,19 @@ export default function RoundTable({ data }) {
   const [m, setM] = useState(null);
   const [peek, setPeek] = useState(null);
   const [shown, setShown] = useState(0);
+  const [playing, setPlaying] = useState(() => !prefersReducedMotion()); // with reduced motion the transcript appears at once
   const [saved, setSaved] = useState(false);
   const [sent, setSent] = useState("");
   const box = useRef(null);
   useEffect(() => { loadMatches().then((d) => setM(d.matches[0])); }, []);
   const meet = useMemo(() => (data && m ? buildMeeting(data, m) : null), [data, m]);
+  useEffect(() => { if (meet && !playing && !shown && prefersReducedMotion()) setShown(meet.talk.length); }, [meet]);
   useEffect(() => {
-    if (!meet || shown >= meet.talk.length) return;
+    if (!meet || !playing || shown >= meet.talk.length) return;
     const id = setTimeout(() => setShown((n) => n + 1), shown ? 1900 : 700);
     return () => clearTimeout(id);
-  }, [meet, shown]);
-  useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight, behavior: "smooth" }); }, [shown]);
+  }, [meet, shown, playing]);
+  useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight, behavior: scrollBehavior() }); }, [shown]);
   if (!meet) return <div className="page"><p className="muted">Gathering the coaches…</p></div>;
   const speaking = meet.talk[Math.max(0, shown - 1)]?.[0];
   const done = shown >= meet.talk.length;
@@ -163,30 +184,27 @@ export default function RoundTable({ data }) {
   const ci = said.map((x) => x[2]?.conflict).lastIndexOf(said.map((x) => x[2]?.conflict).filter(Boolean).pop());
   const conflict = ci >= 0 ? said[ci][2].conflict : null;
   const resolved = conflict && said.slice(ci + 1).some((x) => x[2]?.resolve);
+  const state = done ? ["Plan agreed", "four goals, seven days", "good"]
+    : conflict && !resolved ? ["Conflict", "knee vs smash defence", "bad"]
+    : conflict ? ["Resolved", "health comes first", "good"] : ["Round table", playing ? "in session" : "paused", ""];
+  const restart = () => { setShown(0); setSaved(false); setPlaying(true); };
 
   return (
     <div className="page roundtable">
       <header className="report-head noprint">
         <div>
-          <span className="tag">Round table · all coaches</span>
+          <span className="tag">Round table · the whole coaching staff</span>
           <h1 className="h1">Agree the plan together</h1>
           <p className="muted">The four coaches and the head coach debate the match, check it against your memory, and agree a training plan and a weekly schedule.</p>
         </div>
         <div className="cta-row">
-          <button className="btn ghost" onClick={() => { setShown(0); setSaved(false); }}>Restart meeting</button>
           <button className="btn primary" disabled={!done} onClick={() => window.print()}>Save plan as PDF</button>
         </div>
       </header>
 
       <div className="rt-grid noprint">
         <div className="rt-table">
-          <svg viewBox="0 0 400 400" className="rt-svg" aria-hidden="true">
-            <ellipse cx="200" cy="200" rx="120" ry="120" fill="#0A1014" stroke="#2A343A" strokeWidth="2" />
-            <ellipse cx="200" cy="200" rx="84" ry="84" fill="none" stroke="#1F6B54" strokeWidth="2" strokeDasharray="4 6" />
-            <text x="200" y="196" textAnchor="middle" className="rt-center">Round table</text>
-            <text x="200" y="216" textAnchor="middle" className="rt-center sub">{done ? "plan agreed" : conflict && !resolved ? "conflict" : "in session"}</text>
-          </svg>
-          {conflict && (() => {
+          {conflict && !done && (() => {
             const [a, b] = conflict.map(seatXY);
             return (
               <svg className={`rt-conflict ${resolved ? "resolved" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -194,56 +212,73 @@ export default function RoundTable({ data }) {
               </svg>
             );
           })()}
-          {conflict && <span className={`rt-flag ${resolved ? "resolved" : ""}`} style={{ left: `${(seatXY(conflict[0])[0] + seatXY(conflict[1])[0]) / 2}%`, top: `${(seatXY(conflict[0])[1] + seatXY(conflict[1])[1]) / 2}%` }}>
-            {resolved ? "✓ Resolved: health first" : "⚡ Conflict: knee vs smash defence"}</span>}
-          {seats.map((id, k) => {
-            const a = -Math.PI / 2 + (k * 2 * Math.PI) / seats.length;
+          <svg viewBox="0 0 400 400" className="rt-svg" aria-hidden="true">
+            <ellipse cx="200" cy="200" rx="120" ry="120" fill="#0A1014" stroke="#2A343A" strokeWidth="2" />
+            <ellipse cx="200" cy="200" rx="84" ry="84" fill="none" stroke="#1F6B54" strokeWidth="2" strokeDasharray="4 6" />
+            <text x="200" y="196" textAnchor="middle" className={`rt-center ${state[2]}`}>{state[0]}</text>
+            <text x="200" y="220" textAnchor="middle" className="rt-center sub">{state[1]}</text>
+          </svg>
+          {seats.map((id) => {
+            const [x, y] = seatXY(id);
             return (
-              <div key={id} className={`rt-seat ${speaking === id && !done ? "speaking" : ""}`} style={{ left: `${50 + 41 * Math.cos(a)}%`, top: `${50 + 41 * Math.sin(a)}%`, "--cc": C[id].color }}>
-                <Avatar coach={C[id]} size={78} talking={speaking === id && !done} />
+              <div key={id} className={`rt-seat ${speaking === id && !done ? "speaking" : ""}`} style={{ left: `${x}%`, top: `${y}%`, "--cc": C[id].color }}>
+                <Avatar coach={C[id]} size={72} talking={speaking === id && !done} />
                 <b>{C[id].name}</b><span>{C[id].kicker}</span>
               </div>
             );
           })}
         </div>
-        <div className="rt-chat" ref={box} aria-live="polite">
-          {meet.talk.slice(0, shown).map(([id, text, meta], k) => (
-            <div key={k} className={`rt-msg ${meta?.conflict ? "conflict" : ""} ${meta?.resolve ? "resolve" : ""}`} style={{ "--cc": C[id].color }}>
-              <Avatar coach={C[id]} size={34} />
-              <div>
-                <b>{C[id].name}{meta?.conflict && <em className="rt-tag bad">{"⚡"} challenges {C[meta.conflict[1]].name}</em>}{meta?.resolve && <em className="rt-tag ok">{"✓"} {meta.ruling ? "ruling" : "resolved"}</em>}</b>
-                <p>{text}</p>
-                <Evidence meta={meta} onPeek={setPeek} />
+        <div className="rt-side">
+          <div className="rt-strip" aria-hidden="true">
+            {seats.map((id) => (
+              <div key={id} className={speaking === id && !done ? "speaking" : ""} style={{ "--cc": C[id].color }}>
+                <Avatar coach={C[id]} size={48} /><span>{C[id].name.replace("Coach ", "")}</span>
               </div>
-            </div>
-          ))}
-          {!done && <div className="rt-msg typing" style={{ "--cc": C[meet.talk[shown][0]].color }}><Avatar coach={C[meet.talk[shown][0]]} size={34} /><p className="dots"><i /><i /><i /></p></div>}
+            ))}
+          </div>
+          <div className="rt-ctl">
+            {!done && <button className="btn ghost sm" onClick={() => setPlaying(!playing)}><Icon name={playing ? "pause" : "play"} size={16} />{playing ? "Pause" : shown ? "Resume" : "Play meeting"}</button>}
+            {!done && <button className="btn ghost sm" onClick={() => setShown(meet.talk.length)}>Skip to the plan</button>}
+            {done && <button className="btn ghost sm" onClick={restart}>Replay meeting</button>}
+            <span className={`tiny rt-status ${state[2]}`} role="status">{state[0]}: {state[1]} · {Math.min(shown, meet.talk.length)} of {meet.talk.length}</span>
+          </div>
+          <div className="rt-chat" ref={box} aria-live="polite" aria-relevant="additions">
+            {meet.talk.slice(0, shown).map(([id, text, meta], k) => (
+              <div key={k} className={`rt-msg ${meta?.conflict ? "conflict" : ""} ${meta?.resolve ? "resolve" : ""}`} style={{ "--cc": C[id].color }}>
+                <Avatar coach={C[id]} size={34} />
+                <div>
+                  <b>{C[id].name}{meta?.conflict && <em className="rt-tag bad">{"⚡"} challenges {C[meta.conflict[1]].name}</em>}{meta?.resolve && <em className="rt-tag ok">{"✓"} {meta.ruling ? "ruling" : "resolved"}</em>}</b>
+                  <p>{text}</p>
+                  <Evidence meta={meta} onPeek={setPeek} />
+                </div>
+              </div>
+            ))}
+            {!done && playing && <div className="rt-msg typing" aria-hidden="true" style={{ "--cc": C[meet.talk[shown][0]].color }}><Avatar coach={C[meet.talk[shown][0]]} size={34} /><p className="dots"><i /><i /><i /></p></div>}
+          </div>
         </div>
       </div>
 
       {peek && <Peek e={peek} names={m.names} onClose={() => setPeek(null)} />}
       {done && (
         <section className="panel ruling">
-          <h3 className="panel-h">How the head coach resolved the conflicts</h3>
-          <ol className="rule-steps">
-            <li><b>Health first.</b> Injuries and limits in the player's memory are hard constraints; no drill may break them.</li>
-            <li><b>Then points at stake.</b> Requests are ranked by how many points that weakness cost in this match.</li>
-            <li><b>One owner, one number.</b> Every kept request becomes a goal that the next recorded match re-measures.</li>
-          </ol>
-          <table className="ptable">
-            <thead><tr><th>Request</th><th>Coach</th><th>Points at stake</th><th>Memory check</th><th>Ruling</th></tr></thead>
-            <tbody>
-              {meet.ruling.map((r) => (
-                <tr key={r.owner}>
-                  <td>{r.ask}</td>
-                  <td style={{ color: C[r.owner].color }}>{C[r.owner].name}</td>
-                  <td><b className="mono">{r.stake}</b> <span className="tiny muted">{r.unit}</span></td>
-                  <td className={r.check === "No conflict" ? "muted" : "bad"}>{r.check}</td>
-                  <td><span className={`verdict ${r.tone}`}>{r.verdict}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h2 className="panel-h">How the head coach resolved the conflicts</h2>
+          <p><b>Health limits from your memory come first</b>; no drill may break them. Inside them, requests are <b>ranked by the points that weakness cost</b> in this match, and every kept request becomes one goal with one owner that the next recorded match re-measures.</p>
+          <div className="tscroll">
+            <table className="ptable stack">
+              <thead><tr><th>Request</th><th>Coach</th><th className="r">Points at stake</th><th>Memory check</th><th>Ruling</th></tr></thead>
+              <tbody>
+                {meet.ruling.map((r) => (
+                  <tr key={r.owner}>
+                    <td>{r.ask}</td>
+                    <td data-label="Coach" style={{ color: C[r.owner].color }}>{C[r.owner].name}</td>
+                    <td className="r stake" data-label="At stake"><b>{r.stake}</b> <span className="tiny muted">{r.unit}</span></td>
+                    <td data-label="Memory" className={r.check === "No conflict" ? "muted" : "bad"}>{r.check}</td>
+                    <td><span className={`verdict ${r.tone}`}>{r.verdict}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -262,10 +297,10 @@ export default function RoundTable({ data }) {
               </div>
             ))}
           </div>
-          <div className="week">
+          <div className="week" style={{ gridTemplateColumns: meet.days.map((d) => (d.blocks.length ? "minmax(0, 1.3fr)" : "minmax(0, .55fr)")).join(" ") }}>
             {meet.days.map((d) => (
               <div key={d.d} className={`day ${d.kind}`}>
-                <header><b>{d.d}</b><span>{d.kind === "rest" && !d.min ? "rest" : `${d.kind} · ${d.min} min`}</span></header>
+                <header><b>{d.d}</b><span>{d.kind === "rest" && !d.min ? "Rest" : `${d.kind[0].toUpperCase() + d.kind.slice(1)} · ${d.min} min`}</span></header>
                 {d.blocks.map(([who, min, text], k) => (
                   <div key={k} className="blk" style={{ "--cc": C[who].color }}>
                     <span className="mono">{min}′</span><p>{text}</p><em>{C[who].name}</em>
@@ -281,7 +316,7 @@ export default function RoundTable({ data }) {
             <button className="btn primary" disabled={!!sent && !sent.startsWith("!")} onClick={() => agentNotify({ event: data.event, goals: meet.goals.map((g) => g.text), days: meet.days })
               .then((r) => setSent(r.sent.length ? `Sent to ${r.sent.length} player(s) on Telegram` : "!No player linked yet: send /start to the bot"))
               .catch((e) => setSent("!Agent gateway not reachable: " + e.message))}>{sent && !sent.startsWith("!") ? sent : "Send to players on Telegram"}</button>
-            {sent.startsWith("!") && <span className="tiny bad">{sent.slice(1)}</span>}
+            {sent.startsWith("!") && <span className="tiny bad" role="alert">{sent.slice(1)}</span>}
             <span className="tiny muted">Saved goals are retrieved by every coach next session, and the next recorded match is scored against them. Players get the week on Telegram, then a reminder each morning.</span>
           </div>
         </article>
