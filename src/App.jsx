@@ -6,6 +6,10 @@ import Report from "./pages/Report.jsx";
 import Coaches from "./pages/Coaches.jsx";
 import Coach from "./pages/Coach.jsx";
 import Memory from "./pages/Memory.jsx";
+import Match from "./pages/Match.jsx";
+import Scout from "./pages/Scout.jsx";
+import Live from "./pages/Live.jsx";
+import RoundTable from "./pages/RoundTable.jsx";
 import { memory } from "./memory.js";
 import { loadSample } from "./data.js";
 
@@ -15,7 +19,7 @@ const base = (p) => p.split("/")[0];
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
 function Nav({ page }) {
-  const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["report", "Report"], ["memory", "Memory"]];
+  const items = [["home", "Overview"], ["analyze", "Analyze"], ["live", "Live"], ["coaches", "Coaches"], ["roundtable", "Round table"], ["match", "Match"], ["report", "Rally 3D"], ["scout", "Scout"], ["memory", "Memory"]];
   return (
     <header className="nav">
       <a className="brand" href="#/" aria-label="ShuttleCoach home">
@@ -62,6 +66,10 @@ export default function App() {
         {page === "coaches" && <Coaches data={data} video={video} />}
         {base(page) === "coach" && <Coach id={page.split("/")[1]} data={data} />}
         {page === "memory" && <Memory />}
+        {base(page) === "match" && <Match />}
+        {page === "scout" && <Scout />}
+        {page === "live" && <Live />}
+        {page === "roundtable" && <RoundTable data={data} />}
       </main>
     </>
   );

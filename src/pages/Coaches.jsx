@@ -23,6 +23,11 @@ export default function Coaches({ data, video }) {
           </button>
         ))}
       </div>
+      <button className="rt-banner" onClick={() => go("roundtable")}>
+        <span className="rt-faces">{COACHES.map((c) => <Avatar key={c.id} coach={c} size={54} />)}</span>
+        <span><b>Call a round table</b><span className="muted">All four coaches debate your match together and agree a training plan with a weekly schedule.</span></span>
+        <span className="cc-go">Start meeting →</span>
+      </button>
       <div className="coach-links">
         <button className="btn ghost" onClick={() => go("report")}>Open the full match report</button>
         <button className="btn ghost" onClick={() => go("memory")}>Player memory</button>
