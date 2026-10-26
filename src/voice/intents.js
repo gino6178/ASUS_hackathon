@@ -27,6 +27,10 @@ export function answer(raw, { m, data }) {
   const p = who(text, m), g = game(text), mm = sub(m, g), name = m.names[p], where = g ? ` in game ${g}` : "";
   const has = (re) => re.test(text);
 
+  if (has(/next point|what should i do|between points|right now|next rally/)) {
+    const b = typeof window !== "undefined" && window.__liveBrief; // set by live mode after every rally
+    return b ? { say: b.lines.map((l) => l.t).join(" "), go: null } : { say: "Start live mode and I will brief you between points.", go: "live" };
+  }
   if (has(/\bnet\b/) && has(/error|mistake|fault|miss/)) {
     const net = mm.rallies.filter((r) => ownError(r, p) && r.reason === "net").length;
     const lost = mm.rallies.filter((r) => r.winner !== p).length;

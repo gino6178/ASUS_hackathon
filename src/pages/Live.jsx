@@ -32,17 +32,57 @@ function alertsFor(m, done) {
   return out;
 }
 
+// Between-point brief: what the coaches would tell the player in the ~20 s before the next serve (longer at the
+// 11-point interval and between games). Computed from the rallies so far, on the device, in milliseconds.
+const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+export function brief(m, done) {
+  const t0 = performance.now(), r = done[done.length - 1], names = m.names, opp = "B", out = [];
+  const prev = done.length > 1 ? done[done.length - 2] : null;
+  const kind = prev && prev.set !== r.set ? "game" : Math.max(...r.score) === 11 && (!prev || prev.set !== r.set || Math.max(...prev.score) < 11) ? "interval" : "point";
+  out.push({ c: r.winner === ME ? "analyst" : "tactics", t: r.winner === ME
+    ? `Won ${r.score[0]}–${r.score[1]}: ${r.reason === "winner" ? `${r.lastType.toLowerCase()} winner` : `${names[opp].split(" ")[0]} ${r.reason}`} after ${r.shots.length} shots.`
+    : `Lost ${r.score[0]}–${r.score[1]}: ${r.reason === "winner" ? `${names[opp].split(" ")[0]}'s ${r.lastType.toLowerCase()} winner` : `own ${r.reason} error`} after ${r.shots.length} shots.` });
+  const serves = done.flatMap((x) => x.shots.slice(0, 1).filter((s) => s.p === opp && /serve/i.test(s.type)));
+  if (r.winner === opp && serves.length >= 3) {
+    const short = serves.filter((s) => /short/i.test(s.type)).length;
+    out.push({ c: "analyst", t: `${names[opp].split(" ")[0]} serves: short ${pct(short, serves.length)}% so far. Stand ${short / serves.length > .6 ? "tight to the front service line" : "a half step back"}.` });
+  }
+  const beaten = done.slice(-8).filter((x) => ownWinner(x, opp)).map((x) => x.shots[x.shots.length - 1].land).filter(Boolean)
+    .map((xy) => zoneOf(xy[1] < 6.7 ? [6.1 - xy[0], 13.4 - xy[1]] : xy, "near"));
+  const top = Object.entries(beaten.reduce((a, z) => ({ ...a, [z]: (a[z] || 0) + 1 }), {})).sort((a, b) => b[1] - a[1])[0];
+  if (top && top[1] >= 2) out.push({ c: "tactics", t: `${top[1]} of their last ${beaten.length} winners went to your ${top[0]}: start one step closer to it.` });
+  const errs = done.slice(-4).filter((x) => ownError(x, ME));
+  if (errs.length >= 2) out.push({ c: "technique", t: `${errs.length} own errors in the last 4 rallies (${errs.map((x) => x.reason).join(", ")}): play the next shot with more margin.` });
+  if (r.shots.length >= 15) out.push({ c: "fitness", t: `${r.shots.length}-shot rally: use the full break, breathe out slowly before the serve.` });
+  if (kind !== "point") {
+    const g = done.filter((x) => x.set === (kind === "game" ? prev.set : r.set));
+    const w = g.filter((x) => ownWinner(x, ME)).length, e = g.filter((x) => ownError(x, ME)).length;
+    out.push({ c: "analyst", t: `${kind === "game" ? `Game ${prev.set} done` : "Interval at 11"}: ${w} winners, ${e} own errors, ${g.filter((x) => x.winner === ME).length} of ${g.length} points.` });
+  }
+  return { kind, lines: out.slice(0, kind === "point" ? 3 : 5), ms: performance.now() - t0, at: `G${r.set} ${r.score[0]}–${r.score[1]}` };
+}
+
 export default function Live() {
   const [d, setD] = useState(null);
   const [i, setI] = useState(0);
   const [running, setRunning] = useState(true);
   const [rate, setRate] = useState(1);
   const [feed, setFeed] = useState([]);
+  const [pause, setPause] = useState(null); // between-point brief while the next rally waits
+  const [left, setLeft] = useState(0);
   const clip = useRef(null);
   useEffect(() => { loadMatches().then(setD); }, []);
   useEffect(() => { const v = clip.current?.video; if (v) { v.playbackRate = rate; running ? v.play().catch(() => {}) : v.pause(); } }, [rate, running, i]);
   const m = d?.matches[0];
   const done = useMemo(() => (m ? m.rallies.slice(0, i) : []), [m, i]);
+  // count down the break; a paused stream also pauses the countdown
+  useEffect(() => {
+    if (!pause) return;
+    if (left <= 0) { setPause(null); setI((x) => x + 1); return; }
+    const id = setTimeout(() => running && setLeft((x) => x - 1), 1000 / rate);
+    return () => clearTimeout(id);
+  }, [pause, left, running, rate]);
+
   if (!m) return <div className="page"><p className="muted">Connecting to the court camera…</p></div>;
   const r = m.rallies[i];
   const games = { A: 0, B: 0 };
@@ -56,9 +96,13 @@ export default function Live() {
     const now = [...done, r];
     const al = alertsFor(m, now).map((a) => ({ ...a, id: `${r.i}-${a.c}`, at: `G${r.set} ${r.score[0]}–${r.score[1]}` }));
     if (al.length) setFeed((f) => [...al, ...f].slice(0, 8));
-    if (i + 1 < m.rallies.length) setTimeout(() => setI(i + 1), 900);
-    else setRunning(false);
+    if (i + 1 >= m.rallies.length) return setRunning(false);
+    // the real break is ~20 s (60 s at 11 points); the replay compresses it
+    const b = brief(m, now), secs = b.kind === "point" ? 6 : 10;
+    window.__liveBrief = b;
+    setPause(b); setLeft(secs);
   };
+  const skip = () => { setLeft(0); };
 
   return (
     <div className="page live">
@@ -75,11 +119,26 @@ export default function Live() {
       </header>
       <div className="live-grid">
         <div>
-          <RallyClip ref={clip} rally={r} names={m.names} onEnded={next} minimap={false} live />
+          <RallyClip ref={clip} rally={r} names={m.names} onEnded={next} minimap={false} live>
+            {pause && (
+              <div className={`brief ${pause.kind}`} role="status">
+                <header>
+                  <b>{pause.kind === "point" ? "Between points" : pause.kind === "interval" ? "11-point interval" : "Between games"} · {pause.at}</b>
+                  <span className="mono">brief ready in {pause.ms < 1 ? "<1" : pause.ms.toFixed(1)} ms · next serve in {left} s</span>
+                </header>
+                {pause.lines.map((l, k) => (
+                  <div key={k} className="brief-line" style={{ "--cc": coach(l.c).color }}>
+                    <Avatar coach={coach(l.c)} size={34} /><p>{l.t}</p>
+                  </div>
+                ))}
+                <footer><span className="tiny">Ask out loud: “what should I do next point?”</span><button className="btn ghost sm" onClick={skip}>Next serve →</button></footer>
+              </div>
+            )}
+          </RallyClip>
           <div className="live-hud mono">
             <span>court cam 1080p30</span><span>tracker 27 fps</span><span>shot → stats &lt; 0.3 s</span><span className="ok">network: none</span>
           </div>
-          <p className="tiny muted">Prototype: recorded rallies streamed as if live. In Stage II the same view runs on the B70 from the court camera.</p>
+          <p className="tiny muted">Prototype: recorded rallies streamed as if live, with the between-point break compressed. In Stage II the same view runs on the B70 from the court camera, and the local 14B model turns each brief into one spoken sentence.</p>
         </div>
         <aside className="live-side">
           <div className="scoreboard">

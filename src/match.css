@@ -167,3 +167,39 @@
 @media (max-width: 1100px) { .risk-grid { grid-template-columns: 1fr; } }
 .pos-map { max-width: 420px; margin: 8px auto 0; }
 .pos-map + p, .panel > .seg:has(+ .pos-map) { } .panel:has(.pos-map) > .seg { max-width: 280px; }
+.hl-grid.wide { grid-template-columns: 1fr; }
+.hl-grid.wide .hl-view { order: -1; }
+.hl-list li { padding: 0; }
+.hl-list li::before { display: none; }
+.hl-list label { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: center; padding: 10px 14px; cursor: pointer; }
+.hl-list label input { accent-color: var(--accent); width: 16px; height: 16px; }
+.hl-list label span { display: grid; gap: 2px; } .hl-list label em { font-style: normal; font-size: 13px; color: var(--ink-3); }
+.hl-list li.off { opacity: .45; } .hl-list li.spare { opacity: .7; border-style: dashed; border-color: var(--rule); }
+.hl-done { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px solid var(--good); background: #5fd39a12; display: grid; gap: 10px; }
+.hl-done textarea { width: 100%; background: var(--bg); color: var(--ink-2); border: 1px solid var(--rule); border-radius: 10px; padding: 10px; font: 13px var(--font); resize: vertical; }
+.brief { position: absolute; inset: auto 16px 16px 16px; background: #04070AEE; border: 1px solid var(--accent); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; animation: rise .35s var(--ease); }
+.brief.interval, .brief.game { border-color: #F2D46B; top: 16px; overflow: auto; }
+.brief header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.brief header b { color: var(--accent); font-size: 15px; } .brief header span { font-size: 12px; color: var(--good); }
+.brief-line { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; border-left: 3px solid var(--cc); padding-left: 10px; }
+.brief-line p { margin: 0; font-size: 14px; color: var(--ink); }
+.brief footer { display: flex; justify-content: space-between; align-items: center; color: var(--ink-3); }
+.rt-ev { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rt-chip { font: 500 11px var(--mono); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink-2); cursor: pointer; }
+.rt-chip:hover { border-color: var(--accent); color: var(--ink); }
+.rt-chip.mem { border-color: #5fd39a55; color: var(--good); cursor: default; } .rt-chip.more { cursor: default; color: var(--ink-3); }
+.rt-verify { font: 700 11px var(--mono); padding: 4px 8px; border-radius: 6px; }
+.rt-verify.ok { background: #5fd39a1f; color: var(--good); } .rt-verify.bad { background: #ff8a6b22; color: var(--bad); }
+.rt-tag { font: 700 11px var(--mono); font-style: normal; margin-left: 8px; padding: 2px 6px; border-radius: 4px; }
+.rt-tag.bad { background: #d6332a33; color: #FF6B5E; } .rt-tag.ok { background: #5fd39a22; color: var(--good); }
+.rt-msg.conflict { border-left-color: #FF6B5E; background: #2a0f0d; }
+.rt-msg.resolve { box-shadow: inset 0 0 0 1px #5fd39a44; }
+.rt-conflict { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.rt-conflict line { stroke: #FF6B5E; stroke-width: 4; stroke-dasharray: 8 6; animation: dash 0.8s linear infinite; }
+.rt-conflict.resolved line { stroke: var(--good); stroke-dasharray: none; animation: none; }
+@keyframes dash { to { stroke-dashoffset: -28; } }
+.rt-flag { position: absolute; transform: translate(-50%, -50%); background: #2a0f0d; border: 1px solid #FF6B5E; color: #FF6B5E; font: 700 12px var(--mono); padding: 6px 10px; border-radius: 8px; white-space: nowrap; animation: rise .3s var(--ease); z-index: 2; }
+.rt-flag.resolved { background: #0d2a1d; border-color: var(--good); color: var(--good); }
+.rt-peek { position: fixed; inset: 0; z-index: 80; background: #000b; display: grid; place-items: center; padding: 20px; }
+.rt-peek > div { width: min(1100px, 100%); background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+.rt-peek header { display: flex; justify-content: space-between; align-items: center; }

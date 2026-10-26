@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { COACHES } from "../coaches/personas.js";
 import Avatar from "../coaches/Avatar.jsx";
-import { tactics, shotQuality } from "../coaches/analysis.js";
+import { tactics, shotQuality, zoneOf } from "../coaches/analysis.js";
 import { REGIONS, findings, score } from "../components/BodyMap.jsx";
 import { loadMatches, pointStats, footwork, fatigue, patterns } from "../match/analytics.js";
 import { memory, retrieve } from "../memory.js";
+import RallyClip from "../match/RallyClip.jsx";
 
 // Round table: the four coach agents and the head coach discuss the match, resolve conflicts against the player's
 // memory, and agree a training plan with a weekly schedule. Every number comes from the analyses; the dialogue is
@@ -13,6 +14,13 @@ const HEAD = { id: "head", name: "Head Coach", role: "Chair", kicker: "Chair", c
   look: { skin: "#E9BE9A", hair: "#C9CED8", hairStyle: "swept", shirt: "#1F4A3D", prop: "glasses" } };
 const C = Object.fromEntries([...COACHES, HEAD].map((c) => [c.id, c]));
 const f2 = (v) => v.toFixed(2);
+
+// Evidence: a rally reference with game, score, shot number and the time in its video clip.
+const clock = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
+const ref = (r, k = r.shots.length - 1) => ({ r, t: r.shots[k]?.t ?? 0, label: `G${r.set} ${r.score[0]}–${r.score[1]} · shot ${k + 1} · ${clock(r.shots[k]?.t ?? 0)}` });
+// Verifier: every figure an agent says is recomputed by a second, independent pass over the raw shot labels.
+const verify = (checks) => checks.map(([label, said, again]) => ({ label, said, again, ok: Math.abs(said - again) <= Math.max(0.011, Math.abs(said) * 0.005) }));
+const flip = (xy) => (xy[1] < 6.7 ? [6.1 - xy[0], 13.4 - xy[1]] : xy);
 
 function buildMeeting(data, m) {
   const t = tactics(data.outcomes, "A");
@@ -29,17 +37,36 @@ function buildMeeting(data, m) {
   const declining = fa.rec.late > fa.rec.early * 1.05 || fa.err.late > fa.err.early * 1.15;
   const opp = data.names.B;
 
+  // second pass over the raw labels, for the verifier and the evidence chips
+  const beatenR = m.rallies.filter((r) => r.winner === "B" && r.reason === "winner" && r.lastBy === "B");
+  const weakR = beatenR.filter((r) => { const l = r.shots[r.shots.length - 1].land; return l && zoneOf(flip(l), "near") === t.weak[0][0]; });
+  const netR = m.rallies.filter((r) => r.winner === "B" && r.reason === "net");
+  const errR = m.rallies.filter((r) => r.winner === "B" && r.reason !== "winner");
+  const hardReads = [];
+  m.rallies.forEach((r) => r.shots.forEach((x, i) => {
+    const y = r.shots[i + 1];
+    if (x.p === "B" && x.type === hard.t && x.opp && y && y.p === "A" && y.pos && y.t - x.t > 0.15) hardReads.push({ r, i: i + 1, v: Math.hypot(y.pos[0] - x.opp[0], y.pos[1] - x.opp[1]) / (y.t - x.t) });
+  }));
+  const hardV = hardReads.reduce((a, x) => a + x.v, 0) / Math.max(1, hardReads.length);
+  const hardStretch = Math.round((100 * hardReads.filter((x) => x.v > 3.5).length) / Math.max(1, hardReads.length));
+  const longNetR = netR.filter((r) => r.shots.length >= 10);
+
+  const memEv = (x) => (x ? [{ mem: x.m.text, label: `Memory · ${x.m.kind}` }] : []);
   const talk = [
-    ["head", `Round table on ${data.event}. One priority each, backed by the numbers, then we agree the week.${mem.goal ? ` The player's stated goal: “${mem.goal.m.text}”` : ""}`],
-    ["tactics", `My priority is defence in the ${t.weak[0][0]}: ${t.weak[0][1]} of the ${t.conceded} winners ${opp} hit landed there. I want two defence blocks this week, feeding smashes and rushes into that corner.`],
-    ["technique", `Mine is margin over the net: ${net} of the ${errAll} own errors went into the net. In the replayed rally the weakest stroke was the ${q[0].s.type.toLowerCase()} (grade ${q[0].grade}: ${q[0].note}).`],
-    ["fitness", `Legs and first step: ${muscles.map((r) => REGIONS[r].name.toLowerCase()).join(", ")} carry the most load.${knee ? ` But memory says “${mem.joint.m.text}”, so no jump landings this week.` : ""}`],
-    ["analyst", `Footwork data backs Lin: against the ${hard.t.toLowerCase()} ${data.names.A} needs ${f2(hard.v)} m/s and is stretched ${hard.stretched}% of the time. ${declining ? "Recovery gets worse late in the match, so fitness matters." : "Recovery does not get worse late in the match, so this is about reading, not fatigue."}`],
-    ...(knee ? [["fitness", `Lin, smash-defence blocks usually mean split-step jumps. With that knee I'd cap them at 70% pace from a lower base, no jumping.`],
-      ["tactics", `Agreed. Half-court defence, fed at 70%, low base, and we judge it by recovery to base rather than intensity.`]] : []),
-    ["technique", `Data, are the net errors a late-rally problem?`],
-    ["analyst", `Partly: ${longNet} of the ${net} net errors came in rallies of 10 or more shots. Worst three-shot pattern: ${pt.worst[0]?.k} (${pt.worst[0]?.w}% won).`],
-    ["head", `Ruling. Health limits from memory are hard constraints; inside them I rank every request by the points it cost us in this match. ${knee ? "Lin's blocks stay at 70% with no jumps; Ren's plyometrics wait until the knee settles." : "No request breaks a health limit, so all four stand."} Four goals, one owner each. Building the week now.`],
+    ["head", `Round table on ${data.event}. One priority each, backed by the numbers, then we agree the week.${mem.goal ? ` The player's stated goal: “${mem.goal.m.text}”` : ""}`, { ev: memEv(mem.goal) }],
+    ["tactics", `My priority is defence in the ${t.weak[0][0]}: ${t.weak[0][1]} of the ${t.conceded} winners ${opp} hit landed there. I want two defence blocks this week, feeding smashes and rushes into that corner.`,
+      { ev: weakR.map((r) => ref(r)), checks: verify([[`winners into the ${t.weak[0][0]}`, t.weak[0][1], weakR.length], ["winners conceded", t.conceded, beatenR.length]]) }],
+    ["technique", `Mine is margin over the net: ${net} of the ${errAll} own errors went into the net. In the replayed rally the weakest stroke was the ${q[0].s.type.toLowerCase()} (grade ${q[0].grade}: ${q[0].note}).`,
+      { ev: netR.map((r) => ref(r)), checks: verify([["net errors", net, netR.length], ["own errors", errAll, errR.length]]) }],
+    ["fitness", `Legs and first step: ${muscles.map((r) => REGIONS[r].name.toLowerCase()).join(", ")} carry the most load.${knee ? ` But memory says “${mem.joint.m.text}”, so no jump landings this week.` : ""}`, { ev: memEv(mem.joint) }],
+    ["analyst", `Footwork data backs Lin: against the ${hard.t.toLowerCase()} ${data.names.A} needs ${f2(hard.v)} m/s and is stretched ${hard.stretched}% of the time. ${declining ? "Recovery gets worse late in the match, so fitness matters." : "Recovery does not get worse late in the match, so this is about reading, not fatigue."}`,
+      { ev: hardReads.filter((x) => x.v > 3.5).map((x) => ref(x.r, x.i)), checks: verify([[`m/s against the ${hard.t.toLowerCase()}`, +f2(hard.v), +f2(hardV)], ["% stretched", hard.stretched, hardStretch]]) }],
+    ...(knee ? [["fitness", `Lin, smash-defence blocks usually mean split-step jumps. With that knee I'd cap them at 70% pace from a lower base, no jumping.`, { ev: memEv(mem.joint), conflict: ["fitness", "tactics"] }],
+      ["tactics", `Agreed. Half-court defence, fed at 70%, low base, and we judge it by recovery to base rather than intensity.`, { resolve: true }]] : []),
+    ["technique", `Data, are the net errors a late-rally problem?`, {}],
+    ["analyst", `Partly: ${longNet} of the ${net} net errors came in rallies of 10 or more shots. Worst three-shot pattern: ${pt.worst[0]?.k} (${pt.worst[0]?.w}% won).`,
+      { ev: longNetR.map((r) => ref(r)), checks: verify([["net errors in 10+ shot rallies", longNet, longNetR.length], ["net errors", net, netR.length]]) }],
+    ["head", `Ruling. Health limits from memory are hard constraints; inside them I rank every request by the points it cost us in this match. ${knee ? "Lin's blocks stay at 70% with no jumps; Ren's plyometrics wait until the knee settles." : "No request breaks a health limit, so all four stand."} Four goals, one owner each. Building the week now.`, { resolve: true, ruling: true }],
   ];
 
   // the head coach's arbitration: memory constraints first, then points at stake in this match
@@ -73,8 +100,47 @@ function buildMeeting(data, m) {
   return { talk, goals, days, mem, ruling };
 }
 
+const SEATS = ["tactics", "technique", "fitness", "analyst", "head"];
+const seatXY = (id) => { const a = -Math.PI / 2 + (SEATS.indexOf(id) * 2 * Math.PI) / SEATS.length; return [50 + 41 * Math.cos(a), 50 + 41 * Math.sin(a)]; };
+
+function Evidence({ meta, onPeek }) {
+  if (!meta?.ev?.length && !meta?.checks?.length) return null;
+  const ok = meta.checks?.every((c) => c.ok);
+  return (
+    <div className="rt-ev">
+      {meta.checks?.length > 0 && (
+        <span className={`rt-verify ${ok ? "ok" : "bad"}`} title={meta.checks.map((c) => `${c.label}: said ${c.said}, recomputed ${c.again}`).join("\n")}>
+          {ok ? "✓" : "⚠"} {meta.checks.length} figure{meta.checks.length > 1 ? "s" : ""} re-computed{ok ? "" : ": mismatch"}
+        </span>
+      )}
+      {meta.ev?.slice(0, 4).map((e, k) => e.mem
+        ? <span key={k} className="rt-chip mem" title={e.mem}>{e.label}</span>
+        : <button key={k} className="rt-chip" onClick={() => onPeek(e)} title="Play this moment">{"▶"} {e.label}</button>)}
+      {meta.ev?.length > 4 && <span className="rt-chip more">+{meta.ev.length - 4} more</span>}
+    </div>
+  );
+}
+
+function Peek({ e, names, onClose }) {
+  const clip = useRef(null);
+  useEffect(() => {
+    const v = clip.current?.video; if (!v) return;
+    const go = () => { v.currentTime = Math.max(0, e.t - 2); v.play().catch(() => {}); };
+    v.readyState >= 1 ? go() : v.addEventListener("loadedmetadata", go, { once: true });
+  }, [e]);
+  return (
+    <div className="rt-peek" role="dialog" aria-label="Evidence clip" onClick={onClose}>
+      <div onClick={(x) => x.stopPropagation()}>
+        <header><b>Evidence · {e.label}</b><button className="btn ghost sm" onClick={onClose}>Close</button></header>
+        <RallyClip ref={clip} rally={e.r} names={names} autoPlay minimap />
+      </div>
+    </div>
+  );
+}
+
 export default function RoundTable({ data }) {
   const [m, setM] = useState(null);
+  const [peek, setPeek] = useState(null);
   const [shown, setShown] = useState(0);
   const [saved, setSaved] = useState(false);
   const box = useRef(null);
@@ -89,7 +155,12 @@ export default function RoundTable({ data }) {
   if (!meet) return <div className="page"><p className="muted">Gathering the coaches…</p></div>;
   const speaking = meet.talk[Math.max(0, shown - 1)]?.[0];
   const done = shown >= meet.talk.length;
-  const seats = ["tactics", "technique", "fitness", "analyst", "head"];
+  const seats = SEATS;
+  // conflict state: the latest conflict raised and whether a later message resolved it
+  const said = meet.talk.slice(0, shown);
+  const ci = said.map((x) => x[2]?.conflict).lastIndexOf(said.map((x) => x[2]?.conflict).filter(Boolean).pop());
+  const conflict = ci >= 0 ? said[ci][2].conflict : null;
+  const resolved = conflict && said.slice(ci + 1).some((x) => x[2]?.resolve);
 
   return (
     <div className="page roundtable">
@@ -111,8 +182,18 @@ export default function RoundTable({ data }) {
             <ellipse cx="200" cy="200" rx="120" ry="120" fill="#0A1014" stroke="#2A343A" strokeWidth="2" />
             <ellipse cx="200" cy="200" rx="84" ry="84" fill="none" stroke="#1F6B54" strokeWidth="2" strokeDasharray="4 6" />
             <text x="200" y="196" textAnchor="middle" className="rt-center">Round table</text>
-            <text x="200" y="216" textAnchor="middle" className="rt-center sub">{done ? "plan agreed" : "in session"}</text>
+            <text x="200" y="216" textAnchor="middle" className="rt-center sub">{done ? "plan agreed" : conflict && !resolved ? "conflict" : "in session"}</text>
           </svg>
+          {conflict && (() => {
+            const [a, b] = conflict.map(seatXY);
+            return (
+              <svg className={`rt-conflict ${resolved ? "resolved" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} vectorEffect="non-scaling-stroke" />
+              </svg>
+            );
+          })()}
+          {conflict && <span className={`rt-flag ${resolved ? "resolved" : ""}`} style={{ left: `${(seatXY(conflict[0])[0] + seatXY(conflict[1])[0]) / 2}%`, top: `${(seatXY(conflict[0])[1] + seatXY(conflict[1])[1]) / 2}%` }}>
+            {resolved ? "✓ Resolved: health first" : "⚡ Conflict: knee vs smash defence"}</span>}
           {seats.map((id, k) => {
             const a = -Math.PI / 2 + (k * 2 * Math.PI) / seats.length;
             return (
@@ -124,16 +205,21 @@ export default function RoundTable({ data }) {
           })}
         </div>
         <div className="rt-chat" ref={box} aria-live="polite">
-          {meet.talk.slice(0, shown).map(([id, text], k) => (
-            <div key={k} className="rt-msg" style={{ "--cc": C[id].color }}>
+          {meet.talk.slice(0, shown).map(([id, text, meta], k) => (
+            <div key={k} className={`rt-msg ${meta?.conflict ? "conflict" : ""} ${meta?.resolve ? "resolve" : ""}`} style={{ "--cc": C[id].color }}>
               <Avatar coach={C[id]} size={34} />
-              <div><b>{C[id].name}</b><p>{text}</p></div>
+              <div>
+                <b>{C[id].name}{meta?.conflict && <em className="rt-tag bad">{"⚡"} challenges {C[meta.conflict[1]].name}</em>}{meta?.resolve && <em className="rt-tag ok">{"✓"} {meta.ruling ? "ruling" : "resolved"}</em>}</b>
+                <p>{text}</p>
+                <Evidence meta={meta} onPeek={setPeek} />
+              </div>
             </div>
           ))}
           {!done && <div className="rt-msg typing" style={{ "--cc": C[meet.talk[shown][0]].color }}><Avatar coach={C[meet.talk[shown][0]]} size={34} /><p className="dots"><i /><i /><i /></p></div>}
         </div>
       </div>
 
+      {peek && <Peek e={peek} names={m.names} onClose={() => setPeek(null)} />}
       {done && (
         <section className="panel ruling">
           <h3 className="panel-h">How the head coach resolved the conflicts</h3>
