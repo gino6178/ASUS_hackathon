@@ -30,7 +30,7 @@ function regionColor(st) {
     : { c: new THREE.Color(COL.base).lerp(c, .38), e: .06 };
 }
 
-export default function Body3D({ scores, sel, onSel, view }) {
+export default function Body3D({ scores, sel, onSel, view, pulse = null, height }) {
   const ref = useRef(null);
   const api = useRef({});
   const [prog, setProg] = useState(0);
@@ -100,7 +100,23 @@ export default function Body3D({ scores, sel, onSel, view }) {
       renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     };
     const ro = new ResizeObserver(resize); ro.observe(canvas); resize();
-    let raf; const loop = () => { controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
+    // pulse: muscles in the listed regions throb so the coach can point at them
+    let lastPulse = false;
+    const pulseTick = (now) => {
+      const set = api.current.pulse;
+      if (!set || !set.length) {
+        if (lastPulse) { api.current.paint?.(api.current.scores || {}, api.current.sel); lastPulse = false; }
+        return;
+      }
+      lastPulse = true;
+      const k = 0.5 + 0.5 * Math.sin(now / 1000 * Math.PI * 2 * 1.1);
+      muscles.forEach((m) => {
+        if (!set.includes(m.userData.region)) return;
+        m.material.emissive.set(m.userData.region === api.current.sel ? 0xfff1d6 : 0xff5a48);
+        m.material.emissiveIntensity = 0.15 + 0.85 * k;
+      });
+    };
+    let raf; const loop = (now) => { controls.update(); pulseTick(now || 0); renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop);
     return () => {
       disposed = true; cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
@@ -111,11 +127,15 @@ export default function Body3D({ scores, sel, onSel, view }) {
   }, []);
 
   useEffect(() => { api.current.onSel = onSel; }, [onSel]);
-  useEffect(() => { if (ready) api.current.paint(scores, sel); }, [ready, scores, sel]);
+  useEffect(() => {
+    api.current.scores = scores; api.current.sel = sel;
+    if (ready) api.current.paint(scores, sel);
+  }, [ready, scores, sel]);
+  useEffect(() => { api.current.pulse = pulse; }, [pulse]);
   useEffect(() => { if (ready) api.current.frame(view); }, [ready, view]);
 
   return (
-    <div className="body3d">
+    <div className="body3d" style={height ? { height } : undefined}>
       <canvas ref={ref} aria-label="3D muscle model; click a muscle to see why it matters" />
       {!ready && !err && <div className="body3d-load"><span className="mono">Loading anatomy · {Math.round(prog * 100)}%</span><i style={{ width: `${prog * 100}%` }} /></div>}
       {err && <div className="body3d-load err">{err}</div>}

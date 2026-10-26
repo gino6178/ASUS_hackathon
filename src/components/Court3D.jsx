@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { createCourt } from "../court3d.js";
 
 // frame: controlled frame index; when `loop` is set the component plays the rally by itself
-export default function Court3D({ rally, frame = 0, loop = false, interactive = false, autoRotate = false, variant = "report", className = "" }) {
+// range: [f0, f1] loops a single shot with its whole flight drawn as the trail
+export default function Court3D({ rally, frame = 0, loop = false, range = null, interactive = false, autoRotate = false, variant = "report", className = "" }) {
   const ref = useRef(null);
   const api = useRef(null);
 
@@ -17,15 +18,17 @@ export default function Court3D({ rally, frame = 0, loop = false, interactive = 
   useEffect(() => {
     if (!loop || !rally) return;
     let raf, start = performance.now();
+    const [a, b] = range || [0, rally.n - 1];
+    const span = b - a + 1;
     const tick = (t) => {
-      const total = rally.n + 45; // short hold at the end of the rally
-      const i = Math.floor(((t - start) / 1000) * rally.fps) % total;
-      api.current.setFrame(Math.min(i, rally.n - 1), 70);
+      const total = span + (range ? 30 : 45); // short hold at the end
+      const i = Math.floor(((t - start) / 1000) * rally.fps * (range ? 0.6 : 1)) % total;
+      api.current.setFrame(a + Math.min(i, span - 1), range ? span : 70);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [loop, rally]);
+  }, [loop, rally, range?.[0], range?.[1]]);
 
   return <canvas ref={ref} className={`court3d ${className}`} aria-label="3D court with the reconstructed shuttle flight" />;
 }

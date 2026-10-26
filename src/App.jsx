@@ -3,14 +3,19 @@ import Landing from "./pages/Landing.jsx";
 import Upload from "./pages/Upload.jsx";
 import Processing from "./pages/Processing.jsx";
 import Report from "./pages/Report.jsx";
+import Coaches from "./pages/Coaches.jsx";
+import Coach from "./pages/Coach.jsx";
+import Memory from "./pages/Memory.jsx";
+import { memory } from "./memory.js";
 import { loadSample } from "./data.js";
 
 const route = () => (location.hash.replace(/^#\/?/, "").split("?")[0] || "home");
+const base = (p) => p.split("/")[0];
 
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
 function Nav({ page }) {
-  const items = [["home", "Overview"], ["analyze", "Analyze"], ["report", "Report"]];
+  const items = [["home", "Overview"], ["analyze", "Analyze"], ["coaches", "Coaches"], ["report", "Report"], ["memory", "Memory"]];
   return (
     <header className="nav">
       <a className="brand" href="#/" aria-label="ShuttleCoach home">
@@ -19,7 +24,7 @@ function Nav({ page }) {
       </a>
       <nav>
         {items.map(([k, label]) => (
-          <a key={k} href={`#/${k === "home" ? "" : k}`} aria-current={page === k ? "page" : undefined}>{label}</a>
+          <a key={k} href={`#/${k === "home" ? "" : k}`} aria-current={base(page) === k || (k === "coaches" && base(page) === "coach") ? "page" : undefined}>{label}</a>
         ))}
       </nav>
       <span className="nav-badge" title="Every model in this prototype runs in your browser or on this machine">
@@ -47,8 +52,16 @@ export default function App() {
       <main>
         {page === "home" && <Landing data={data} />}
         {page === "analyze" && <Upload onVideo={(v) => { setVideo(v); go("processing"); }} />}
-        {page === "processing" && <Processing video={video} onDone={() => go("report")} />}
+        {page === "processing" && <Processing video={video} onDone={() => {
+          // remember this analysis so later sessions can refer back to it
+          const ins = data?.insights, oc = data?.outcomes?.A;
+          if (ins && oc) memory.saveSession(data.event, `Match analysed (${data.event}): most-targeted zone ${ins.topZone.key.replace("-", " ")}, ${oc.winners.length} winners vs ${oc.beaten.length} conceded, ${oc.errors.length} own errors.`);
+          go("coaches");
+        }} />}
         {page === "report" && <Report data={data} video={video} />}
+        {page === "coaches" && <Coaches data={data} video={video} />}
+        {base(page) === "coach" && <Coach id={page.split("/")[1]} data={data} />}
+        {page === "memory" && <Memory />}
       </main>
     </>
   );

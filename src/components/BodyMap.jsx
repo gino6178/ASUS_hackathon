@@ -5,7 +5,7 @@ import Body3D from "./Body3D.jsx";
 // Front / back body diagram. Each muscle region is scored from the match findings: a finding has a severity
 // (0-1, from the match numbers) and a weight for every region it loads. Coaching heuristic, not a physio exam.
 
-const REGIONS = {
+export const REGIONS = {
   deltoid: { view: "front", name: "Shoulders (deltoids)", muscles: ["Anterior deltoid", "Lateral deltoid"] },
   pecs: { view: "front", name: "Chest", muscles: ["Pectoralis major"] },
   biceps: { view: "front", name: "Upper arm (front)", muscles: ["Biceps brachii", "Brachialis"] },
@@ -25,7 +25,7 @@ const REGIONS = {
   calves: { view: "back", name: "Calves and Achilles", muscles: ["Gastrocnemius", "Soleus"] },
 };
 
-const DRILLS = {
+export const DRILLS = {
   deltoid: ["Overhead dumbbell press, 3 × 10", "Band Y-raises, 3 × 15"],
   pecs: ["Push-ups with a 2 s lowering, 3 × 12"],
   biceps: ["Hammer curls, 3 × 12"],
@@ -45,7 +45,7 @@ const DRILLS = {
   calves: ["Single-leg calf raises, 3 × 15", "Pogo hops, 3 × 20 s", "Split-step reaction drill, 6 × 20 s"],
 };
 
-function findings(ins, rally) {
+export function findings(ins, rally) {
   const top = ins.topZone;
   const shortShare = ins.short.length / ins.lifts.length;
   const punish = ins.punished.length / Math.max(1, ins.short.length), deep = ins.deepPunished.length / Math.max(1, ins.deep.length);
@@ -72,7 +72,7 @@ function findings(ins, rally) {
   ];
 }
 
-function score(fs) {
+export function score(fs) {
   const out = {};
   Object.keys(REGIONS).forEach((k) => {
     const parts = fs.filter((f) => f.w[k]).map((f) => ({ f, v: f.w[k][0] * f.sev, kind: f.w[k][1] })).sort((a, b) => b.v - a.v);

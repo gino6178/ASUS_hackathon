@@ -57,7 +57,7 @@ export default function Report({ data, video }) {
           <h1 className="h1">{data.players.near} <span className="vs">vs</span> {data.players.far}</h1>
           <p className="muted">Coaching the near-side player · rally {data.rallyId} replayed in 3D · {match.n} shots in the match database</p>
         </div>
-        <button className="btn ghost" onClick={() => go("analyze")}>Analyze another video</button>
+        <div className="cta-row"><button className="btn primary" onClick={() => go("coaches")}>Talk to your coaches</button><button className="btn ghost" onClick={() => go("analyze")}>Analyze another video</button></div>
       </header>
 
       <section id="replay" className="block">

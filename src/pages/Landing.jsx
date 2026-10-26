@@ -31,7 +31,7 @@ export default function Landing({ data }) {
           <p className="lead">One camera in. A coaching staff out. Every frame, every 3D flight and every word of advice is computed on this machine.</p>
           <div className="cta-row">
             <button className="btn primary" onClick={() => go("analyze")}>Analyze a match</button>
-            <button className="btn ghost" onClick={() => go("report")}>Open the sample report</button>
+            <button className="btn ghost" onClick={() => go("coaches")}>Meet the coaches</button>
           </div>
         </div>
         <dl className="hud hud-right" aria-label="Sample rally telemetry">

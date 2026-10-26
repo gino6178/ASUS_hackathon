@@ -2,7 +2,8 @@ import { COURT } from "../data.js";
 
 // Top view of the court, far baseline at the top. Points are [x, y] in court metres.
 // half: "full" | "near" | "far". heat: [{ x0, y0, x1, y1, a }] cells drawn in `heatColor`.
-export default function CourtMap({ points = [], misses = [], bases = [], heat = null, heatColor = "var(--bad)", half = "full", label, onPick }) {
+// blink: [{ x0, y0, x1, y1, c, label }] zones that flash so a coach can point at them
+export default function CourtMap({ points = [], misses = [], bases = [], heat = null, heatColor = "var(--bad)", half = "full", label, onPick, blink = null }) {
   const S = 36, M = 22;
   const y0 = half === "near" ? COURT.NET - .4 : -0.5;
   const y1 = half === "far" ? COURT.NET + .4 : COURT.L + .5;
@@ -31,6 +32,12 @@ export default function CourtMap({ points = [], misses = [], bases = [], heat = 
         {bot > NET + SHORT && line(w / 2, NET + SHORT, w / 2, bot, "c2")}
       </g>
       <line x1={X(-.15)} x2={X(w + .15)} y1={Y(NET)} y2={Y(NET)} className="cm-net" />
+      {blink && blink.map((z, i) => (
+        <g key={"z" + i} className="cm-blink" style={{ animationDelay: `${i * .35}s` }}>
+          <rect x={X(z.x0)} y={Y(z.y0)} width={(z.x1 - z.x0) * S} height={(z.y1 - z.y0) * S} rx="6" fill={z.c} fillOpacity=".28" stroke={z.c} strokeWidth="3" />
+          {z.label && <text x={X((z.x0 + z.x1) / 2)} y={Y((z.y0 + z.y1) / 2)} textAnchor="middle" dominantBaseline="middle" className="cm-zone-label">{z.label}</text>}
+        </g>
+      ))}
       {misses.map((p, i) => <circle key={"m" + i} cx={X(p[0])} cy={Y(p[1])} r="2.6" className="cm-miss" />)}
       {points.map((p, i) => p.ring
         ? <circle key={"p" + i} cx={X(cx(p.xy[0]))} cy={Y(cy(p.xy[1]))} r={p.r ?? 5} fill="none" stroke={p.c} strokeWidth="2" opacity={p.o ?? 1} />

@@ -14,6 +14,8 @@ This repository holds the **web interface prototype**.
 | Overview | Landing page with a live 3D replay of a reconstructed rally |
 | Analyze | Drop in a match video; the browser opens it locally and nothing is uploaded |
 | Processing | The on-device pipeline stages (2D tracking, camera calibration, 3D lifting, hit detection, player location, match database, agent briefing) |
+| Coaches | Four personified coach agents. Tactics flashes the heat zones that cost points; Technique replays and grades every flight; Fitness pulses the muscles to train on a 3D model; Data profiles a player's habits, heat zones and attack types |
+| Memory | Player memory (RAG): goals, injuries, routines and past sessions, stored on the device and retrieved by each coach before it answers |
 | Report | Video and 3D court in sync; per-shot launch speed, apex, contact height and flight time; speed curve |
 | | Match patterns: stroke mix and opponent smash landings |
 | | Heat zones: where a player's attacks land and where they are beaten (rally outcomes from shot-level labels) |
