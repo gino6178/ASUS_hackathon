@@ -15,7 +15,7 @@ export default function Coaches({ data, video }) {
         {COACHES.map((c) => (
           <button key={c.id} className="coach-card" style={{ "--cc": c.color }} onClick={() => go(`coach/${c.id}`)}>
             <Avatar coach={c} size={132} />
-            <span className="cc-zh">{c.zh}</span>
+            <span className="cc-zh">{c.kicker}</span>
             <b>{c.name}</b>
             <span className="cc-role">{c.role}</span>
             <p>{c.blurb}</p>

@@ -10,7 +10,7 @@ export default function AnalystCoach({ coach, data, hits, runKey, onReplay }) {
   const shots = data.outcomes[who].shots;
   const landHeat = useMemo(() => heatGrid(shots.filter((s) => s.land).map((s) => s.land), "far", .55), [shots]);
   const posHeat = useMemo(() => heatGrid(shots.filter((s) => s.pos).map((s) => s.pos), "near", .45), [shots]);
-  const scout = hits.find((x) => /opponent|scout|對手/i.test(x.m.text));
+  const scout = hits.find((x) => /opponent|scout/i.test(x.m.text));
   const blinkOf = (zs, half, c) => zs.map(([z, n]) => ({ ...zoneRect(z, half), c, label: `${n}` }));
   const list = (arr) => arr.map((x) => `${x.t.toLowerCase()} ${x.p}%`).join(", ");
 

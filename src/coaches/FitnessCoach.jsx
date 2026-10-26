@@ -16,8 +16,8 @@ export default function FitnessCoach({ coach, data, hits, runKey, onReplay }) {
   const scores = useMemo(() => score(findings(ins, rally)), [ins, rally]);
   const ranked = Object.keys(REGIONS).sort((a, b) => scores[b].v - scores[a].v).filter((k) => scores[k].level !== "low");
   const top = ranked.slice(0, 4);
-  const joint = mentions(hits, /knee|ankle|膝|腳踝/i);
-  const jointNote = hits.find((h) => /knee|ankle|膝|腳踝/i.test(h.m.text));
+  const joint = mentions(hits, /knee|ankle/i);
+  const jointNote = hits.find((h) => /knee|ankle/i.test(h.m.text));
   const drills = (r) => DRILLS[r].map((d) => (joint && LOW_IMPACT[d]) || d);
 
   const messages = useMemo(() => {

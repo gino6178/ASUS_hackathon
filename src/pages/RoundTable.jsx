@@ -9,7 +9,7 @@ import { memory, retrieve } from "../memory.js";
 // Round table: the four coach agents and the head coach discuss the match, resolve conflicts against the player's
 // memory, and agree a training plan with a weekly schedule. Every number comes from the analyses; the dialogue is
 // templated in this prototype (the local LLM drives it in Stage II).
-const HEAD = { id: "head", name: "Head Coach", role: "Chair", zh: "總教練", color: "#C3CACD",
+const HEAD = { id: "head", name: "Head Coach", role: "Chair", kicker: "Chair", color: "#C3CACD",
   look: { skin: "#E9BE9A", hair: "#C9CED8", hairStyle: "swept", shirt: "#1F4A3D", prop: "glasses" } };
 const C = Object.fromEntries([...COACHES, HEAD].map((c) => [c.id, c]));
 const f2 = (v) => v.toFixed(2);
@@ -24,8 +24,8 @@ function buildMeeting(data, m) {
   const errAll = ps.errorReasons.reduce((a, [, n]) => a + n, 0);
   const longNet = m.rallies.filter((r) => r.winner !== "A" && r.reason === "net" && r.lastBy === "A" && r.shots.length >= 10).length;
   const hard = fw.byType[0];
-  const mem = { joint: retrieve("knee ankle injury sore jump 膝", 1)[0], routine: retrieve("trains week minutes gym routine", 1)[0], goal: retrieve("goal season", 1)[0] };
-  const knee = mem.joint && /knee|ankle|膝/i.test(mem.joint.m.text);
+  const mem = { joint: retrieve("knee ankle injury sore jump", 1)[0], routine: retrieve("trains week minutes gym routine", 1)[0], goal: retrieve("goal season", 1)[0] };
+  const knee = mem.joint && /knee|ankle/i.test(mem.joint.m.text);
   const declining = fa.rec.late > fa.rec.early * 1.05 || fa.err.late > fa.err.early * 1.15;
   const opp = data.names.B;
 
@@ -106,7 +106,7 @@ export default function RoundTable({ data }) {
             return (
               <div key={id} className={`rt-seat ${speaking === id && !done ? "speaking" : ""}`} style={{ left: `${50 + 41 * Math.cos(a)}%`, top: `${50 + 41 * Math.sin(a)}%`, "--cc": C[id].color }}>
                 <Avatar coach={C[id]} size={78} talking={speaking === id && !done} />
-                <b>{C[id].name}</b><span>{C[id].zh}</span>
+                <b>{C[id].name}</b><span>{C[id].kicker}</span>
               </div>
             );
           })}

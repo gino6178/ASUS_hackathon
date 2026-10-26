@@ -49,7 +49,7 @@ function tokens(s) {
   const out = [];
   const lower = s.toLowerCase();
   (lower.match(/[a-z0-9]+/g) || []).forEach((w) => w.length > 2 && out.push(w.replace(/(ing|ed|es|s)$/, "")));
-  const cjk = lower.match(/[一-鿿]+/g) || [];
+  const cjk = lower.match(/[\u4e00-\u9fff]+/g) || [];
   cjk.forEach((run) => { for (let i = 0; i < run.length - 1; i++) out.push(run.slice(i, i + 2)); if (run.length === 1) out.push(run); });
   return out;
 }

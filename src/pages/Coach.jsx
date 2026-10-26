@@ -23,7 +23,7 @@ export default function Coach({ id, data }) {
       <header className="coach-head">
         <Avatar coach={coach} size={96} talking />
         <div>
-          <span className="tag">{coach.zh} · agent · runs locally</span>
+          <span className="tag">{coach.kicker} · agent · runs locally</span>
           <h1 className="h1">{coach.name}</h1>
           <p className="muted">{coach.role}</p>
         </div>
@@ -37,7 +37,7 @@ export default function Coach({ id, data }) {
       <form className="coach-mem" onSubmit={(e) => { e.preventDefault(); memory.add(note, "note"); setNote(""); setRun((r) => r + 1); }}>
         <label htmlFor="mem-in" className="panel-h">Tell {coach.name} something to remember</label>
         <div>
-          <input id="mem-in" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. My right knee is sore this week · 我想加強殺球" />
+          <input id="mem-in" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. My right knee is sore this week" />
           <button className="btn primary" disabled={!note.trim()}>Save to memory</button>
         </div>
         <span className="tiny muted">Saved on this device. Every coach retrieves it next time it answers.</span>

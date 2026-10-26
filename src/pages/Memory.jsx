@@ -24,7 +24,7 @@ export default function Memory() {
         <section className="panel">
           <h2 className="panel-h">Add a memory</h2>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4}
-            placeholder="e.g. Left shoulder tight after smashing practice · 目標：後場防守更穩" />
+            placeholder="e.g. Left shoulder tight after smashing practice" />
           <div className="mem-row">
             <div className="seg" role="radiogroup" aria-label="Memory type">
               {KINDS.map(([k, l]) => <button key={k} role="radio" aria-checked={kind === k} onClick={() => setKind(k)}>{l}</button>)}

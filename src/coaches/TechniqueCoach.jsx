@@ -19,7 +19,7 @@ export default function TechniqueCoach({ coach, data, hits, runKey, onReplay }) 
   const rally = data.rally;
   const q = useMemo(() => shotQuality(rally), [rally]);
   const mine = q.filter((x) => x.s.hitter === "near");
-  const smashFocus = mentions(hits, /smash|殺球/i);
+  const smashFocus = mentions(hits, /smash/i);
 
   const messages = useMemo(() => {
     const msgs = [{ text: `I replayed this rally in 3D and graded your ${mine.length} shots (blue). Each flight loops on the court while I talk about it.`, act: { i: mine[0].s.i } }];
