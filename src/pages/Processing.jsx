@@ -4,12 +4,11 @@ import { useEffect, useRef, useState } from "react";
 const STAGES = [
   ["Decode video", "frames → 512×288 tensors", 900],
   ["Track the shuttle (2D)", "TrackNetV5 · 5-frame window", 1500],
-  ["Calibrate the camera", "37 court keypoints · RANSAC + DLT refine", 1000],
-  ["Lift to 3D", "Shuttle3D ray-depth · court-rule rectifier", 1500],
+  ["Reconstruct the 3D flight", "SimTrack3D (in-house, under review)", 2500],
   ["Detect hits & strokes", "HitNet · stroke classifier", 900],
   ["Locate players", "pose → floor homography", 900],
   ["Build the match database", "per-shot speed, apex, landing, zone", 700],
-  ["Brief the coaching agents", "5 agents · evidence index", 800],
+  ["Brief the coaching agents", "4 coaches + head coach · evidence index", 800],
 ];
 
 export default function Processing({ video, onDone }) {
@@ -37,7 +36,7 @@ export default function Processing({ video, onDone }) {
   useEffect(() => {
     if (k === 0) return;
     const [h] = STAGES[k - 1];
-    setLog((l) => [...l, `${new Date().toLocaleTimeString()}  ✓ ${h}`].slice(-6));
+    setLog((l) => [...l, `${new Date().toLocaleTimeString("en-GB")}  ✓ ${h}`].slice(-6));
   }, [k]);
 
   // scan-line effect over the user's own frames (or the sample clip)

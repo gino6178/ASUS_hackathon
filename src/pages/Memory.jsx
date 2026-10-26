@@ -53,7 +53,7 @@ export default function Memory() {
               <li key={m.id}>
                 <span className={`mem-kind k-${m.kind}`}>{m.kind}</span>
                 <p>{m.text}</p>
-                <span className="tiny muted">{new Date(m.at).toLocaleDateString()} · {m.source}</span>
+                <span className="tiny muted">{new Date(m.at).toLocaleDateString("en-GB")} · {m.source}</span>
                 <button className="icon-btn" aria-label="Delete memory" onClick={() => memory.remove(m.id)}>×</button>
               </li>
             ))}

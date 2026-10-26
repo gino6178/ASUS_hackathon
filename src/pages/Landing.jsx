@@ -48,11 +48,11 @@ export default function Landing({ data }) {
 
       <section className="band split">
         <header className="sec-head"><span className="tag">02 · Our own research</span><h2>Built on perception research from our lab</h2>
-          <p className="muted">The hard part, metric 3D from a single camera, comes from our own studies. SimTrack3D and TELL are under review, so their figures are not published here yet.</p></header>
+          <p className="muted">The hard part, metric 3D from a single camera, comes from our own studies. SimTrack3D and TELL are under review, so only what they do is shown here.</p></header>
         <div className="stats">
           {[["TrackNetV5", "2D shuttle tracking in every broadcast frame · public code"],
-            ["SimTrack3D", "camera from the court lines, physics-trained lifting to metric 3D · under review"],
-            ["TELL", "the opponent's stroke read before contact, in real time · under review"],
+            ["SimTrack3D", "broadcast video in, 3D shuttle flight in metres out · in-house, under review"],
+            ["TELL", "3D rally in, the opponent's next stroke out · in-house, under review"],
             ["On-device", "all of it runs on one local GPU · measured on the B70 in Stage II"]].map(([n, l]) => (
             <div className="stat" key={n}><b>{n}</b><span>{l}</span></div>
           ))}
