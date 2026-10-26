@@ -9,8 +9,9 @@ const PCOL = { near: "#6FB6FF", far: "#FF8A6B" };
 function drawLayers(ctx, rally, pose, names, i, s, ox, oy, on) {
   const P = (uv) => [ox + uv[0] * s, oy + uv[1] * s];
   ctx.lineCap = "round"; ctx.lineJoin = "round";
-  if (on.skeleton && pose?.frames[i]) {
-    pose.frames[i].forEach((lm, k) => {
+  const pi = pose ? Math.min(i, pose.frames.length - 1) : i; // the pose track can be a frame shorter than the clip
+  if (on.skeleton && pose?.frames[pi]) {
+    pose.frames[pi].forEach((lm, k) => {
       if (!lm) return;
       const col = k === 0 ? PCOL.near : PCOL.far;
       ctx.strokeStyle = col; ctx.lineWidth = Math.max(2.5, 4 * s);
@@ -45,13 +46,13 @@ function drawLayers(ctx, rally, pose, names, i, s, ox, oy, on) {
   const W = rally.width * s, H = rally.height * s;
   if (on.stats && pose?.move) {
     [["near", names.near], ["far", names.far]].forEach(([side, name], k) => {
-      const mv = pose.move[side], v = mv.speed[i];
+      const mv = pose.move[side], v = mv.speed[pi];
       const x = ox + (k ? W - 214 : 14), y = oy + H - 92;
       ctx.globalAlpha = .82; ctx.fillStyle = "#04070A"; ctx.beginPath(); ctx.roundRect(x, y, 200, 78, 10); ctx.fill(); ctx.globalAlpha = 1;
       ctx.fillStyle = PCOL[side]; ctx.font = "700 13px Segoe UI, sans-serif"; ctx.fillText(name, x + 12, y + 20);
       ctx.fillStyle = "#EEF1F2"; ctx.font = "600 13px Consolas, monospace";
       ctx.fillText(`now  ${v == null ? " –  " : v.toFixed(1)} m/s`, x + 12, y + 40);
-      ctx.fillText(`moved ${mv.dist[i].toFixed(1)} m`, x + 12, y + 58);
+      ctx.fillText(`moved ${mv.dist[pi].toFixed(1)} m`, x + 12, y + 58);
       ctx.fillStyle = "#8A979E"; ctx.fillText(`top ${mv.top.toFixed(1)}`, x + 128, y + 40);
     });
   }
@@ -63,9 +64,9 @@ function drawLayers(ctx, rally, pose, names, i, s, ox, oy, on) {
     ctx.beginPath(); ctx.moveTo(mx - 3, Y(6.7)); ctx.lineTo(mx + mw + 3, Y(6.7)); ctx.lineWidth = 2; ctx.stroke();
     ["near", "far"].forEach((side) => {
       const c = pose.move[side].court; ctx.strokeStyle = PCOL[side]; ctx.lineWidth = 1.2; ctx.globalAlpha = .5; ctx.beginPath();
-      for (let k = Math.max(0, i - 90); k <= i; k++) if (c[k]) { k === Math.max(0, i - 90) ? ctx.moveTo(X(c[k][0]), Y(c[k][1])) : ctx.lineTo(X(c[k][0]), Y(c[k][1])); }
+      for (let k = Math.max(0, pi - 90); k <= pi; k++) if (c[k]) { k === Math.max(0, pi - 90) ? ctx.moveTo(X(c[k][0]), Y(c[k][1])) : ctx.lineTo(X(c[k][0]), Y(c[k][1])); }
       ctx.stroke(); ctx.globalAlpha = 1;
-      if (c[i]) { ctx.fillStyle = PCOL[side]; ctx.beginPath(); ctx.arc(X(c[i][0]), Y(c[i][1]), 4, 0, 7); ctx.fill(); }
+      if (c[pi]) { ctx.fillStyle = PCOL[side]; ctx.beginPath(); ctx.arc(X(c[pi][0]), Y(c[pi][1]), 4, 0, 7); ctx.fill(); }
     });
     const f = rally.frames[i];
     if (f?.xyz) { ctx.fillStyle = "#F2E6C9"; ctx.beginPath(); ctx.arc(X(f.xyz[0]), Y(f.xyz[1]), 2.5, 0, 7); ctx.fill(); }
