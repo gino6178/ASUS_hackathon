@@ -1,0 +1,51 @@
+/* One ground, one ink, one accent (shuttle cream, for actions and the shuttle itself).
+   Blue / coral are the two players; the teal-to-red ramp is shuttle speed. Nothing else gets colour. */
+:root {
+  --bg: #04070a;
+  --surface: #0a1014;
+  --surface-2: #111a20;
+  --control: #ffffff10;
+  --control-hover: #ffffff1f;
+  --rule: rgb(255 255 255 / .09);
+  --ink: #eef1f2;
+  --ink-2: #c3cacd;
+  --ink-3: #8e989d;
+  --accent: #f2e6c9;
+  --accent-ink: #04070a;
+  --near: #6fb6ff;
+  --far: #ff8a6b;
+  --court: #2f8f6f;
+  --good: #5fd39a;
+  --warn: #f2c14e;
+  --bad: #ff6b6b;
+  --sp1: #3fd0c9; --sp2: #9be37a; --sp3: #f2d46b; --sp4: #f5a25d; --sp5: #ef5f5c;
+
+  --font: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: Michroma, Eurostile, "Arial Black", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-display: clamp(40px, 6vw, 96px);
+  --fs-h2: clamp(28px, 3vw, 44px);
+  --fs-lead: 19px;
+  --fs-body: 16px;
+  --fs-small: 13px;
+  --gutter: clamp(16px, 4vw, 64px);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 var(--fs-body)/1.6 var(--font);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--near); outline-offset: 3px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
