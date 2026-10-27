@@ -231,7 +231,7 @@ function Footwork({ m, p }) {
         <div className="tscroll"><table className="ptable"><thead><tr><th>Opponent shot</th><th className="r">Time</th><th className="r">Distance</th><th className="r">Needed</th><th className="r">Read 0.4 s earlier</th></tr></thead>
           <tbody>{fw.byType.map((r) => <tr key={r.t}><td>{r.t}</td><td className="mono">{f2(r.dt)} s</td><td className="mono">{f2(r.d)} m</td>
             <td className={`mono ${r.v > 3 ? "bad" : ""}`}>{f2(r.v)} m/s</td><td className="mono good">{f2(r.vEarly)} m/s</td></tr>)}</tbody></table></div>
-        <p className="tiny muted">Read and react: time from the opponent's contact to {m.names[p]}'s next contact, distance covered in that time. The last column is a what-if: the speed needed if the shot were read 0.4 s earlier, the head start our intent-detection block aims to give. It is integrated in Stage II.</p>
+        <p className="tiny muted">Read and react: time from the opponent's contact to {m.names[p]}'s next contact, distance covered in that time. The last column is a what-if: the speed needed if the shot were read 0.4 s earlier, the head start the intent-detection block aims to give.</p>
       </div>
       <div className="panel">
         <h3 className="panel-h">Where the stretched reaches started</h3>
@@ -350,7 +350,7 @@ function Fatigue({ m, p }) {
             {ld.flags.map((f, k) => <div key={k} className={`risk ${f.lvl}`}><b>{f.lvl === "high" ? "▲ Warning" : "● Watch"}</b><p>{f.t}</p></div>)}
             {!ld.flags.length && <div className="risk ok"><b>✓ No warning</b><p>Every measure on the watch list stayed close to the player's own opening baseline.</p></div>}
             {pose && p === "A" && <PoseCheck pose={pose} joint={joint} />}
-            <p className="tiny muted">Match-wide load is a proxy from positions. Joint angles come from pose on the replayed rally; Stage II runs pose on every rally on the B70, live.</p>
+            <p className="tiny muted">Match-wide load is a proxy from positions. Joint angles come from pose on the replayed rally; next, on the B70, pose runs on every rally, live.</p>
           </div>
         </div>
       </div>

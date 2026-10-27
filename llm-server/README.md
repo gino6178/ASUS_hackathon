@@ -25,7 +25,7 @@ Start (with the gateway): `~/shuttlecoach/start.sh`. Device: `DEVICE=GPU` on the
 | Machine | Device | Qwen3-4B INT4 decode |
 |---|---|---|
 | Dev server, AMD EPYC 7551P (32 cores) | CPU | about 7 tokens/s |
-| ASUS UGen Arc Pro B70 | GPU (XMX) | to measure in Stage II (bandwidth ceiling about 240 tokens/s) |
+| ASUS UGen Arc Pro B70 | GPU (XMX) | to be measured (bandwidth ceiling about 240 tokens/s) |
 
 The EPYC 7551P lacks the AVX-512 / VNNI instructions OpenVINO uses for INT4, so it is the slowest case; the
 system works the same on the B70, only faster.

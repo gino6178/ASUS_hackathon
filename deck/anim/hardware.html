@@ -55,7 +55,7 @@ const STAGES = [
   { t0: 2.2, t1: 5.0, n: '2', h: 'Software stack on Intel', d: 'Intel GPU driver, oneAPI and OpenVINO / IPEX-LLM serve the vision models and the local LLM.' },
   { t0: 5.0, t1: 7.8, n: '3', h: 'One card, scheduled by phase', d: 'Live perception first, a 4B model between points, the 14B coaches after the match (planned).' },
   { t0: 7.8, t1: 10.2, n: '4', h: 'Local network only', d: 'Court camera in, coach’s tablet out. Video and match data never leave the workstation.' },
-  { t0: 10.2, t1: 12, n: '5', h: 'Built on ASUS SDV, deployed on-premise', d: 'Stage II: develop and validate on the organiser’s SDV host, then ship the same container to the club.' },
+  { t0: 10.2, t1: 12, n: '5', h: 'Built on ASUS SDV, deployed on-premise', d: 'Develop and validate on the organiser’s SDV host, then ship the same container to the club.' },
 ];
 const FLOWS = [
   { p: () => link(CAM.x + 95, CAM.y, WS.x - 4, 830), t0: 7.9, dur: 0.8, c: C.cream },
@@ -243,7 +243,7 @@ function drawSdv(t) {
   ctx.save(); ctx.shadowColor = C.amber; ctx.shadowBlur = 30 * on; rr(x, y, w, h, 18); ctx.fillStyle = C.panel; ctx.fill();
   ctx.setLineDash([8, 8]); ctx.lineWidth = 3; ctx.strokeStyle = mix('#3A444A', C.amber, 0.35 + 0.65 * on); ctx.stroke(); ctx.restore();
   text('ASUS SDV virtual host', x + 28, y + 36, `bold 26px ${HEAD}`, mix(C.ink, C.amber, on * 0.6), 'left');
-  text('Stage II · B70 dev & validation environment', x + 28, y + 72, `19px ${BODY}`, C.muted, 'left');
+  text('B70 dev & validation environment', x + 28, y + 72, `19px ${BODY}`, C.muted, 'left');
   strokePath(sdvPath(true), on > 0.02 ? `rgba(242,212,107,${0.25 + 0.5 * on})` : 'rgba(242,212,107,0.18)', 3, [8, 10]);
   if (on > 0.05) text('same container', x + 70, 238, `bold 19px ${MONO}`, C.amber, 'left', 'middle', on);
 }

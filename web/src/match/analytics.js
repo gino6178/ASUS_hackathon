@@ -141,7 +141,7 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 // ---- movement load and injury-risk watch -------------------------------------------------------------------------
 // Proxy from court positions only (where the player stood at every contact). Lunge: arriving within 2 m of the net after
 // moving more than 1.8 m. Cut: a change of direction sharper than 120 degrees between two moves of 0.8 m or more.
-// Load = metres + 1.5 per lunge + 1 per cut. Stage II replaces this with pose: joint angles and landing impact.
+// Load = metres + 1.5 per lunge + 1 per cut. The B70 version replaces this with pose: joint angles and landing impact.
 export function load(m, p) {
   const series = m.rallies.map((r) => {
     const path = r.shots.map((s) => (s.p === p ? s.pos : s.opp)).filter(Boolean);

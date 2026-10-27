@@ -1,6 +1,6 @@
 """ShuttleCoach LLM server: an OpenVINO GenAI model behind an OpenAI-compatible API.
 
-Runs on the inference server (the ASUS UGen Arc Pro B70 in Stage II, DEVICE=GPU) or on any PC for development
+Runs on the inference server (the ASUS UGen Arc Pro B70, DEVICE=GPU) or on any PC for development
 (DEVICE=CPU). The agent gateway talks to it like any OpenAI-style endpoint, so the model or device can change
 without touching the app.
 

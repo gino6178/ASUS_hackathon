@@ -462,7 +462,7 @@ async function icon(Comp, color) {
       { x: 9.1, y: 4.93, w: 3.5, h: .7, fontSize: 10, valign: "middle" });
   [["Between points (~20 s)", "Last point, next serve, the opponent's hot zone and an error warning; longer briefs at 11 points and between games. Computed in under 1 ms."],
    ["Hands-free voice", "Tap Ask and speak: “What should I do next point?”. Whisper tiny runs in the browser, so no audio leaves the court."],
-   ["On the B70 in Stage II", "Pose and tracking live from the court camera; a 4B model turns each brief into one spoken sentence in under a second; Whisper on OpenVINO."]].forEach(([h, b], i) => {
+   ["On the B70", "Pose and tracking live from the court camera; a 4B model turns each brief into one spoken sentence in under a second; Whisper on OpenVINO."]].forEach(([h, b], i) => {
     const x = .6 + i * 4.1;
     txt(s, h, { x, y: 5.8, w: 3.9, h: .32, fontSize: 13.5, bold: true, color: C.accent1 });
     txt(s, b, { x, y: 6.12, w: 3.9, h: .8, fontSize: 10.5 });
@@ -542,7 +542,7 @@ async function icon(Comp, color) {
       { x: .8, y: 5.7, w: 5.55, h: 1.12, fontSize: 10.5 });
   card(s, 6.7, 5.62, 6.0, 1.25, "0D2A1D", "4B model", H.accent4);
   txt(s, [{ text: "Measured today on our test GPU (Qwen3-4B, 4-bit)", options: { bold: true, color: H.accent4, breakLine: true } },
-          { text: "Coach reply 0.8 s median · round-table meeting 4.0 s for 9–10 verified turns · “I want to play” to a court offer 3.3 s, fitness coach included · booking agent in its browser: 28 steps, 9.4 s · tests 23/23 booking, 21/21 end to end. On the B70: INT4 ≈ 2.5 GB, decode ceiling about 240 tokens/s; B70 figures in Stage II.", options: {} }],
+          { text: "Coach reply 0.8 s median · round-table meeting 4.0 s for 9–10 verified turns · “I want to play” to a court offer 3.3 s, fitness coach included · booking agent in its browser: 28 steps, 9.4 s · tests 23/23 booking, 21/21 end to end. On the B70: INT4 ≈ 2.5 GB, decode ceiling about 240 tokens/s.", options: {} }],
       { x: 6.9, y: 5.7, w: 5.65, h: 1.12, fontSize: 10.5 });
 
   pres.addSection({ title: SECTIONS[3] });
@@ -557,7 +557,7 @@ async function icon(Comp, color) {
     txt(s, h, { x: x + .25, y: 1.92, w: 2.45, h: .45, fontSize: 18, bold: true, color: C.accent1 });
     txt(s, items.map((t, k) => ({ text: t, options: { bullet: true, breakLine: k < items.length - 1 } })), { x: x + .25, y: 2.45, w: 2.5, h: 2.0, fontSize: 12.5, paraSpaceAfter: 4 });
   });
-  tag(s, "Stage II deliverables", .6, 4.75);
+  tag(s, "Next deliverables", .6, 4.75);
   [["Working system", "Upload a match video on the B70 and get the full report, end to end, offline"],
    ["Open repository", "Code, system architecture diagram, README, model information and performance data"],
    ["Performance report", "Speed, accuracy and latency measured on the B70; 3D error against reference data"],
@@ -626,7 +626,7 @@ async function icon(Comp, color) {
     { text: "Sample match: Thailand Masters 2025 R32 broadcast footage and hand annotations, used for a research prototype only.", options: { bullet: true, breakLine: true } },
     { text: "Libraries: Whisper tiny.en (MIT) via Transformers.js (Apache-2.0); MediaPipe Pose Landmarker (Apache-2.0). Feature ideas from Good-Badminton (yo-WASSUP): annotated video, court calibration, position maps.", options: { bullet: true, breakLine: true } },
     { text: "Agents: Qwen3-4B (Apache-2.0) served locally; OpenVINO GenAI path for the B70; Qwen3-Embedding for the knowledge base. Papers found through the OpenAlex, arXiv and Semantic Scholar APIs; messaging via the Telegram Bot API.", options: { bullet: true, breakLine: true } },
-    { text: "Prototype status: coach agents answer on a local 4B model from computed match facts, every figure verified; tested on an RTX 3090 server, moving to the B70 in Stage II. Coach portraits are AI-generated, fictional people.", options: { bullet: true } },
+    { text: "Prototype status: coach agents answer on a local 4B model from computed match facts, every figure verified; tested on an RTX 3090 server, moving to the B70 next. Coach portraits are AI-generated, fictional people.", options: { bullet: true } },
   ], { x: .6, y: 2.5, w: 12.1, h: 4.0, fontSize: 12, paraSpaceAfter: 3 });
   txt(s, "Team rm-rf-2", { x: .6, y: 6.55, w: 12.1, h: .35, fontSize: 13, color: C.accent5 });
 
