@@ -12,7 +12,7 @@ const FONT = "C\\:/Windows/Fonts/bahnschrift.ttf", MONO = "C\\:/Windows/Fonts/co
 const NARR = JSON.parse(fs.readFileSync("narration.json", "utf8"));
 const TIMES = JSON.parse(fs.readFileSync(path.join(K, "timings.json"), "utf8"));
 const NLEN = TIMES.map((rows) => rows.at(-1).end);
-const LEAD = [0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]; // the video opens on the architecture, then the 3D court
+const LEAD = [0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]; // the video opens on the 3D court with the title, then the architecture
 const esc = (t) => t.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\u2019").replace(/%/g, "\\%");
 const src = (f) => path.join(B, f + ".mp4");
 const at = (scene, s, word) => { const r = TIMES[scene][s], k = word ? Math.max(0, r.text.indexOf(word)) / r.text.length : 0; return LEAD[scene] + r.start + k * (r.end - r.start) - 0.15; };
@@ -21,20 +21,20 @@ const text = (t, o) => `drawtext=expansion=none:fontfile='${o.font ?? FONT}':tex
 const label = (t) => [`scale=1536:864,pad=1920:1080:192:150:color=0x04070A`, "fps=30", "format=yuv420p", `drawtext=fontfile='${FONT}':text='${esc(t)}':x=(w-text_w)/2:y=44:fontsize=68:fontcolor=0xF2E6C9`];
 
 // scene lengths: the narration plus a breath, at least what the pictures need
-const LEN = NLEN.map((n, i) => +(LEAD[i] + n + (i === 0 ? 0.8 : i === 1 ? 0.9 : 1.2)).toFixed(2));
+const LEN = NLEN.map((n, i) => +(LEAD[i] + n + (i === 0 ? 0.9 : i === 1 ? 0.8 : 1.2)).toFixed(2));
 LEN[2] += 1.6; // the overview ends on the zooming grid
 
 // [source, from, seconds, vf] per piece
 const S = [];
-{ // 0 · the architecture animation, slowed to the narration and lifted clear of the subtitles
-  S.push([["ARCH", 0, LEN[0], [`setpts=PTS*${(LEN[0] / 12).toFixed(4)}`, "scale=1728:972,pad=1920:1080:96:0:color=0x04080B", "fps=30", "format=yuv420p"]]]);
-}
-{ // 1 · the 3D court with the title
+{ // 0 · the 3D court with the title
   S.push([
-    ["hero", 1.0, LEN[1], [...BASE,
+    ["hero", 1.0, LEN[0], [...BASE,
       text("SHUTTLE COACH", { x: 110, y: 330, size: 150, from: 0.3 }),
       text("One camera in. A full coaching staff out. 100% offline.", { x: 116, y: 520, size: 44, color: "0xC3CACD", from: 2.6 }),
       text("BUILT FOR INTEL ARC PRO B70 · 32 GB", { x: 118, y: 610, size: 30, color: "0xF2E6C9", font: MONO, from: 4.2 })]]]);
+}
+{ // 1 · the architecture animation, slowed to the narration and lifted clear of the subtitles
+  S.push([["ARCH", 0, LEN[1], [`setpts=PTS*${(LEN[1] / 12).toFixed(4)}`, "scale=1728:972,pad=1920:1080:96:0:color=0x04080B", "fps=30", "format=yuv420p"]]]);
 }
 { // 2 · overview in four nodes, cut on the spoken words, then the grid zooms out
   const c = [0, at(2, 2), at(2, 3), at(2, 4), LEN[2] - 1.6];

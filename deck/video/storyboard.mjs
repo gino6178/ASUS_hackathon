@@ -14,8 +14,8 @@ const VIDEO = path.resolve("ShuttleCoach_demo.mp4");
 
 // [scene, title on screen, what happens (中文), note]
 const SHOTS = [
-  [1, "On-device architecture", "架構動畫：Match video → Perception（2D/3D）→ Analytics → 四位教練 + 總教練圓桌（讀 Player memory / RAG）→ Sparring simulator → Coach sessions；右上 NO CLOUD，外框 Intel Arc Pro B70 · 32 GB。", "開場：架構一覽，旁白從第一秒開始"],
-  [2, "SHUTTLE COACH", "3D 重建球場與飛行軌跡緩慢重播，左側依序浮現：SHUTTLE COACH → One camera in. A full coaching staff out. 100% offline. → BUILT FOR INTEL ARC PRO B70 · 32 GB。", "標題"],
+  [1, "SHUTTLE COACH", "3D 重建球場與飛行軌跡緩慢重播，左側依序浮現：SHUTTLE COACH → One camera in. A full coaching staff out. 100% offline. → BUILT FOR INTEL ARC PRO B70 · 32 GB。", "開場，旁白從第一秒開始"],
+  [2, "On-device architecture", "架構動畫：Match video → Perception（2D/3D）→ Analytics → 四位教練 + 總教練圓桌（讀 Player memory / RAG）→ Sparring simulator → Coach sessions；右上 NO CLOUD，外框 Intel Arc Pro B70 · 32 GB。", "標題之後：整體架構一覽"],
   [3, "Perception & 3D replay", "Rally 3D 頁：轉播畫面與 3D 球場同步，拖曳轉視角。", "四大節點之一；唸到「Four specialist」時切走"],
   [3, "Round table", "圓桌會議進行中，鏡頭緩慢推近發言串。", "節點二"],
   [3, "Voice coach · Auto highlights", "左右分割：左邊打字問「Where is my opponent beating me?」得到答案並跳到 Lin 的熱區；右邊是自動精華清單與 9:16 預覽。", "節點三"],
@@ -39,7 +39,7 @@ const SHOTS = [
   [9, "", "Agent trace 頁：同一次執行的每一步（LLM、ask the fitness coach agent、open the map、search venues near the middle、rank by fairness、ask the player…）。", "Every step is logged on the station"],
   [10, "", "結尾卡：SHUTTLECOACH、標語，三個銘牌依序亮起：100% local processing / Multi-agent round table / Built for Intel Arc Pro B70 · 32 GB；上方是隊名與 GitHub 網址。", "隊名 rm-rf-2；QR code 尚未加入"],
 ];
-const SCENE_NAME = { 1: "開場：系統架構", 2: "開場：平台定位", 3: "功能總覽：四大節點", 4: "怎麼運作、隱私", 5: "四位專科教練", 6: "亮點一：圓桌會議", 7: "亮點二：自我進化與安全審查", 8: "延伸：24 小時教練", 9: "大語言模型代理：真實執行紀錄", 10: "結尾" };
+const SCENE_NAME = { 1: "開場：平台定位", 2: "系統架構", 3: "功能總覽：四大節點", 4: "怎麼運作、隱私", 5: "四位專科教練", 6: "亮點一：圓桌會議", 7: "亮點二：自我進化與安全審查", 8: "延伸：24 小時教練", 9: "大語言模型代理：真實執行紀錄", 10: "結尾" };
 
 const pieces = fs.readdirSync(B).filter((f) => /^q\d{3}\.mp4$/.test(f)).sort();
 if (pieces.length !== SHOTS.length) throw new Error(`expected ${SHOTS.length} pieces, found ${pieces.length}`);
