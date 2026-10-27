@@ -64,8 +64,8 @@ export default function Courts() {
               {/* every sports centre checked: dim when it had no free court */}
               {phase >= 3 && considered.map((c, i) => { const [x, y] = P(c.lat, c.lon); return <circle key={c.id} cx={x} cy={y} r={c.free ? 9 : 6} className={`cr-v ${c.free ? "free" : "full"}`} style={{ animationDelay: `${i * 40}ms` }} />; })}
               {phase >= 2 && party?.map?.center && people.length > 1 && (() => { const [x, y] = P(party.map.center.lat, party.map.center.lon); return <g className="cr-mid"><circle cx={x} cy={y} r={34} /><text x={x} y={y + 54} textAnchor="middle">the middle</text></g>; })()}
-              {phase >= 5 && chosen && people.map((p) => { const [a, b] = P(p.lat, p.lon), [c, d] = P(chosen.lat, chosen.lon), km = chosen.dists?.find((x) => x.name === p.name)?.km; return (
-                <g key={p.id} className="cr-trip"><line x1={a} y1={b} x2={c} y2={d} stroke={color(p.name)} /><text x={(a + c) / 2} y={(b + d) / 2 - 8} textAnchor="middle" fill={color(p.name)}>{km} km</text></g>); })}
+              {phase >= 5 && chosen && people.map((p) => { const [a, b] = P(p.lat, p.lon), [c, d] = P(chosen.lat, chosen.lon), dd = chosen.dists?.find((x) => x.name === p.name), km = dd ? (dd.min ? `~${dd.min} min` : `${dd.km} km`) : ""; return (
+                <g key={p.id} className="cr-trip"><line x1={a} y1={b} x2={c} y2={d} stroke={color(p.name)} /><text x={(a + c) / 2} y={(b + d) / 2 - 8} textAnchor="middle" fill={color(p.name)}>{km}</text></g>); })}
               {phase >= 4 && top.map((s, i) => { const [x, y] = P(s.lat, s.lon), win = s === chosen && phase >= 5; return (
                 <g key={s.venue} className={`cr-top${win ? " win" : ""}`}><circle cx={x} cy={y} r={win ? 16 : 12} /><text x={x} y={y + 5} textAnchor="middle">{i + 1}</text>
                   <text className="lbl" x={x + 22} y={y + 5}>{s.name.replace(/ (Civil )?Sports Center$/, "")}{win && booking ? " · booked" : ""}</text></g>); })}
@@ -77,7 +77,7 @@ export default function Courts() {
         </div>
         <aside className="cr-side">
           <ol className="cr-steps">
-            {["Open the map", "Find where everyone starts", `Check ${considered.length || venues.length} sports centres for a free court`, "Rank by the longest trip", "Pick the fairest; wait for the player's OK"].map((t, i) => (
+            {["Open the map", "Find where everyone starts", `Check ${considered.length || venues.length} sports centres for a free court`, "Rank by the longest trip (minutes)", "Pick the fairest; wait for the player's OK"].map((t, i) => (
               <li key={t} className={phase > i ? "on" : ""}>{t}</li>))}
           </ol>
           {party && (
@@ -85,7 +85,7 @@ export default function Courts() {
               <h2 className="panel-h">{party.hostName}'s {party.format} · {STATE[party.status]}</h2>
               <ol className="cr-top-list">{top.map((s) => (
                 <li key={s.venue} className={s === chosen ? "win" : ""}><b>{s.name}</b><span className="tiny muted"> · {s.date.slice(5)} {s.start}-{s.end}</span>
-                  <p className="tiny">{s.dists?.map((d) => `${d.name} ${d.km} km`).join(" · ")}<span className="muted"> · farthest {s.maxKm} km</span></p></li>))}</ol>
+                  <p className="tiny">{s.dists?.map((d) => `${d.name} ${d.min ? `~${d.min} min` : `${d.km} km`}`).join(" · ")}<span className="muted"> · longest trip {s.maxMin ? `~${s.maxMin} min` : `${s.maxKm} km`}</span></p></li>))}</ol>
             </section>
           )}
           {v && v.parties.length > 1 && (

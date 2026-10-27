@@ -26,7 +26,7 @@ const SHOTS = [
   [4, "Every shot graded A / B / C from its 3D flight", "Coach Kai：推近逐拍評分列。", ""],
   [4, "Memory: right knee sore → no jump drills", "Coach Ren：推近 3D 人體肌肉，記憶裡的右膝痠。", "與圓桌衝突呼應"],
   [4, "After a lift or clear, WANG smashes 38%", "Coach Ada：推近「Reply to a lift or clear」統計。", "數字取自比賽資料"],
-  [5, "Conflict → Head coach ruling", "圓桌：鏡頭推近紅色衝突卡（Conflict: Ren challenges Lin — right knee sore vs smash-defence blocks）→ 拉遠、跳到計畫 → 推近裁決（Head coach ruling: health first, then the points at stake）。", "全片第一個亮點"],
+  [5, "Conflict → Head coach ruling", "圓桌（由本地 LLM 即時產生，每一句都過驗證器）：鏡頭推近紅色衝突卡（Conflict: Ren challenges Lin — right knee sore vs smash-defence blocks）→ 拉遠、跳到計畫 → 推近裁決（Head coach ruling: health first, then the points at stake）。", "全片第一個亮點"],
   [5, "Local model · 0.89 s · ✓ every figure verified", "Coach Kai 聊天：輸入問題，本地模型回答，鏡頭推近回覆，HUD 卡顯示實際測得的 0.89 秒與驗證結果。", "時間是錄影當下的真實數字（RTX 3090 測試機）"],
   [6, "", "Lab：狀態列 → 知識庫搜尋「knee pain after lunges」列出論文結論。", "Every night a research agent…"],
   [6, "Safety gate → Declined by the human coach", "Playbooks → 推近待審提案「膝痛時做前跨步」，HUD 卡：Safety gate: health changes need a human coach → 按 Decline → HUD 卡：Declined by the human coach · rule not adopted。", "第二個亮點：Human-in-the-loop；真的在 station 上拒絕"],

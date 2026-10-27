@@ -40,8 +40,11 @@ End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the r
 
 - **Grounded replies.** Deterministic code computes every match number; the model only explains them. A verifier
   checks each figure against the fact or study cited in the same sentence and rejects the reply otherwise.
-- **Round table.** Tactics, technique, fitness and data coaches argue; the head coach rules by fixed priorities
-  (health limits from memory first, then points at stake) and writes four measurable goals and a 7-day plan.
+- **Round table.** Held live by the coach agents on the local model: each argues for one priority from its own facts,
+  the fitness coach checks every request against the player's memory and challenges one that clashes, the challenged
+  coach answers, and the head coach rules by fixed priorities (health limits first, then points at stake). Every turn
+  goes through the verifier; four measurable goals and a 7-day plan come out. Without the gateway a templated meeting
+  is shown and labelled as such.
 - **Self-evolving.** A research agent searches OpenAlex, arXiv and Semantic Scholar every night and keeps findings
   whose numbers appear in the abstract. Each coach then reflects on player feedback, rejected drafts and new findings,
   and proposes changes to its own playbook. A change is adopted only if it cites a study in the coach's area, passes

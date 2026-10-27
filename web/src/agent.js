@@ -26,3 +26,6 @@ export const agentFeedback = (fb) => call("/api/feedback", fb);
 export const agentVenue = () => call("/api/venue");
 // what the agents did: recent runs with their LLM calls, tool calls, checks, messages and human confirmations
 export const agentTrace = (n = 40, kind = null) => call(`/api/trace?n=${n}${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`);
+
+// the round table held by the coach agents on the local model
+export const agentRoundTable = (b) => call("/api/roundtable", b);

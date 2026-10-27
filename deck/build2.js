@@ -496,8 +496,8 @@ async function icon(Comp, color) {
   {
     const PH = [["Rally (live)", "33 ms a frame"], ["Between points", "brief < 3 s"], ["After the match", "batch, minutes"], ["Coaching", "answers < 10 s"]];
     const ROWS = [["2D tracking + pose", [1, .15, .7, 0], H.accent2], ["3D reconstruction", [1, .15, .7, 0], H.accent2], ["Intent detection", [1, 0, 0, 0], H.accent2],
-      ["4B assistant \u00b7 voice", [.1, 1, 0, .3], H.accent4], ["14B coach agents", [0, 0, 0, 1], H.accent1], ["Clip reviewer 7B", [0, 0, 0, .5], H.accent3],
-      ["Simulator", [0, 0, .3, .7], "F2D46B"], ["Highlight render", [0, 0, .5, 0], H.lt2]];
+      ["4B assistant \u00b7 voice", [.1, 1, 0, .3], H.accent4], ["Coach agents \u00b7 round table", [0, 0, 0, 1], H.accent1], ["Booking agent \u00b7 browser", [0, 0, .25, .5], H.accent3],
+      ["Research \u00b7 reflection (night)", [0, 0, .6, 0], "F2D46B"], ["Simulator", [0, 0, .3, .7], H.lt2]];
     const x0 = .6, lab = 1.95, cw = 1.3, y0 = 1.5;
     tag(s, "GPU time by phase · bar = share of the card", x0, y0, C.accent1, 7);
     PH.forEach(([h, d], k) => {
@@ -521,8 +521,8 @@ async function icon(Comp, color) {
     s.addChart(pres.charts.BAR, [
       { name: "Tracking, pose, 3D, intent", labels: lbl, values: [6, 6, 6, 0] },
       { name: "4B assistant + voice", labels: lbl, values: [3, 3, 0, 3] },
-      { name: "14B coaches + KV cache", labels: lbl, values: [0, 0, 0, 16] },
-      { name: "Clip reviewer 7B", labels: lbl, values: [0, 0, 0, 5] },
+      { name: "Coach agents, 14B planned + KV cache", labels: lbl, values: [0, 0, 0, 16] },
+      { name: "Browser, embeddings, research", labels: lbl, values: [0, 0, 3, 2] },
       { name: "Simulator", labels: lbl, values: [0, 0, 0, 4] },
       { name: "Player memory", labels: lbl, values: [1, 1, 1, 1] },
     ], {
@@ -537,7 +537,8 @@ async function icon(Comp, color) {
   }
   card(s, .6, 5.62, 5.9, 1.25, C.accent6, "scheduler", H.accent1);
   txt(s, [{ text: "Dynamic scheduler", options: { bold: true, color: H.accent1, breakLine: true } },
-          { text: "A priority queue on one card: live perception keeps its 33 ms deadline, the between-point brief preempts batch work, and post-match jobs fill idle time; nightly research and reflection run when the court is closed. The 14B coaches load only after the match: peak 29 of 32 GB.", options: {} }],
+          { text: "A priority queue on one card: live perception keeps its 33 ms deadline, the between-point brief preempts batch work, post-match jobs and the nightly research and reflection fill idle time. ", options: {} },
+          { text: "Today, on our test GPU, one 4B model serves every agent: coach chat, the round table, booking with its browser, research and reflection.", options: { bold: true, color: H.lt1 } }],
       { x: .8, y: 5.7, w: 5.55, h: 1.12, fontSize: 10.5 });
   card(s, 6.7, 5.62, 6.0, 1.25, "0D2A1D", "4B model", H.accent4);
   txt(s, [{ text: "4B model for the fast path", options: { bold: true, color: H.accent4, breakLine: true } },

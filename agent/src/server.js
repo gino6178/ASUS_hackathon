@@ -110,6 +110,10 @@ http.createServer(async (req, res) => {
     const flat = ({ paper, ...f }) => ({ ...f, cite: kb.cite(paper), title: paper.title, url: paper.url, year: paper.year, venue: paper.venue, source: paper.source });
     if (u.pathname === "/api/venue") return json(res, 200, { ...venue.meta(), venues: venue.venues().map(({ id, name, local, lat, lon, courts, price, currency, hours }) => ({ id, name, local, lat, lon, courts, price, currency, hours })),
       upcoming: venue.upcoming().slice(0, 3000), parties: booking.list().slice(-30).reverse().map((p) => ({ ...p, hostName: store.get(p.host)?.name, invitees: p.invitees.map((x) => ({ ...x, name: store.get(x.id)?.name })) })) }, o);
+    if (u.pathname === "/api/roundtable" && req.method === "POST") {
+      const b = await bodyOf(req), { meet } = await import("./roundtable.js");
+      return json(res, 200, await trace.run("round table", { who: "web", input: `round table · ${b.event ?? ""}` }, () => meet(b)), o);
+    }
     if (u.pathname === "/api/kb") return json(res, 200, { stats: kb.stats(), findings: kb.listFindings().map(flat), runs: kb.runs() }, o);
     if (u.pathname === "/api/kb/search") return json(res, 200, (await kb.search(u.searchParams.get("q") || "", { k: 6, min: 0.2 })).map(flat), o);
     if (u.pathname === "/api/research/run" && req.method === "POST") {

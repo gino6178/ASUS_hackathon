@@ -60,19 +60,25 @@ try {
   const sat = new Date(); do sat.setDate(sat.getDate() + 1); while (sat.getDay() !== 6);
   const satYmd = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, "0")}-${String(sat.getDate()).padStart(2, "0")}`;
 
+  // a hard session with a sore knee first: the booking agent must ask the fitness coach agent before it searches
+  await say(HOST, "Did 90 minutes of smash training today, my right knee is a bit sore", 4000);
   const offer = await say(HOST, "I want to play doubles with Amy and Ben on Saturday evening", 3000);
+  const playRun = (await api("/api/trace?n=20")).find((r) => r.input?.startsWith("I want to play"));
+  const fit = playRun?.steps.find((x) => x.name === "ask the fitness coach agent");
+  console.log("  fitness coach agent:", JSON.stringify(fit));
+  expect(!!fit && playRun.steps.some((x) => x.type === "llm" && /fitness coach agent/.test(x.name)), "the booking agent asked the fitness coach agent (on the local model) before searching");
   const o = offer.find((m) => m.to === HOST && m.buttons.some((b) => b.callback_data?.startsWith("bk:pick")));
   expect(!!o, "the agent offers free courts with pick buttons");
   expect(o && o.text.includes(satYmd.slice(5)) && /doubles/.test(o.text) && /Amy and Ben/.test(o.text), `the slots are on Saturday ${satYmd}, doubles, with Amy and Ben`);
   expect(o && o.buttons.filter((b) => b.callback_data.startsWith("bk:pick")).every((b) => /1[89]:|2[01]:/.test(b.text)), "every slot is in the evening");
-  expect(o && /checked 18 sports centres/.test(o.text) && /Hyeok [\d.]+ km, Amy [\d.]+ km, Ben [\d.]+ km/.test(o.text), "it searched all 18 venues and shows each player's distance");
-  const pv = (await api("/api/venue")).parties[0], free = pv.map.considered.filter((c) => c.free).map((c) => c.maxKm);
-  expect(pv.slots[0].maxKm <= Math.min(...free) + 2, `the first venue is fair: farthest trip ${pv.slots[0].maxKm} km (best possible ${Math.min(...free)} km)`);
+  expect(o && /checked 18 sports centres/.test(o.text) && /Hyeok ~\d+ min, Amy ~\d+ min, Ben ~\d+ min/.test(o.text), "it searched all 18 venues and shows each player's travel time");
+  const pv = (await api("/api/venue")).parties[0], free = pv.map.considered.filter((c) => c.free).map((c) => c.maxMin);
+  expect(pv.slots[0].maxMin <= Math.min(...free) + 5, `the first venue is fair: longest trip ~${pv.slots[0].maxMin} min (best possible ~${Math.min(...free)} min)`);
     expect(offer.some((m) => m.to === HOST && m.text.startsWith("📍")), "a map pin of the best venue is sent");
 
   const pick = await tap(HOST, o.buttons[0].callback_data);
   const inv = pick.filter((m) => [AMY, BEN].includes(m.to) && m.buttons.some((b) => b.callback_data?.startsWith("bk:in")));
-  expect(inv.length === 2 && inv.every((m) => / km from you/.test(m.text)), "Amy and Ben are both invited, each told how far it is from them");
+  expect(inv.length === 2 && inv.every((m) => / min from you/.test(m.text)), "Amy and Ben are both invited, each told how far it is from them");
   let v = await api("/api/venue");
   const held = (await api("/api/venue")).parties.find((x) => x.id === pv.id)?.booking;
   expect(v.upcoming.some((b) => b.id === held && b.status === "held" && b.venue === pv.slots[0].venue), "the agent held the court itself, on the venue's booking site");

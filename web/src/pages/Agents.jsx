@@ -39,7 +39,7 @@ export default function Agents() {
     const f = () => agentTrace(60, kind || null).then((r) => { setRuns(r); setErr(null); }).catch((e) => setErr(e.message));
     f(); const id = setInterval(f, 4000); return () => clearInterval(id);
   }, [kind]);
-  const run = runs.find((r) => r.id === sel) ?? runs.find((r) => r.steps.length > 3) ?? runs[0];
+  const run = runs.find((r) => r.id === sel) ?? runs.find((r) => r.steps.some((s) => s.shot)) ?? runs.find((r) => r.kind === "round table") ?? runs.find((r) => r.steps.length > 5) ?? runs[0];
   const all = runs.flatMap((r) => r.steps), n = (t) => all.filter((s) => s.type === t).length;
   const llm = all.filter((s) => s.type === "llm" && s.ms), med = llm.length ? llm.map((s) => s.ms).sort((a, b) => a - b)[Math.floor(llm.length / 2)] : null;
 

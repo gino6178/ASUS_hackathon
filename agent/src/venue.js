@@ -22,6 +22,15 @@ export function km(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// travel time, estimated: about 2.4 min per km by MRT and bus plus 8 min of walking and waiting, and 6 more when the
+// trip crosses the Tamsui/Xindian river (few bridges and transfers). An estimate, shown as one, not a route planner.
+const RIVER = [[25.12, 121.46], [25.08, 121.49], [25.06, 121.505], [25.03, 121.495], [25.01, 121.52], [24.99, 121.55]];
+const cross = (a, b, c, d) => { const o = (p, q, r) => Math.sign((q[1] - p[1]) * (r[0] - p[0]) - (q[0] - p[0]) * (r[1] - p[1])); return o(a, b, c) !== o(a, b, d) && o(c, d, a) !== o(c, d, b); };
+export function minutes(a, b) {
+  const over = RIVER.slice(1).some((p, i) => cross([a.lat, a.lon], [b.lat, b.lon], RIVER[i], p));
+  return Math.round(8 + km(a, b) * 2.4 + (over ? 6 : 0));
+}
+
 // sample schedule: courts, hours and other people's bookings for the next two weeks (evenings fill up first)
 function sample() {
   const seed = JSON.parse(fs.readFileSync(SEED, "utf8"));
@@ -60,8 +69,9 @@ export function search({ days, from = "18:00", to = "22:00", hours = 2, busy = (
   const center = who.length ? { lat: who.reduce((s, p) => s + p.lat, 0) / who.length, lon: who.reduce((s, p) => s + p.lon, 0) / who.length } : CITY;
   const considered = [], best = [];
   for (const v of db.venues) {
-    const dists = (who.length ? who : [{ name: CITY.name, ...CITY }]).map((p) => ({ name: p.name, km: +km(p, v).toFixed(1) }));
+    const dists = (who.length ? who : [{ name: CITY.name, ...CITY }]).map((p) => ({ name: p.name, km: +km(p, v).toFixed(1), min: minutes(p, v) }));
     const maxKm = Math.max(...dists.map((d) => d.km)), avgKm = dists.reduce((s, d) => s + d.km, 0) / dists.length;
+    const maxMin = Math.max(...dists.map((d) => d.min)), avgMin = dists.reduce((s, d) => s + d.min, 0) / dists.length;
     let slot = null;
     for (const date of days) for (let t = mins(from); t + hours * 60 <= mins(to); t += 30) {
       const start = hhmm(t), end = hhmm(t + hours * 60), courts = freeCourts(v.id, date, start, hours);
@@ -69,8 +79,9 @@ export function search({ days, from = "18:00", to = "22:00", hours = 2, busy = (
       const late = Math.abs(t - mins(from)) / 60 + days.indexOf(date) * 3; // hours away from what was asked
       if (!slot || late < slot.late) slot = { venue: v.id, name: v.name, local: v.local, lat: v.lat, lon: v.lon, date, start, end, court: courts[0], free: courts.length, cost: v.price * hours, currency: v.currency, late };
     }
-    considered.push({ id: v.id, name: v.name, lat: v.lat, lon: v.lon, maxKm, free: !!slot });
-    if (slot) best.push({ ...slot, dists, maxKm, avgKm: +avgKm.toFixed(1), score: +(maxKm + .25 * avgKm + slot.late * 1.5).toFixed(2) });
+    considered.push({ id: v.id, name: v.name, lat: v.lat, lon: v.lon, maxKm, maxMin, free: !!slot });
+    // fairness in minutes: the longest trip anyone makes, then the average, then how far from the asked time
+    if (slot) best.push({ ...slot, dists, maxKm, maxMin, avgKm: +avgKm.toFixed(1), score: +(maxMin + .25 * avgMin + slot.late * 4).toFixed(2) });
   }
   return { center, considered, slots: best.sort((a, b) => a.score - b.score).slice(0, limit) };
 }

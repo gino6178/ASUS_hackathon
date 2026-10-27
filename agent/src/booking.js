@@ -12,6 +12,8 @@ import * as venue from "./venue.js";
 import * as trace from "./trace.js";
 import * as browser from "./browser.js";
 import * as site from "./site.js";
+import { chat } from "./llm.js";
+import { check } from "./verify.js";
 
 const FILE = path.resolve(process.env.PARTY_FILE || "data/parties.json");
 let parties = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : [];
@@ -31,6 +33,24 @@ const busyFor = (ids) => (date, start, end) => ids.some((pid) => {
   const p = store.get(pid); if (!p) return false;
   return p.events.some((e) => e.date === date && (["exam", "match"].includes(e.kind) || (e.start && mins(e.start) < mins(end) && mins(start) < mins(e.end || e.start) + 60)));
 });
+// the booking agent asks the fitness coach agent first: is a game a good idea this week, and how long, which format
+async function askFitness(pid, req) {
+  const p = store.get(pid), mem = (p?.memories || []).map((m) => m.text), logs = (p?.logs || []).slice(-5).map((l) => `${l.date}: ${l.what}${l.minutes ? `, ${l.minutes} min` : ""}${l.pain ? `, pain: ${l.pain}` : ""}`);
+  const hurt = mem.some((t) => BODY.test(t) && HURT.test(t));
+  if (!hurt && !logs.length) { trace.step("tool", "ask the fitness coach agent", { answer: "nothing in memory or the log limits a game" }); return { hours: req.hours, format: req.format, note: "" }; }
+  try {
+    const r = await chat([
+      { role: "system", content: `You are Coach Ren, the fitness coach. The player asked for ${req.format}, ${req.hours} hours. What you know: ${mem.join("; ") || "nothing"}. Recent sessions: ${logs.join("; ") || "none"}. If there is pain or a heavy recent load, lower the load. Answer JSON only: {"hours": 1 or 2, "format": "singles"|"doubles", "note": "one sentence to the player, no numbers except hours"}.` },
+      { role: "user", content: "Should this game go ahead as asked?" },
+    ], { maxTokens: 90, temperature: 0, purpose: "ask the fitness coach agent (Coach Ren)" });
+    const j = JSON.parse((r.text.match(/\{[\s\S]*\}/) || ["{}"])[0]);
+    const hours = Math.min(req.hours, Math.max(1, Math.round(+j.hours || req.hours))), format = j.format === "doubles" || req.format === "doubles" ? "doubles" : "singles";
+    const note = typeof j.note === "string" && check(j.note, { facts: [], numbers: new Set() }, `${hours} ${req.hours}`).ok ? j.note : "";
+    trace.step("tool", "ask the fitness coach agent", { answer: `${format}, ${hours} h`, note: note || null });
+    return { hours, format, note };
+  } catch { return { hours: req.hours, format: req.format, note: "" }; }
+}
+
 // a word from the fitness coach when memory holds an injury
 function coachNote(pid) {
   const m = (store.get(pid)?.memories || []).map((x) => x.text).find((t) => BODY.test(t) && HURT.test(t));
@@ -47,6 +67,9 @@ export async function start(send, host, req) {
   const invitees = open ? players.filter((p) => p.prefs.openToPlay).map((p) => p.id) : named.map((p) => p.id);
   const need = req.format === "doubles" ? 3 : 1; // players besides the host
   trace.step("tool", "find the friends", { named: req.friends.join(", ") || "anyone open to a game", linked: names(invitees) || "none", missing: missing.join(", ") || null });
+  const fit = await askFitness(host, req);
+  const changed = fit.hours !== req.hours || fit.format !== req.format;
+  req = { ...req, hours: fit.hours, format: fit.format };
   trace.step("tool", "check calendars", { people: names([host, ...(open ? [] : invitees)]), rule: "skip overlaps and exam or match days" });
   // where everyone starts from: the areas players shared (rounded to about 1 km); the city centre otherwise
   const people = [host, ...(open ? [] : invitees)].map((id) => ({ id, name: nameOf(id), ...(store.get(id)?.home ?? {}) }));
@@ -60,20 +83,20 @@ export async function start(send, host, req) {
   }
   const slots = found.slots;
   trace.step("tool", "search venues near the middle", { venues: found.considered.length, withFreeCourts: found.considered.filter((c) => c.free).length, window: `${req.from}-${req.to}`, hours: req.hours,
-    best: slots.map((x) => `${x.name} (farthest ${x.maxKm} km)`).join(", ") || "none" });
+    best: slots.map((x) => `${x.name} (longest trip ~${x.maxMin} min)`).join(", ") || "none" });
   if (!slots.length) return send(host, `No sports centre has a free court for ${req.hours} hours between ${req.from} and ${req.to} this week. Try another time of day?`);
-  trace.step("check", "rank by fairness", { rule: "shortest longest trip, then the average, then the time asked", pick: `${slots[0].name}: ${slots[0].dists.map((d) => `${d.name} ${d.km} km`).join(", ")}` });
+  trace.step("check", "rank by fairness", { rule: "shortest longest trip in minutes, then the average, then the time asked", pick: `${slots[0].name}: ${slots[0].dists.map((d) => `${d.name} ~${d.min} min`).join(", ")}` });
   const party = { id: "g" + Date.now().toString(36), host, format: req.format, hours: req.hours, open, need, slots, invitees: invitees.map((id) => ({ id, answer: null })), status: "choosing", at: Date.now(),
     map: { people: located.map(({ id, name, lat, lon }) => ({ id, name, lat, lon })), center: found.center, considered: found.considered } };
   parties.push(party); save();
   trace.step("human", "ask the player to pick a venue and time", { options: slots.length });
   const who = open ? (invitees.length ? `I'll ask the ${invitees.length} club players who are open to a game` : "nobody has said they're open to a game yet, so it would be just you") : invitees.length ? `with ${names(invitees)}` : "just you for now";
-  const dist = (x) => x.dists.map((d) => `${d.name} ${d.km} km`).join(", ");
+  const dist = (x) => x.dists.map((d) => `${d.name} ~${d.min} min`).join(", ");
   const intro = `${wider ? "Nothing was free in the window you asked for, so I looked across this week:" : "I checked"} ${found.considered.length} sports centres for ${req.format} (${req.hours} h), ${who}. Fairest for everyone:`;
   await send(host, `${intro}\n${slots.map((x, i) => `${i + 1}. ${x.name} · ${x.date.slice(5)} ${x.start}-${x.end} · ${x.currency}${x.cost}\n   ${located.length ? dist(x) : `${x.dists[0].km} km from the city centre`}`).join("\n")}` +
     `${located.length < people.length ? `\n\n${people.filter((x) => x.lat == null).map((x) => x.name).join(" and ")} ${people.filter((x) => x.lat == null).length > 1 ? "haven't" : "hasn't"} shared a location yet (📎 → Location in this chat), so I measured from what I know.` : ""}` +
     `${missing.length ? `\n\nI can't find ${missing.join(", ")} among the club's players; they can join by opening this bot and sending /start.` : ""}` +
-    `${coachNote(host)}\n\nPick one: I'll hold the court and ${invitees.length ? "invite them" : "ask you to confirm"}.`,
+    `${fit.note ? `\nCoach Ren: ${fit.note}${changed ? ` (so I looked for ${req.format}, ${req.hours} h)` : ""}` : coachNote(host)}\nTravel times are estimates by MRT and bus.\n\nPick one: I'll hold the court and ${invitees.length ? "invite them" : "ask you to confirm"}.`,
   buttons([slots.map((x, i) => ({ text: `${i + 1}. ${x.name.replace(/ (Civil )?Sports Center$/, "")} ${x.start}`, callback_data: `bk:pick:${party.id}:${i}` })), [{ text: "Cancel", callback_data: `bk:x:${party.id}` }]]));
   await pin(host, slots[0]);
   return party;
@@ -126,7 +149,7 @@ export async function button(send, from, data) {
     await send(p.host, `Court ${b.court} is held until ${until}. I've invited ${names(p.invitees.map((x) => x.id))}; I'll ask you to confirm when they answer.`);
     const vb = venue.venue(b.venue), me = (id) => p.slots[+i].dists.find((d) => d.name === nameOf(id));
     for (const x of p.invitees) {
-      await send(x.id, `${nameOf(p.host)} wants to play ${p.format}: ${venue.slotText(b)}, about ${vb.currency}${Math.ceil(b.cost / ((p.open ? p.need : p.invitees.length) + 1))} each${me(x.id) ? `, ${me(x.id).km} km from you` : ""}. Are you in?`,
+      await send(x.id, `${nameOf(p.host)} wants to play ${p.format}: ${venue.slotText(b)}, about ${vb.currency}${Math.ceil(b.cost / ((p.open ? p.need : p.invitees.length) + 1))} each${me(x.id) ? `, about ${me(x.id).min} min from you` : ""}. Are you in?`,
       buttons([[{ text: "I'm in", callback_data: `bk:in:${p.id}` }, { text: "Can't make it", callback_data: `bk:no:${p.id}` }]]));
       await pin(x.id, { ...vb, venue: vb.id });
     }

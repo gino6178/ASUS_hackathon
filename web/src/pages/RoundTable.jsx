@@ -6,13 +6,15 @@ import { REGIONS, findings, score } from "../components/BodyMap.jsx";
 import { loadMatches, pointStats, footwork, fatigue, patterns } from "../match/analytics.js";
 import { memory, retrieve } from "../memory.js";
 import RallyClip from "../match/RallyClip.jsx";
-import { agentNotify } from "../agent.js";
+import { agentNotify, agentRoundTable } from "../agent.js";
 import { prefersReducedMotion, scrollBehavior } from "../hooks.js";
 import Icon from "../components/Icon.jsx";
 
-// Round table: the four coach agents and the head coach discuss the match, resolve conflicts against the player's
-// memory, and agree a training plan with a weekly schedule. Every number comes from the analyses; the dialogue is
-// templated in this prototype (the local LLM drives it in Stage II).
+// Round table: the four coach agents and the head coach discuss the match on the local LLM (agent gateway), resolve
+// conflicts against the player's memory, and agree a training plan with a weekly schedule. This page computes every
+// fact from the analyses and sends them with the memory; each agent speaks from its own facts, the verifier checks
+// every number, and the head coach's verdicts shape the ruling table. Without the gateway the templated meeting below
+// is shown instead, and the page says so.
 const HEAD = { id: "head", name: "Head Coach", role: "Chair", kicker: "Chair", color: "#C3CACD",
   look: { skin: "#E9BE9A", hair: "#C9CED8", hairStyle: "swept", shirt: "#1F4A3D", prop: "glasses" } };
 const C = Object.fromEntries([...COACHES, HEAD].map((c) => [c.id, c]));
@@ -100,7 +102,31 @@ function buildMeeting(data, m) {
     { d: "Sat", kind: "match", min: 60, blocks: [["analyst", 60, "Practice match, recorded: ShuttleCoach re-measures the four goals"]] },
     { d: "Sun", kind: "rest", min: 20, blocks: [["fitness", 20, "Recovery walk and stretching"]] },
   ];
-  return { talk, goals, days, mem, ruling };
+  // what each coach agent may say on the local model: its own facts, and the request it argues for
+  const briefs = {
+    tactics: { facts: [`${t.weak[0][1]} of the ${t.conceded} winners ${opp} hit landed in the ${t.weak[0][0]}`], ask: `two smash-defence blocks into the ${t.weak[0][0]}, with split-steps and fast lunges` },
+    technique: { facts: [`${net} of the ${errAll} own errors went into the net`, `the weakest stroke in the replayed rally was the ${q[0].s.type.toLowerCase()}, grade ${q[0].grade}`], ask: "net kill and net lift aiming for a 30 cm margin over the tape" },
+    fitness: { facts: [`the muscles that carry the most load are the ${muscles.map((r) => REGIONS[r].name.toLowerCase()).join(", ")}`], ask: knee ? "low-load leg strength: isometric holds and tempo split squats" : "leg power for the first step" },
+    analyst: { facts: [`against the ${hard.t.toLowerCase()} ${data.names.A} needs ${f2(hard.v)} m/s and is stretched ${hard.stretched}% of the time`, `${longNet} of the ${net} net errors came in rallies of 10 or more shots`,
+      `recovery ${declining ? "gets worse" : "does not get worse"} late in the match`], ask: `read-and-react against the ${hard.t.toLowerCase()}: the coach feeds it, first step on contact` },
+  };
+  const memTexts = [mem.goal, mem.joint, mem.routine].filter(Boolean).map((x) => x.m.text);
+  return { talk, goals, days, mem, ruling, briefs, memTexts };
+}
+
+// the meeting written live by the agents: their words, with this page's evidence and checks attached to each coach
+function liveMeeting(meet, r) {
+  const first = Object.fromEntries(meet.talk.filter(([, , mt]) => mt.checks || mt.ev).reverse().map(([id, , mt]) => [id, mt]));
+  const memEv = meet.mem.joint ? [{ mem: meet.mem.joint.m.text, label: "Memory · injury" }] : [];
+  const talk = r.talk.map(([id, text, mt]) => [id, text, { ...mt, ...(mt.coach ? { ev: first[id]?.ev, checks: first[id]?.checks } : {}), ...(mt.conflict ? { ev: memEv } : {}) }]);
+  const challenged = r.talk.find(([, , mt]) => mt.conflict)?.[2].conflict[1];
+  const tone = { kept: "ok", modified: "mod", deferred: "off" };
+  const ruling = meet.ruling.map((x) => {
+    const v = r.verdicts?.[x.owner]; if (!v) return x;
+    return { ...x, verdict: `${v.verdict[0].toUpperCase()}${v.verdict.slice(1)}${v.note ? `: ${v.note}` : ""}`, tone: tone[v.verdict] ?? x.tone,
+      check: challenged === x.owner ? "Challenged on health by Coach Ren" : x.check };
+  });
+  return { ...meet, talk, ruling, live: true, verified: r.talk.filter(([, , mt]) => mt.verified).length };
 }
 
 const SEATS = ["tactics", "technique", "fitness", "analyst", "head"];
@@ -167,7 +193,20 @@ export default function RoundTable({ data }) {
   const [sent, setSent] = useState("");
   const box = useRef(null);
   useEffect(() => { loadMatches().then((d) => setM(d.matches[0])); }, []);
-  const meet = useMemo(() => (data && m ? buildMeeting(data, m) : null), [data, m]);
+  const base = useMemo(() => (data && m ? buildMeeting(data, m) : null), [data, m]);
+  // ask the coach agents to hold the meeting on the local model; fall back to the templated one if they can't
+  const [live, setLive] = useState(null), [source, setSource] = useState("asking");
+  useEffect(() => {
+    if (!base) return;
+    let gone = false;
+    const timer = setTimeout(() => { if (!gone) setSource("template"); }, 60000);
+    agentRoundTable({ event: data.event, player: data.names.A, opponent: data.names.B, memory: base.memTexts, briefs: base.briefs, stakes: base.ruling.map(({ owner, ask, stake, unit }) => ({ owner, ask, stake, unit })) })
+      .then((r) => { if (!gone) { setLive(liveMeeting(base, r)); setSource("llm"); } })
+      .catch(() => { if (!gone) setSource("template"); })
+      .finally(() => clearTimeout(timer));
+    return () => { gone = true; clearTimeout(timer); };
+  }, [base]);
+  const meet = source === "llm" ? live : source === "template" ? base : null;
   useEffect(() => { if (meet && !playing && !shown && prefersReducedMotion()) setShown(meet.talk.length); }, [meet]);
   useEffect(() => {
     if (!meet || !playing || shown >= meet.talk.length) return;
@@ -175,7 +214,10 @@ export default function RoundTable({ data }) {
     return () => clearTimeout(id);
   }, [meet, shown, playing]);
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight, behavior: scrollBehavior() }); }, [shown]);
-  if (!meet) return <div className="page"><p className="muted">Gathering the coaches…</p></div>;
+  if (!meet) return (
+    <div className="page roundtable"><header className="report-head"><div><span className="tag">Round table · on the local model</span><h1 className="h1">Agree the plan together</h1>
+      <p className="muted" role="status"><span className="dots"><i /><i /><i /></span> The coaches are meeting on the local model: each one argues from its own numbers, Coach Ren checks every request against your memory, and the head coach rules.</p></div></header></div>
+  );
   const speaking = meet.talk[Math.max(0, shown - 1)]?.[0];
   const done = shown >= meet.talk.length;
   const seats = SEATS;
@@ -185,7 +227,7 @@ export default function RoundTable({ data }) {
   const conflict = ci >= 0 ? said[ci][2].conflict : null;
   const resolved = conflict && said.slice(ci + 1).some((x) => x[2]?.resolve);
   const state = done ? ["Plan agreed", "four goals, seven days", "good"]
-    : conflict && !resolved ? ["Conflict", "knee vs smash defence", "bad"]
+    : conflict && !resolved ? ["Conflict", "health vs a request", "bad"]
     : conflict ? ["Resolved", "health comes first", "good"] : ["Round table", playing ? "in session" : "paused", ""];
   const restart = () => { setShown(0); setSaved(false); setPlaying(true); };
 
@@ -196,6 +238,7 @@ export default function RoundTable({ data }) {
           <span className="tag">Round table · the whole coaching staff</span>
           <h1 className="h1">Agree the plan together</h1>
           <p className="muted">The four coaches and the head coach debate the match, check it against your memory, and agree a training plan and a weekly schedule.</p>
+          <p className={`tiny ${meet.live ? "ok" : "muted"}`}>{meet.live ? `Written live by the coach agents on the local model · ${meet.verified} of ${meet.talk.length} turns verified number by number · step by step in Agent trace` : "Templated from the measured facts: the agent gateway is not reachable"}</p>
         </div>
         <div className="cta-row">
           <button className="btn primary" disabled={!done} onClick={() => window.print()}>Save plan as PDF</button>

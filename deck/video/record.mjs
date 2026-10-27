@@ -127,7 +127,8 @@ if (run("hero")) {
 
 // scene 2 nodes: the round table in session, voice answers, the highlight reel
 if (run("nodes")) {
-  await go("roundtable", 6000);
+  await go("roundtable", 500);
+  await page.waitForFunction(() => document.querySelectorAll(".rt-msg").length >= 3, { timeout: 120000 });
   const c = await center(".rt-chat");
   await rec("n_round", async () => { await zoom(c.x, c.y, 1.12, 5000); await wait(6200); });
   await resetFx();
@@ -170,8 +171,14 @@ if (run("s4z")) {
 
 // scene 5: zoom on the clash, then on the ruling; then a question answered by the local model, with its real timing
 if (run("s5z")) {
-  await go("roundtable", 500);
-  await page.waitForFunction(() => document.querySelector(".rt-msg.conflict"), { timeout: 90000 });
+  // the meeting is written live by the agents: wait for it, and take a meeting where Ren challenges Lin (the narration)
+  for (let k = 0; k < 4; k++) {
+    await go("coaches", 300); await go("roundtable", 500);
+    await page.waitForFunction(() => document.querySelector(".rt-msg.conflict"), { timeout: 120000 }).catch(() => {});
+    const who = await page.evaluate(() => document.querySelector(".rt-msg.conflict .rt-tag")?.innerText ?? "");
+    console.log("meeting", k, who);
+    if (/Lin/.test(who)) break;
+  }
   await wait(700);
   await rec("z5a", async () => {
     let p = await center(".rt-msg.conflict");
