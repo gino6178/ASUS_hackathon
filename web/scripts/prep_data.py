@@ -1,6 +1,6 @@
 """Build public/data/sample.json from the lab's precomputed outputs (run once):
   python -I scripts/prep_data.py
-Inputs: the in-house 3D reconstruction of the demo rally (per-frame 2D + 3D) and the full-match stroke table for the
+Inputs: the 3D reconstruction of the demo rally (per-frame 2D + 3D) and the full-match stroke table for the
 same match, from the lab's research checkout (RESEARCH_DIR; not published)."""
 import collections, csv, json, math, os, statistics as S
 

@@ -65,7 +65,7 @@ End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the r
 
 ## Not in this repository
 
-- The in-house monocular scene reconstruction and intent detection methods (closed blocks). The app ships their precomputed outputs for the sample match in `web/public/data/`.
+- The monocular 3D reconstruction and intent detection methods (closed blocks). The app ships their precomputed outputs for the sample match in `web/public/data/`.
 - The broadcast footage of the sample match (not ours to redistribute) and model weights (downloaded; see
   `llm-server/README.md` and `web/README.md`).
 - Runtime data on the station: players, conversations, feedback, playbooks and the knowledge base.

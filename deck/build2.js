@@ -179,7 +179,7 @@ async function icon(Comp, color) {
   s = content("Solution: tools, technologies and methodology", 2);
   {
     const L = .6, W = 7.95, LAB = 1.5;
-    // chip row inside a band; dashed chips are the in-house closed blocks
+    // chip row inside a band; dashed chips are the closed blocks
     const chips = (items, x0, y, maxX, maxY) => {
       let x = x0, row = 0;
       items.forEach(([t, closed]) => {
@@ -216,7 +216,7 @@ async function icon(Comp, color) {
     });
     arrow(5.02);
     band(5.25, .95, "Interface", "advice → player", H.lt2, [["React + Three.js"], ["Telegram bot"], ["Whisper voice (offline)"], ["court calibration"], ["highlight MP4"], ["live brief"], ["CSV / JSON"]]);
-    txt(s, "Dashed chips: in-house closed blocks. Everything runs on one local GPU.", { x: L, y: 6.35, w: W, h: .3, fontSize: 9.5, italic: true, color: C.accent5 });
+    txt(s, "Dashed chips: closed blocks. Everything runs on one local GPU.", { x: L, y: 6.35, w: W, h: .3, fontSize: 9.5, italic: true, color: C.accent5 });
   }
   // methodology: four rules down the right, joined by a line
   tag(s, "Methodology", 8.95, 1.55, C.accent1, 3);
@@ -621,7 +621,7 @@ async function icon(Comp, color) {
     { text: "TrackNetV5: robust shuttlecock tracking via motion prompts and spatiotemporal attentive fusion (backbone used frozen). Code: ", options: { bullet: true } },
     { text: "github.com/gino6178/TrackNetV5", options: { hyperlink: { url: "https://github.com/gino6178/TrackNetV5" }, color: H.accent1, breakLine: true } },
     { text: "ShuttleSet: a human-annotated stroke-level singles dataset for badminton tactical analysis. KDD 2023.", options: { bullet: true, breakLine: true } },
-    { text: "Monocular scene reconstruction and intent detection: in-house blocks, shown closed.", options: { bullet: true, breakLine: true } },
+    { text: "Monocular 3D reconstruction and intent detection: shown as closed blocks.", options: { bullet: true, breakLine: true } },
     { text: "3D anatomy: BodyParts3D 4.0, © The Database Center for Life Science, CC BY 4.0; adapted via Human Atlas (MIT).", options: { bullet: true, breakLine: true } },
     { text: "Sample match: Thailand Masters 2025 R32 broadcast footage and lab annotations, used for a research prototype only.", options: { bullet: true, breakLine: true } },
     { text: "Libraries: Whisper tiny.en (MIT) via Transformers.js (Apache-2.0); MediaPipe Pose Landmarker (Apache-2.0). Feature ideas from Good-Badminton (yo-WASSUP): annotated video, court calibration, position maps.", options: { bullet: true, breakLine: true } },

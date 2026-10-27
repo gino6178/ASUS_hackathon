@@ -5,7 +5,7 @@ dist/
 ~$*
 
 # Not published
-# - the in-house perception methods and their design notes (under review): the research checkout is not in this repo
+# - the closed perception methods and their design notes: not in this repo
 docs/design.md
 web/scripts/out/
 # - broadcast footage is not ours to publish; model weights are downloaded (see the READMEs)
