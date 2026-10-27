@@ -22,7 +22,7 @@ const label = (t) => [`scale=1536:864,pad=1920:1080:192:150:color=0x04070A`, "fp
 
 // scene lengths: the narration plus a breath, at least what the pictures need
 const LEN = NLEN.map((n, i) => +(LEAD[i] + n + (i === 0 ? 0.9 : i === 1 ? 0.8 : 1.2)).toFixed(2));
-LEN[2] += 1.6; // the overview ends on the zooming grid
+LEN[2] += 1.6; // the overview ends on the grid of all nine features
 
 // [source, from, seconds, vf] per piece
 const S = [];
@@ -36,7 +36,7 @@ const S = [];
 { // 1 · the architecture animation, slowed to the narration and lifted clear of the subtitles
   S.push([["ARCH", 0, LEN[1], [`setpts=PTS*${(LEN[1] / 12).toFixed(4)}`, "scale=1728:972,pad=1920:1080:96:0:color=0x04080B", "fps=30", "format=yuv420p"]]]);
 }
-{ // 2 · overview in four nodes, cut on the spoken words, then the grid zooms out
+{ // 2 · overview in four nodes, cut on the spoken words, then the grid of features
   const c = [0, at(2, 2), at(2, 3), at(2, 4), LEN[2] - 1.6];
   S.push([["s3b", 0.5, c[1] - c[0], label("Perception & 3D replay")],
     ["n_round", 0.5, c[2] - c[1], label("Round table")],
@@ -57,15 +57,15 @@ const S = [];
   S.push([["z5a", 0.3, c, BASE], ["z5b", Math.max(0, zb - b - 0.1), b, BASE]]);
 }
 { // 6 · knowledge base, playbooks, the safety gate, declined by a person
-  S.push([["z6", 1.5, 7, BASE], ["z6", 20.0, LEN[6] - 7, BASE]]);
+  S.push([["z6", 1.5, 7, BASE], ["z6", 19.0, LEN[6] - 7, BASE]]);
 }
 { // 7 · Telegram up to the court offer, the search on the map, then the invitations and the booking
   const c1 = at(7, 3), c2 = at(7, 4);
-  S.push([["s7", 0.3, c1, ["setpts=PTS/1.7", ...BASE]], ["map", 4.5, c2 - c1, BASE], ["s7", 15.2, LEN[7] - c2, ["setpts=PTS/1.36", ...BASE]]]); // the screencast stretches page time by about 1.36
+  S.push([["s7", 0.3, c1, ["setpts=PTS/1.7", ...BASE]], ["map", 4.5, c2 - c1, ["setpts=PTS/1.8", ...BASE]], ["s7", 15.2, LEN[7] - c2, ["setpts=PTS/1.36", ...BASE]]]); // the screencast stretches page time by about 1.36
 }
 { // 8 · the agent: the architecture animation up to the fairest court, its own browser on the venue's site, the trace
   const c1 = at(8, 3), c2 = at(8, 4), anim = 12.1;
-  S.push([["agentanim", 0.3, c1, [`setpts=PTS*${(c1 / anim).toFixed(4)}`, ...BASE]], ["SHOTS", 0, c2 - c1, null], ["trace", 4.0, LEN[8] - c2, ["setpts=PTS/1.3", ...BASE]]]);
+  S.push([["agentanim", 0.3, c1, [`setpts=PTS*${(c1 / anim).toFixed(4)}`, ...BASE]], ["SHOTS", 0, c2 - c1, null], ["trace", 6.0, LEN[8] - c2, ["setpts=PTS/1.3", ...BASE]]]);
 }
 S.push([["s8", 0.2, LEN[9], BASE]]);
 
@@ -89,7 +89,7 @@ function piece([f, a, d, vf]) {
     cards.forEach(([img, cap], k) => {
       const q = path.join(B, `q_shot${k}.mp4`);
       ff(["-loop", "1", "-framerate", "30", "-t", each.toFixed(3), "-i", path.join(B, "shots", `${img}.jpg`), "-vf",
-        [`scale=-2:860,pad=1920:1080:(ow-iw)/2:170:color=0x04070A`, `zoompan=z='1+on*0.0012':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=30`, "format=yuv420p",
+        [`scale=-2:860,pad=1920:1080:(ow-iw)/2:170:color=0x04070A`, "format=yuv420p",
           `drawtext=fontfile='${FONT}':text='${esc(cap)}':x=(w-text_w)/2:y=56:fontsize=56:fontcolor=0xF2E6C9`,
           `drawtext=fontfile='${MONO}':text='BOOKING AGENT · ITS OWN BROWSER':x=(w-text_w)/2:y=20:fontsize=22:fontcolor=0x8E989D`].join(","), ...enc, q]);
       parts.push(q);
@@ -99,12 +99,12 @@ function piece([f, a, d, vf]) {
     ff(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", o]);
     return o;
   }
-  if (f === "GRID") { // the nine features, zooming out from the centre tile
+  if (f === "GRID") { // the nine features at once (no zoom)
     const tiles = ["m_analyze", "m_match", "m_coaches", "m_roundtable", "m_live", "m_highlights", "m_voice", "m_lab", "s7"];
     const ins = tiles.flatMap((t) => ["-ss", t === "s7" ? "8" : "1", "-i", src(t)]);
     ff([...ins, "-filter_complex", `${tiles.map((_, i) => `[${i}:v]tpad=stop_mode=clone:stop_duration=3,scale=640:360,setpts=PTS-STARTPTS[v${i}]`).join(";")};` +
       `${tiles.map((_, i) => `[v${i}]`).join("")}xstack=inputs=9:layout=0_0|w0_0|w0+w1_0|0_h0|w0_h0|w0+w1_h0|0_h0+h1|w0_h0+h1|w0+w1_h0+h1,` +
-      `zoompan=z='max(1,2.4-on*0.05)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=30,format=yuv420p[v]`,
+      `scale=1920:1080,fps=30,format=yuv420p[v]`,
       "-map", "[v]", "-t", d.toFixed(3), ...enc, o]);
     return o;
   }

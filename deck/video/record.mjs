@@ -73,13 +73,50 @@ async function rec(name, fn) {
   console.log(name, ((Date.now() - t0) / 1000).toFixed(1), "s");
 }
 
-// camera move: scale the app around a point on screen (a CSS transform on #root keeps text sharp)
-async function zoom(x, y, s, ms = 2500) {
-  await page.evaluate((x, y, s, ms) => {
-    const r = document.getElementById("root");
-    r.style.transition = `transform ${ms}ms cubic-bezier(.45,0,.2,1)`; r.style.transformOrigin = `${x}px ${y + scrollY}px`; r.style.transform = s === 1 ? "none" : `scale(${s})`;
-  }, x, y, s, ms);
+// no camera moves (the zoom was tiring to watch): the point is marked instead. markEl outlines an element, so the
+// frame moves with it when the page scrolls; ring draws a circle on a spot inside something large (a heat map, the body)
+const MARK_CSS = "@keyframes __mp{0%,100%{box-shadow:0 0 0 0 var(--mc),0 0 22px var(--mc)}50%{box-shadow:0 0 0 10px transparent,0 0 44px var(--mc)}}" +
+  "@keyframes __mk{0%{opacity:0;transform:scale(1.15)}100%{opacity:1;transform:none}}" +
+  ".__marked{outline:4px solid var(--mcs)!important;outline-offset:6px;border-radius:14px;animation:__mp 1.6s ease-in-out 2;transition:outline-color .3s}";
+async function markEl(sel, text, color = "#F2D46B") {
+  await page.evaluate((sel, text, color, css) => {
+    if (!document.getElementById("__markcss")) { const st = document.createElement("style"); st.id = "__markcss"; st.textContent = css; document.head.appendChild(st); }
+    document.querySelectorAll(".__marked").forEach((e) => e.classList.remove("__marked"));
+    // the smallest element that matches (and holds the text): the card itself, not the page around it
+    const es = [...document.querySelectorAll(sel)].filter((e) => !text || [].concat(text).every((t) => e.innerText.includes(t)));
+    const e = es.sort((a, b) => a.getBoundingClientRect().width * a.getBoundingClientRect().height - b.getBoundingClientRect().width * b.getBoundingClientRect().height)[0];
+    if (!e) return;
+    const b = e.getBoundingClientRect();
+    if (b.top < 70 || b.bottom > innerHeight - 20) e.scrollIntoView({ behavior: "smooth", block: "center" });
+    e.style.setProperty("--mc", color + "88"); e.style.setProperty("--mcs", color);
+    e.classList.add("__marked");
+  }, sel, text ?? null, color, MARK_CSS);
 }
+async function ring(x, y, color = "#F2D46B", size = 240) {
+  await page.evaluate((x, y, color, size, css) => {
+    if (!document.getElementById("__markcss")) { const st = document.createElement("style"); st.id = "__markcss"; st.textContent = css; document.head.appendChild(st); }
+    document.getElementById("__ring")?.remove();
+    const m = document.createElement("div"); m.id = "__ring"; m.className = "fx";
+    m.style.cssText = `position:fixed;z-index:2147483639;pointer-events:none;left:${x - size / 2}px;top:${y - size / 2}px;width:${size}px;height:${size}px;` +
+      `border:4px solid ${color};border-radius:50%;--mc:${color}88;animation:__mk .45s ease-out both,__mp 1.6s ease-in-out .45s 2`;
+    document.documentElement.appendChild(m);
+  }, x, y, color, size, MARK_CSS);
+}
+// a frame drawn over an element's box, for one whose parent clips an outline (the stroke row)
+async function frameEl(sel, color = "#F2D46B", up = 0) {
+  await page.evaluate((sel, color, css, up) => {
+    if (!document.getElementById("__markcss")) { const st = document.createElement("style"); st.id = "__markcss"; st.textContent = css; document.head.appendChild(st); }
+    let e = document.querySelector(sel); if (!e) return;
+    for (let k = 0; k < up; k++) e = e.parentElement;
+    const r = e.getBoundingClientRect();
+    document.getElementById("__ring")?.remove();
+    const m = document.createElement("div"); m.id = "__ring"; m.className = "fx";
+    m.style.cssText = `position:fixed;z-index:2147483639;pointer-events:none;left:${r.left - 10}px;top:${r.top - 10}px;width:${r.width + 20}px;height:${r.height + 20}px;` +
+      `border:4px solid ${color};border-radius:16px;--mc:${color}88;animation:__mk .45s ease-out both,__mp 1.6s ease-in-out .45s 2`;
+    document.documentElement.appendChild(m);
+  }, sel, color, MARK_CSS, up);
+}
+const unmark = () => page.evaluate(() => { document.getElementById("__ring")?.remove(); document.querySelectorAll(".__marked").forEach((e) => e.classList.remove("__marked")); });
 // a HUD card in the lower third, above the subtitles; color = the coach's or the state's
 async function callout(id, html, color = "#F2E6C9", x = 80, y = 760) {
   await page.evaluate((id, html, color, x, y) => {
@@ -91,7 +128,7 @@ async function callout(id, html, color = "#F2E6C9", x = 80, y = 760) {
   }, id, html, color, x, y);
 }
 const uncall = (id) => page.evaluate((id) => { const el = document.getElementById(id); if (el) { el.style.opacity = "0"; setTimeout(() => el.remove(), 500); } }, id);
-const resetFx = () => page.evaluate(() => { document.querySelectorAll(".fx").forEach((e) => e.remove()); const r = document.getElementById("root"); if (r) { r.style.transition = "none"; r.style.transform = "none"; } });
+const resetFx = () => page.evaluate(() => { document.querySelectorAll(".fx").forEach((e) => e.remove()); document.querySelectorAll(".__marked").forEach((e) => e.classList.remove("__marked")); const r = document.getElementById("root"); if (r) { r.style.transition = "none"; r.style.transform = "none"; } });
 // centre of the first element matching sel whose text includes text, without scrolling
 const center = (sel, text, fx = .5, fy = .5) => page.evaluate((sel, text, fx, fy) => {
   const e = [...document.querySelectorAll(sel)].find((x) => !text || x.innerText.includes(text)); if (!e) return null;
@@ -130,7 +167,7 @@ if (run("nodes")) {
   await go("roundtable", 500);
   await page.waitForFunction(() => document.querySelectorAll(".rt-msg").length >= 3, { timeout: 120000 });
   const c = await center(".rt-chat");
-  await rec("n_round", async () => { await zoom(c.x, c.y, 1.12, 5000); await wait(6200); });
+  await rec("n_round", () => wait(6200));
   await resetFx();
   await go("coaches", 1500);
   await rec("n_voice", async () => {
@@ -162,8 +199,12 @@ if (run("s4z")) {
     if (sel === "button.stroke") p = await page.evaluate(() => { const r = document.querySelector("button.stroke").parentElement.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * .3 }; });
     if (sel === "div") p = await page.evaluate(() => { const e = [...document.querySelectorAll("h3,h4,b,span,div")].find((x) => x.children.length < 3 && /Reply to a lift or clear/.test(x.innerText)); const r = e.getBoundingClientRect(); return { x: r.left + 140, y: r.top + 60 }; });
     await rec("z4_" + id, async () => {
-      await zoom(p.x, p.y, 1.3, 2800); await wait(900);
-      await callout("fx1", card, color); await wait(ms - 900);
+      await wait(600);
+      if (id === "technique") await frameEl("ol.tech-list", color);
+      else if (id === "analyst") await markEl("section, div", ["Reply to a lift or clear", "Smash"], color);
+      else await ring(p.x, p.y, color, id === "fitness" ? 300 : 230);
+      await wait(900);
+      await callout("fx1", card, color, 80, id === "technique" ? 130 : 760); await wait(ms - 900);
     });
     await resetFx();
   }
@@ -182,12 +223,12 @@ if (run("s5z")) {
   await wait(700);
   await rec("z5a", async () => {
     let p = await center(".rt-msg.conflict");
-    await zoom(p.x, p.y, 1.35, 2200); await wait(700);
+    await markEl(".rt-msg.conflict", null, "#FF6B5E"); await wait(900);
     await callout("fx1", "Conflict: Ren challenges Lin &mdash; <span style='color:#F2D46B'>right knee sore</span> vs smash-defence blocks", "#FF6B5E"); await wait(4300);
-    await uncall("fx1"); await zoom(p.x, p.y, 1, 900); await wait(900);
+    await uncall("fx1"); await unmark(); await wait(900);
     await click("button", "Skip to the plan", 600).catch(() => {}); await wait(900);
     p = await center(".rt-msg.resolve", "Ruling");
-    if (p) { await zoom(p.x, p.y, 1.3, 1800); await wait(500); }
+    if (p) { await markEl(".rt-msg.resolve", "Ruling", "#5FD39A"); await wait(700); }
     await callout("fx2", "Head coach ruling: <span style='color:#5FD39A'>health first</span>, then the points at stake", "#5FD39A"); await wait(3600);
   });
   await resetFx();
@@ -202,7 +243,7 @@ if (run("s5z")) {
     const sec = (meta.match(/([\d.]+) s,/) || [])[1];
     console.log("reply meta:", meta);
     const p = await center(".coach-chat .chat-msg.assistant:last-child");
-    await zoom(p.x, p.y, 1.15, 1500);
+    await markEl(".coach-chat .chat-msg.assistant:last-child", null, "#5FD39A"); await wait(500);
     await callout("fx1", `Local model &middot; ${sec ? sec + " s" : "about a second"} &middot; <span style='color:#5FD39A'>&check; every figure verified</span>`, "#5FD39A", 80, 120);
     await wait(4200);
   });
@@ -221,10 +262,10 @@ if (run("s6z")) {
     await scrollTo(470, 1500);
     await move(700, 640, 1000); await wait(2600);
     const d = await at(".lab-prop.pending");
-    await zoom(d.x, d.y, 1.25, 1800);
+    await markEl(".lab-prop.pending", null); await wait(600);
     await move(d.x - 120, d.y - 10, 1000);
     await callout("fx1", "Safety gate: <span style='color:#F2D46B'>health changes need a human coach</span>", "#F2D46B", 80, 130); await wait(3400);
-    await zoom(d.x, d.y, 1, 600); await wait(700);
+    await unmark(); await wait(700);
     await click(".lab-prop.pending button", "Decline", 1100);
     await page.waitForFunction(() => ![...document.querySelectorAll(".lab-prop.pending")].some((e) => e.innerText.includes("knee pain after lunges")), { timeout: 8000 }).catch(() => {});
     await uncall("fx1");
@@ -240,15 +281,15 @@ if (run("trace")) {
     await wait(1500);
     await click(".tr-runs button", "I want to play doubles", 900); await wait(1200);
     let p = await center(".tr-step.llm");
-    await zoom(p.x, p.y, 1.3, 1600); await wait(600);
+    await markEl(".tr-step.llm", null); await wait(600);
     await callout("fx1", "LLM &middot; reads the request into <span style='color:#F2E6C9'>days, time, friends</span>", "#F2E6C9", 80, 860); await wait(2600);
-    await uncall("fx1");
+    await uncall("fx1"); await unmark();
     p = await center(".tr-step.tool", "ask the fitness coach agent");
-    await zoom(p.x, p.y, 1.3, 1200); await wait(500);
+    await markEl(".tr-step.tool", "ask the fitness coach agent", "#6FB6FF"); await wait(500);
     await callout("fx2", "Agent to agent &middot; <span style='color:#6FB6FF'>asks the fitness coach</span>: knee sore, so 1 hour", "#6FB6FF", 80, 860); await wait(2800);
-    await uncall("fx2"); await zoom(p.x, p.y, 1, 700); await wait(800);
+    await uncall("fx2"); await unmark(); await wait(800);
     p = await center(".tr-step.human");
-    if (p) { await zoom(p.x, p.y, 1.3, 1200); await wait(400);
+    if (p) { await markEl(".tr-step.human", null); await wait(400);
       await callout("fx4", "Person &middot; <span style='color:#F2D46B'>nothing is booked until you say yes</span>", "#F2D46B", 80, 860); await wait(2600); }
   });
   await resetFx();
@@ -261,7 +302,7 @@ if (run("map")) {
     await page.goto(`${B}/#/courts`, { waitUntil: "domcontentloaded" });
     await wait(7600);
     const p = await center(".cr-top.win");
-    if (p) { await zoom(p.x, p.y, 1.18, 1800); await wait(600); }
+    if (p) { await markEl(".cr-top.win", null, "#5FD39A"); await wait(600); }
     await callout("fx1", "Fairest: <span style='color:#5FD39A'>Wanhua</span> &middot; longest trip ~29 min of 18 centres checked", "#5FD39A", 80, 880); await wait(3000);
   });
   await resetFx();
