@@ -9,6 +9,7 @@ import { factSheet } from "./facts.js";
 import * as trace from "./trace.js";
 
 const AREAS = ["tactics", "technique", "fitness", "analyst", "nutrition"];
+const STUDY = ["RCT", "cohort", "cross-sectional", "review", "case", "biomechanics", "other"];
 const BASE = [
   "badminton lunge knee joint loading",
   "badminton net shot technique accuracy training",
@@ -62,7 +63,9 @@ async function extract(p, areas) {
   return json(r.text, []).filter((f) => f?.claim && nums(f.claim).every((n) => abstractNums.has(n) || (Number.isInteger(n) && n <= 10)))
     .map((f) => {
       const a = (f.areas || []).filter((x) => AREAS.includes(x));
-      return { ...f, areas: a.length ? a : areas.length ? areas : infer(`${p.title} ${f.claim} ${f.practice ?? ""}`) };
+      // a small model sometimes garbles the label: keep only the known study types
+      const st = STUDY.find((x) => String(f.studyType ?? "").toLowerCase().startsWith(x.toLowerCase().slice(0, 4))) ?? "other";
+      return { ...f, studyType: st, areas: a.length ? a : areas.length ? areas : infer(`${p.title} ${f.claim} ${f.practice ?? ""}`) };
     });
 }
 

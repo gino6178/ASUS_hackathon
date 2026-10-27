@@ -378,11 +378,11 @@ async function icon(Comp, color) {
     bubble("/meal", .22, true);
     bubble([{ text: "Coach Mei: ", options: { bold: true, color: "F2D46B" } }, { text: "Eat a meal of rice (1 cup) and stir-fried broccoli with tofu (1 fist) about 2 hours before your next session. …" }], .56, false);
     bubble("I want to play doubles with Amy and Ben on Saturday evening", .3, true);
-    bubble("Booked: Zhongzheng Sports Center · Sat 10-31 18:00-20:00 · court 4, doubles with Amy and Ben. It's in your calendar.", .43, false);
+    bubble("Booked: Wanhua Sports Center · Sat 10-31 18:00-19:00 · court 3, doubles with Amy and Ben (ref TS-MVQ7EI). It's in your calendar.", .43, false);
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 8.96, y: 6.08, w: 2.22, h: .24, rectRadius: .1, fill: { color: "17212B" }, line: { color: "17212B" }, objectName: "message box" });
     txt(s, "Message", { x: 9.08, y: 6.08, w: 2.0, h: .24, fontSize: 7, valign: "middle", color: C.accent5 });
     txt(s, "Bot output from its end-to-end test", { x: 8.8, y: 6.55, w: 2.55, h: .25, fontSize: 8.5, align: "center", color: C.accent5 });
-    [["Food at home", "meals timed to training"], ["Schedule & log", "reminder 1 h before; evening check-in"], ["Court booking", "a court in the middle; the agent books it on the venue's site after your OK"], ["39 / 39", "end-to-end checks passed"]].forEach(([h, b], i) => {
+    [["Food at home", "meals timed to training"], ["Schedule & log", "reminder 1 h before; evening check-in"], ["Court booking", "a court in the middle; the agent books it on the venue's site after your OK"], ["44 / 44", "end-to-end checks passed"]].forEach(([h, b], i) => {
       const y = 2.0 + i * 1.12;
       txt(s, h, { x: 11.5, y, w: 1.25, h: .3, fontSize: i === 3 ? 16 : 11, bold: true, fontFace: i === 3 ? "Bahnschrift" : undefined, color: i === 3 ? C.accent4 : C.accent1 });
       txt(s, b, { x: 11.5, y: y + (i === 3 ? .36 : .3), w: 1.22, h: .7, fontSize: 9 });

@@ -57,7 +57,7 @@ const S = [];
   S.push([["z5a", 0.3, c, BASE], ["z5b", Math.max(0, zb - b - 0.1), b, BASE]]);
 }
 { // 6 · knowledge base, playbooks, the safety gate, declined by a person
-  S.push([["z6", 1.5, 7, BASE], ["z6", 12.0, LEN[6] - 7, BASE]]);
+  S.push([["z6", 1.5, 7, BASE], ["z6", 20.0, LEN[6] - 7, BASE]]);
 }
 { // 7 · Telegram up to the court offer, the search on the map, then the invitations and the booking
   const c1 = at(7, 3), c2 = at(7, 4);

@@ -53,9 +53,10 @@ End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the r
 - **24-hour coach on Telegram.** Food at home and meals timed to training, the player's schedule with a reminder an
   hour before each session, the training log with an evening check-in. Only text passes through Telegram;
   `/forget` deletes everything stored about a player.
-- **Booking agent.** "Doubles with Amy and Ben on Saturday evening": the local model reads the request; the agent checks
-  every player's calendar and rough area (shared on Telegram, rounded to about 1 km), searches 18 sports centres and
-  ranks the free courts by the longest trip anyone would make. Then it books on the venue's website itself, in a
+- **Booking agent.** "Doubles with Amy and Ben on Saturday evening": the local model reads the request and the fitness coach agent
+  sets the length (a sore knee means 1 hour); the agent checks every player's calendar and rough area (shared on
+  Telegram, rounded to about 1 km), searches 18 sports centres and ranks the free courts by the longest trip anyone
+  would make, in estimated minutes by MRT and bus. Then it books on the venue's website itself, in a
   headless browser on the station: the local model reads each page and picks the next control, code types the member
   password (the model never sees it) and stops before the final confirm until the player taps "Book it"; then the agent
   confirms and reads back the booking reference (web: Find a court, Agent trace, with a screenshot per step). Venue
