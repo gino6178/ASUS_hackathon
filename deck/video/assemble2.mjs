@@ -12,7 +12,7 @@ const FONT = "C\\:/Windows/Fonts/bahnschrift.ttf", MONO = "C\\:/Windows/Fonts/co
 const NARR = JSON.parse(fs.readFileSync("narration.json", "utf8"));
 const TIMES = JSON.parse(fs.readFileSync(path.join(K, "timings.json"), "utf8"));
 const NLEN = TIMES.map((rows) => rows.at(-1).end);
-const LEAD = [0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]; // the video opens on the 3D court (no broadcast footage)
+const LEAD = [0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]; // the video opens on the architecture, then the 3D court
 const esc = (t) => t.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\u2019").replace(/%/g, "\\%");
 const src = (f) => path.join(B, f + ".mp4");
 const at = (scene, s, word) => { const r = TIMES[scene][s], k = word ? Math.max(0, r.text.indexOf(word)) / r.text.length : 0; return LEAD[scene] + r.start + k * (r.end - r.start) - 0.15; };
@@ -21,20 +21,23 @@ const text = (t, o) => `drawtext=expansion=none:fontfile='${o.font ?? FONT}':tex
 const label = (t) => [`scale=1536:864,pad=1920:1080:192:150:color=0x04070A`, "fps=30", "format=yuv420p", `drawtext=fontfile='${FONT}':text='${esc(t)}':x=(w-text_w)/2:y=44:fontsize=68:fontcolor=0xF2E6C9`];
 
 // scene lengths: the narration plus a breath, at least what the pictures need
-const LEN = NLEN.map((n, i) => +(LEAD[i] + n + (i === 0 ? 0.9 : 1.2)).toFixed(2));
-LEN[1] += 1.6; // the overview ends on the zooming grid
+const LEN = NLEN.map((n, i) => +(LEAD[i] + n + (i === 0 ? 0.8 : i === 1 ? 0.9 : 1.2)).toFixed(2));
+LEN[2] += 1.6; // the overview ends on the zooming grid
 
 // [source, from, seconds, vf] per piece
 const S = [];
+{ // 0 · the architecture animation, slowed to the narration and lifted clear of the subtitles
+  S.push([["ARCH", 0, LEN[0], [`setpts=PTS*${(LEN[0] / 12).toFixed(4)}`, "scale=1728:972,pad=1920:1080:96:0:color=0x04080B", "fps=30", "format=yuv420p"]]]);
+}
 { // 1 · the 3D court with the title
   S.push([
-    ["hero", 1.0, LEN[0], [...BASE,
+    ["hero", 1.0, LEN[1], [...BASE,
       text("SHUTTLE COACH", { x: 110, y: 330, size: 150, from: 0.3 }),
       text("One camera in. A full coaching staff out. 100% offline.", { x: 116, y: 520, size: 44, color: "0xC3CACD", from: 2.6 }),
       text("BUILT FOR INTEL ARC PRO B70 · 32 GB", { x: 118, y: 610, size: 30, color: "0xF2E6C9", font: MONO, from: 4.2 })]]]);
 }
 { // 2 · overview in four nodes, cut on the spoken words, then the grid zooms out
-  const c = [0, at(1, 2), at(1, 3), at(1, 4), LEN[1] - 1.6];
+  const c = [0, at(2, 2), at(2, 3), at(2, 4), LEN[2] - 1.6];
   S.push([["s3b", 0.5, c[1] - c[0], label("Perception & 3D replay")],
     ["n_round", 0.5, c[2] - c[1], label("Round table")],
     ["SPLIT", 0, c[3] - c[2], null],
@@ -43,28 +46,28 @@ const S = [];
 }
 { // 3 · drop a video in; the stages; the 3D replay
   const a = 8.5;
-  S.push([["s3a", 0.3, a, BASE], ["s3b", 0.5, LEN[2] - a, BASE]]);
+  S.push([["s3a", 0.3, a, BASE], ["s3b", 0.5, LEN[3] - a, BASE]]);
 }
 { // 4 · the four coaches, each on screen while it is named
-  const c = [0, at(3, 2), at(3, 3), at(3, 4), LEN[3]];
+  const c = [0, at(4, 2), at(4, 3), at(4, 4), LEN[4]];
   S.push([["z4_tactics", 0.2, c[1], BASE], ["z4_technique", 0.2, c[2] - c[1], BASE], ["z4_fitness", 0.2, c[3] - c[2], BASE], ["z4_analyst", 0.2, c[4] - c[3], BASE]]);
 }
 { // 5 · the clash and the ruling, then the question; the chat ends on its answer
-  const c = at(4, 5), b = LEN[4] - c, zb = dur(src("z5b"));
+  const c = at(5, 5), b = LEN[5] - c, zb = dur(src("z5b"));
   S.push([["z5a", 0.3, c, BASE], ["z5b", Math.max(0, zb - b - 0.1), b, BASE]]);
 }
 { // 6 · knowledge base, playbooks, the safety gate, declined by a person
-  S.push([["z6", 1.5, 7, BASE], ["z6", 12.0, LEN[5] - 7, BASE]]);
+  S.push([["z6", 1.5, 7, BASE], ["z6", 12.0, LEN[6] - 7, BASE]]);
 }
 { // 7 · Telegram up to the court offer, the search on the map, then the invitations and the booking
-  const c1 = at(6, 3), c2 = at(6, 4);
-  S.push([["s7", 0.3, c1, ["setpts=PTS/1.7", ...BASE]], ["map", 4.5, c2 - c1, BASE], ["s7", 15.2, LEN[6] - c2, ["setpts=PTS/1.36", ...BASE]]]); // the screencast stretches page time by about 1.36
+  const c1 = at(7, 3), c2 = at(7, 4);
+  S.push([["s7", 0.3, c1, ["setpts=PTS/1.7", ...BASE]], ["map", 4.5, c2 - c1, BASE], ["s7", 15.2, LEN[7] - c2, ["setpts=PTS/1.36", ...BASE]]]); // the screencast stretches page time by about 1.36
 }
 { // 8 · the agent: the architecture animation up to the fairest court, its own browser on the venue's site, the trace
-  const c1 = at(7, 3), c2 = at(7, 4), anim = 12.1;
-  S.push([["agentanim", 0.3, c1, [`setpts=PTS*${(c1 / anim).toFixed(4)}`, ...BASE]], ["SHOTS", 0, c2 - c1, null], ["trace", 4.0, LEN[7] - c2, ["setpts=PTS/1.3", ...BASE]]]);
+  const c1 = at(8, 3), c2 = at(8, 4), anim = 12.1;
+  S.push([["agentanim", 0.3, c1, [`setpts=PTS*${(c1 / anim).toFixed(4)}`, ...BASE]], ["SHOTS", 0, c2 - c1, null], ["trace", 4.0, LEN[8] - c2, ["setpts=PTS/1.3", ...BASE]]]);
 }
-S.push([["s8", 0.2, LEN[8], BASE]]);
+S.push([["s8", 0.2, LEN[9], BASE]]);
 
 let n = 0;
 const out = () => path.join(B, `q${String(n++).padStart(3, "0")}.mp4`);
@@ -105,6 +108,7 @@ function piece([f, a, d, vf]) {
       "-map", "[v]", "-t", d.toFixed(3), ...enc, o]);
     return o;
   }
+  if (f === "ARCH") { ff(["-i", path.resolve("../anim/ShuttleCoach_architecture.mp4"), "-t", d.toFixed(3), "-vf", [...vf, "tpad=stop_mode=clone:stop_duration=6"].join(","), ...enc, o]); return o; }
   ff(["-ss", String(a), "-i", src(f), "-t", d.toFixed(3), "-vf", [...vf, "tpad=stop_mode=clone:stop_duration=6"].join(","), ...enc, o]);
   return o;
 }

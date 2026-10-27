@@ -1,6 +1,7 @@
 [
- "This is ShuttleCoach: a team of AI coaching agents that runs entirely on local hardware. One camera in, an elite coaching team out.",
- "Here is how it works. One camera becomes a 3D replay of every rally. Four specialist coaches debate your match at a round table. Ask them by voice, and get highlights ready to post. And between sessions, they stay with you on Telegram.",
+ "One camera in, a full coaching team out, all on one Intel Arc card. The match video becomes 3D shots and match data. Coach agents read it with your memory, test advice in a simulator, and coach you.",
+ "This is ShuttleCoach: a team of AI coaching agents that runs entirely on local hardware.",
+ "Here is what it does. One camera becomes a 3D replay of every rally. Four specialist coaches debate your match at a round table. Ask them by voice, and get highlights ready to post. And between sessions, they stay with you on Telegram.",
  "Drop in match footage: zero bytes leave your machine. The pipeline calibrates the court, isolates the shuttle and lifts every trajectory into 3D. This demo opens a sample match the station has already analysed.",
  "Four coaches read the same match. Coach Lin flashes the zone that cost the most points. Coach Kai grades every shot from its 3D flight. Coach Ren shows which muscles to train, and adapts to a sore knee. Coach Ada finds the opponent's habits under pressure.",
  "Like real coaches, they disagree, and each one speaks live from the local model. Lin wants smash-defence blocks; Ren says the knee is sore. The head coach rules: health first, then the points at stake, and writes four measurable goals and a seven-day plan. Ask any coach a question: a local model answers in about a second, and a verifier checks every number before you see it.",
