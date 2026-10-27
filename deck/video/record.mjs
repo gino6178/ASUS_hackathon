@@ -243,19 +243,13 @@ if (run("trace")) {
     await zoom(p.x, p.y, 1.3, 1600); await wait(600);
     await callout("fx1", "LLM &middot; reads the request into <span style='color:#F2E6C9'>days, time, friends</span>", "#F2E6C9", 80, 860); await wait(2600);
     await uncall("fx1");
-    p = await center(".tr-step.tool", "search the club");
+    p = await center(".tr-step.tool", "ask the fitness coach agent");
     await zoom(p.x, p.y, 1.3, 1200); await wait(500);
-    await callout("fx2", "Tools &middot; <span style='color:#6FB6FF'>calendars, the club's courts</span>, then it asks you to pick", "#6FB6FF", 80, 860); await wait(2800);
+    await callout("fx2", "Agent to agent &middot; <span style='color:#6FB6FF'>asks the fitness coach</span>: knee sore, so 1 hour", "#6FB6FF", 80, 860); await wait(2800);
     await uncall("fx2"); await zoom(p.x, p.y, 1, 700); await wait(800);
-    await click(".tr-runs button", "My right knee", 900); await wait(1000);
-    p = await center(".tr-step.bad");
-    await zoom(p.x, p.y, 1.3, 1400); await wait(500);
-    await callout("fx3", "Check &middot; <span style='color:#FF6B5E'>a number failed twice</span>, so it falls back to a measured fact", "#FF6B5E", 80, 860); await wait(2800);
-    await uncall("fx3"); await zoom(p.x, p.y, 1, 600); await wait(700);
-    await click(".tr-runs button", "bk:ok", 900); await wait(900);
     p = await center(".tr-step.human");
-    await zoom(p.x, p.y, 1.3, 1200); await wait(400);
-    await callout("fx4", "Person &middot; <span style='color:#F2D46B'>nothing is booked until you say yes</span>", "#F2D46B", 80, 860); await wait(2600);
+    if (p) { await zoom(p.x, p.y, 1.3, 1200); await wait(400);
+      await callout("fx4", "Person &middot; <span style='color:#F2D46B'>nothing is booked until you say yes</span>", "#F2D46B", 80, 860); await wait(2600); }
   });
   await resetFx();
 }
@@ -268,7 +262,7 @@ if (run("map")) {
     await wait(7600);
     const p = await center(".cr-top.win");
     if (p) { await zoom(p.x, p.y, 1.18, 1800); await wait(600); }
-    await callout("fx1", "Fairest: <span style='color:#5FD39A'>Zhongzheng</span> &middot; longest trip 7.7 km of 18 centres checked", "#5FD39A", 80, 880); await wait(3000);
+    await callout("fx1", "Fairest: <span style='color:#5FD39A'>Wanhua</span> &middot; longest trip ~29 min of 18 centres checked", "#5FD39A", 80, 880); await wait(3000);
   });
   await resetFx();
 }

@@ -83,8 +83,8 @@ function piece([f, a, d, vf]) {
     return o;
   }
   if (f === "SHOTS") { // the booking agent's own browser on the venue's site: the screenshots it saved, in order
-    const cards = [["00", "Opens the venue's booking site"], ["02", "Logs in: code types the password, the model never sees it"], ["05", "Zhongzheng · Sat 10-31 · a free court at 18:00"],
-      ["09", "Fills in 2 hours · 3 players · Hyeok"], ["10", "Review page: stops for the player's OK"], ["99", "Player said yes: Confirm booking · ref TS-MVQ3BQ"]];
+    const cards = [["00", "Opens the venue's booking site"], ["02", "Logs in: code types the password, the model never sees it"], ["05", "Wanhua · Sat 10-31 · court 3 free at 18:00"],
+      ["08", "Fills in 1 hour (the fitness coach's call) · 3 players · Hyeok"], ["09", "Review page: stops for the player's OK"], ["99", "Player said yes: Confirm booking · ref TS-MVQ7EI"]];
     const each = d / cards.length, parts = [];
     cards.forEach(([img, cap], k) => {
       const q = path.join(B, `q_shot${k}.mp4`);

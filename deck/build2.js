@@ -264,11 +264,11 @@ async function icon(Comp, color) {
   fit(s, "shots/rt_ruling.png", .6, 4.8, 8.3, 2.05, "head coach ruling", false);
   card(s, 9.2, 1.6, 3.5, 5.25, C.accent6, "round table notes");
   txt(s, [
-    { text: "Conflict, then resolution", options: { bold: true, color: "FF6B5E", breakLine: true } },
-    { text: "Ren challenges Lin: smash-defence blocks mean jumps, and memory says \u201cright knee sore\u201d. The table shows the clash, then the head coach rules: health first, then points at stake.", options: { breakLine: true } },
+    { text: "Written live by the agents", options: { bold: true, color: H.accent1, breakLine: true } },
+    { text: "Each coach speaks on the local model from its own facts. Ren checks every request against memory (\u201cright knee sore\u201d) and challenges Lin's drill; Lin answers; the head coach rules: health first, then points at stake.", options: { breakLine: true } },
     { text: " ", options: { breakLine: true, fontSize: 6 } },
     { text: "No invented numbers", options: { bold: true, color: H.accent4, breakLine: true } },
-    { text: "8 of 8 figures in the meeting re-computed from the raw labels; 23 evidence chips open the exact rally and shot.", options: { breakLine: true } },
+    { text: "Every turn passes the verifier (8 of 8 here), or falls back to the measured fact; evidence chips open the exact rally and shot.", options: { breakLine: true } },
     { text: " ", options: { breakLine: true, fontSize: 6 } },
     { text: "Output", options: { bold: true, color: H.lt1, breakLine: true } },
     { text: "Four measurable goals and a 7-day schedule, written back to memory and sent to each player on Telegram.", options: {} },
@@ -541,8 +541,8 @@ async function icon(Comp, color) {
           { text: "Today, on our test GPU, one 4B model serves every agent: coach chat, the round table, booking with its browser, research and reflection.", options: { bold: true, color: H.lt1 } }],
       { x: .8, y: 5.7, w: 5.55, h: 1.12, fontSize: 10.5 });
   card(s, 6.7, 5.62, 6.0, 1.25, "0D2A1D", "4B model", H.accent4);
-  txt(s, [{ text: "4B model for the fast path", options: { bold: true, color: H.accent4, breakLine: true } },
-          { text: "Qwen3-4B, Phi-4-mini or Gemma-3-4B on OpenVINO, INT4 ≈ 2.5 GB; at 608 GB/s the decode ceiling is about 240 tokens/s. Running today on our test GPU: Qwen3-4B (4-bit) answers the coach chat in 0.8 s median at about 160 tokens/s. B70 figures in Stage II.", options: {} }],
+  txt(s, [{ text: "Measured today on our test GPU (Qwen3-4B, 4-bit)", options: { bold: true, color: H.accent4, breakLine: true } },
+          { text: "Coach reply 0.8 s median · round-table meeting 4.0 s for 9–10 verified turns · “I want to play” to a court offer 3.3 s, fitness coach included · booking agent in its browser: 28 steps, 9.4 s · tests 23/23 booking, 21/21 end to end. On the B70: INT4 ≈ 2.5 GB, decode ceiling about 240 tokens/s; B70 figures in Stage II.", options: {} }],
       { x: 6.9, y: 5.7, w: 5.65, h: 1.12, fontSize: 10.5 });
 
   pres.addSection({ title: SECTIONS[3] });
@@ -623,7 +623,7 @@ async function icon(Comp, color) {
     { text: "ShuttleSet: a human-annotated stroke-level singles dataset for badminton tactical analysis. KDD 2023.", options: { bullet: true, breakLine: true } },
     { text: "Monocular 3D reconstruction and intent detection: shown as closed blocks.", options: { bullet: true, breakLine: true } },
     { text: "3D anatomy: BodyParts3D 4.0, © The Database Center for Life Science, CC BY 4.0; adapted via Human Atlas (MIT).", options: { bullet: true, breakLine: true } },
-    { text: "Sample match: Thailand Masters 2025 R32 broadcast footage and lab annotations, used for a research prototype only.", options: { bullet: true, breakLine: true } },
+    { text: "Sample match: Thailand Masters 2025 R32 broadcast footage and hand annotations, used for a research prototype only.", options: { bullet: true, breakLine: true } },
     { text: "Libraries: Whisper tiny.en (MIT) via Transformers.js (Apache-2.0); MediaPipe Pose Landmarker (Apache-2.0). Feature ideas from Good-Badminton (yo-WASSUP): annotated video, court calibration, position maps.", options: { bullet: true, breakLine: true } },
     { text: "Agents: Qwen3-4B (Apache-2.0) served locally; OpenVINO GenAI path for the B70; Qwen3-Embedding for the knowledge base. Papers found through the OpenAlex, arXiv and Semantic Scholar APIs; messaging via the Telegram Bot API.", options: { bullet: true, breakLine: true } },
     { text: "Prototype status: coach agents answer on a local 4B model from computed match facts, every figure verified; tested on an RTX 3090 server, moving to the B70 in Stage II. Coach portraits are AI-generated, fictional people.", options: { bullet: true } },
