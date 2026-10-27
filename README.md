@@ -34,7 +34,7 @@ echo VITE_AGENT_URL=http://<station-ip>:8787 > .env.local
 npm run dev
 ```
 
-End-to-end test of the gateway and the Telegram bot (a fake Telegram API, the real local model): `cd agent && npm test`.
+End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the real local model): `cd agent && npm test` and `node test/booking.mjs`.
 
 ## The coaching staff
 
@@ -50,6 +50,13 @@ End-to-end test of the gateway and the Telegram bot (a fake Telegram API, the re
 - **24-hour coach on Telegram.** Food at home and meals timed to training, the player's schedule with a reminder an
   hour before each session, the training log with an evening check-in. Only text passes through Telegram;
   `/forget` deletes everything stored about a player.
+- **Booking agent.** "Doubles with Amy and Ben on Saturday evening": the local model reads the request; the agent checks
+  every player's calendar and rough area (shared on Telegram, rounded to about 1 km), searches 18 sports centres and
+  ranks the free courts by the longest trip anyone would make. It holds the court, invites the friends, and books only
+  when the player taps "Book it" (web: Find a court). Venue names and locations are from OpenStreetMap; courts, hours
+  and bookings are a sample schedule until a venue's own booking system is connected.
+- **Agent trace.** Every run records its LLM calls, tool calls, checks, messages and the moments it waits for a person,
+  on the station (web: Agent trace; `GET /api/trace`).
 
 ## Not in this repository
 
