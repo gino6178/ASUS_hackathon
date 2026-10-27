@@ -10,6 +10,8 @@ import * as store from "./store.js";
 import * as life from "./life.js";
 import * as venue from "./venue.js";
 import * as trace from "./trace.js";
+import * as browser from "./browser.js";
+import * as site from "./site.js";
 
 const FILE = path.resolve(process.env.PARTY_FILE || "data/parties.json");
 let parties = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : [];
@@ -67,7 +69,7 @@ export async function start(send, host, req) {
   trace.step("human", "ask the player to pick a venue and time", { options: slots.length });
   const who = open ? (invitees.length ? `I'll ask the ${invitees.length} club players who are open to a game` : "nobody has said they're open to a game yet, so it would be just you") : invitees.length ? `with ${names(invitees)}` : "just you for now";
   const dist = (x) => x.dists.map((d) => `${d.name} ${d.km} km`).join(", ");
-  const intro = `${wider ? "Nothing free in the window you asked for, but this week" : "I checked"} ${found.considered.length} sports centres for ${req.format} (${req.hours} h), ${who}. Fairest for everyone:`;
+  const intro = `${wider ? "Nothing was free in the window you asked for, so I looked across this week:" : "I checked"} ${found.considered.length} sports centres for ${req.format} (${req.hours} h), ${who}. Fairest for everyone:`;
   await send(host, `${intro}\n${slots.map((x, i) => `${i + 1}. ${x.name} · ${x.date.slice(5)} ${x.start}-${x.end} · ${x.currency}${x.cost}\n   ${located.length ? dist(x) : `${x.dists[0].km} km from the city centre`}`).join("\n")}` +
     `${located.length < people.length ? `\n\n${people.filter((x) => x.lat == null).map((x) => x.name).join(" and ")} ${people.filter((x) => x.lat == null).length > 1 ? "haven't" : "hasn't"} shared a location yet (📎 → Location in this chat), so I measured from what I know.` : ""}` +
     `${missing.length ? `\n\nI can't find ${missing.join(", ")} among the club's players; they can join by opening this bot and sending /start.` : ""}` +
@@ -91,10 +93,33 @@ export async function button(send, from, data) {
   if (!p) return "This game is no longer open.";
   const v = venue.venue(p.booking ? venue.get(p.booking).venue : p.slots[+i || 0]?.venue) ?? {};
   if (act === "pick" && from === p.host && p.status === "choosing") {
-    trace.step("human", "the player picked a slot", { slot: venue.slotText(p.slots[+i]) });
-    const b = venue.hold({ ...p.slots[+i], cost: p.slots[+i].cost }, p.host);
-    trace.step("tool", "hold the court", { court: b ? venue.slotText(b) : "taken", minutes: venue.HOLD_MIN });
-    if (!b) return "That court was just taken. Ask me again for new times.";
+    const sl = p.slots[+i], DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(sl.date + "T12:00").getDay()];
+    trace.step("human", "the player picked a venue and time", { slot: `${sl.name} ${sl.date} ${sl.start}-${sl.end}` });
+    p.status = "booking"; save();
+    await send(p.host, `On it: I'm booking ${sl.name} on its booking site (${DAY} ${sl.start}-${sl.end}). I'll stop before the final confirm.`);
+    // the agent books the court itself, on the venue's website, and stops on the review page
+    const going = (p.open ? p.need : p.invitees.length) + 1;
+    const dd = `${DAY.slice(0, 3)} ${sl.date.slice(5)}`;
+    // the plan for each page of the site; the LLM picks the control that carries it out
+    const hint = (o) => /password/i.test(o.controls.join(" ")) ? `Log in: type ${site.LOGIN.user} into Member ID, type {{password}} into Password, then click Log in.`
+      : o.url.startsWith("/venues") ? `Click "${sl.name}".`
+      : o.url.startsWith("/venue/") ? (o.url.includes(`date=${sl.date}`) ? `Click a "Free" button in the ${sl.start} row (any court).` : `Click the day "${dd}".`)
+      : o.url.startsWith("/book") ? formStep(o) : "";
+    // the booking form, one field at a time: whatever is not yet right is the next thing to do
+    const players = Math.min(4, (p.open ? p.need : p.invitees.length) + 1);
+    function formStep(o) {
+      const line = (label) => o.controls.find((c) => c.includes(`"${label}"`)) ?? "", n = (l) => l.match(/^\[(\d+)\]/)?.[1];
+      const dur = line("Duration"), pl = line("Players"), nm = line("Booking name"), go = line("Review booking");
+      if (!dur.includes(`now: ${p.hours} hour`)) return `Select "${p.hours} hours" in Duration (control ${n(dur)}).`;
+      if (!pl.includes(`now: ${players})`)) return `Select "${players}" in Players (control ${n(pl)}).`;
+      if (!nm.includes(`value="${nameOf(p.host)}"`)) return `Type ${nameOf(p.host)} into Booking name (control ${n(nm)}).`;
+      return `Click "Review booking" (control ${n(go)}).`;
+    }
+    const r = await browser.prepare({ party: p.id, site: site.URL_, secrets: { password: site.LOGIN.pass }, hint,
+      goal: `Log in with member ID ${site.LOGIN.user} and password {{password}}. Open ${sl.name}. Choose the day ${DAY.slice(0, 3)} ${sl.date.slice(5)}. In the timetable click a Free button in the ${sl.start} row (any court). In the form choose duration ${p.hours} hours and ${Math.min(4, going)} players, type the booking name ${nameOf(p.host)}, then click Review booking.` });
+    const b = r.ok ? venue.get(r.hold) : null;
+    trace.step("tool", "hold the court", { court: b ? venue.slotText(b) : "not reached", minutes: venue.HOLD_MIN, via: "the venue's booking site" });
+    if (!b) { p.status = "choosing"; save(); await send(p.host, `I couldn't finish the booking on ${sl.name}'s site (${r.text ?? "the court may have just gone"}). Pick another option or ask me again.`); return "Couldn't book that one."; }
     p.booking = b.id; p.status = p.invitees.length ? "inviting" : "confirming"; save();
     if (!p.invitees.length) { await askToBook(send, p); return "Court held."; }
     const until = new Date(b.until).toTimeString().slice(0, 5);
@@ -122,21 +147,24 @@ export async function button(send, from, data) {
   }
   if (act === "ok" && from === p.host && p.status === "confirming") {
     trace.step("human", "the player confirmed");
-    const b = venue.confirm(p.booking);
-    if (!b) { p.status = "expired"; save(); return "The hold ran out. Ask me again for new times."; }
-    p.status = "booked"; save();
-    trace.step("tool", "book the court", { court: venue.slotText(b) });
+    // the agent presses "Confirm booking" on the site it left open; if that page is gone, the hold is confirmed directly
+    const ref = await browser.confirm(p.id).catch(() => null);
+    const b = ref ? venue.get(p.booking) : venue.confirm(p.booking);
+    if (!b || b.status !== "booked") { p.status = "expired"; save(); return "The hold ran out. Ask me again for new times."; }
+    p.status = "booked"; p.reference = ref; save();
+    trace.step("tool", "book the court", { court: venue.slotText(b), reference: ref ?? "confirmed without the site page" });
     const going = [p.host, ...p.invitees.filter((y) => y.answer).map((y) => y.id)];
     for (const id of going) {
       life.addEvents(id, [{ date: b.date, start: b.start, end: b.end, title: `Badminton ${p.format} with ${names(going.filter((g) => g !== id))}`.trim(), kind: "training" }]);
       trace.step("tool", "add to the calendar and set a reminder", { who: nameOf(id) });
-      await send(id, `Booked: ${venue.slotText(b)}, ${p.format} with ${names(going.filter((g) => g !== id)) || "the club"}. It's in your calendar; I'll remind you an hour before with what to eat.`);
+      await send(id, `Booked: ${venue.slotText(b)}, ${p.format} with ${names(going.filter((g) => g !== id)) || "the club"}${ref ? ` (booking reference ${ref})` : ""}. It's in your calendar; I'll remind you an hour before with what to eat.`);
       await pin(id, { ...venue.venue(b.venue), venue: b.venue });
     }
     return "Booked.";
   }
   if (act === "x" && (from === p.host) && !["booked", "cancelled"].includes(p.status)) {
     if (p.booking) venue.release(p.booking);
+    await browser.forget(p.id);
     p.status = "cancelled"; save();
     for (const x of p.invitees.filter((y) => y.answer !== false && p.booking)) await send(x.id, `${nameOf(p.host)} cancelled the game ${venue.slotText(venue.get(p.booking))}.`);
     return "Cancelled; the court is free again.";

@@ -113,7 +113,7 @@ async function icon(Comp, color) {
   txt(s, "SHUTTLE\nCOACH", { x: .7, y: 2.15, w: 6.5, h: 2.6, fontSize: 80, bold: true, color: C.background1, fontFace: "Bahnschrift", charSpacing: 4, lineSpacingMultiple: .85 });
   txt(s, "A private, on-device multi-agent badminton analyst", { x: .7, y: 4.75, w: 4.9, h: .9, fontSize: 22, color: C.background2 });
   s.addText("BATTLEFIELD THUNDERSTORM · INTEL ARC PRO B70 32GB · EVERYDAY AI", { placeholder: "title" });
-  txt(s, [{ text: "[Team name]  ·  [Members]  ·  " }, { text: GH, options: { hyperlink: { url: GH_URL }, color: H.accent1 } }],
+  txt(s, [{ text: "Team rm-rf-2  ·  " }, { text: GH, options: { hyperlink: { url: GH_URL }, color: H.accent1 } }],
     { x: .7, y: 6.2, w: 9, h: .4, fontSize: 14, color: C.accent5 });
   s.addNotes("The cover is the live product: the 3D rally behind the title is reconstructed from a single broadcast camera.");
 
@@ -382,7 +382,7 @@ async function icon(Comp, color) {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 8.96, y: 6.08, w: 2.22, h: .24, rectRadius: .1, fill: { color: "17212B" }, line: { color: "17212B" }, objectName: "message box" });
     txt(s, "Message", { x: 9.08, y: 6.08, w: 2.0, h: .24, fontSize: 7, valign: "middle", color: C.accent5 });
     txt(s, "Bot output from its end-to-end test", { x: 8.8, y: 6.55, w: 2.55, h: .25, fontSize: 8.5, align: "center", color: C.accent5 });
-    [["Food at home", "meals timed to training"], ["Schedule & log", "reminder 1 h before; evening check-in"], ["Court booking", "a court in the middle, fair to everyone; books on your OK"], ["39 / 39", "end-to-end checks passed"]].forEach(([h, b], i) => {
+    [["Food at home", "meals timed to training"], ["Schedule & log", "reminder 1 h before; evening check-in"], ["Court booking", "a court in the middle; the agent books it on the venue's site after your OK"], ["39 / 39", "end-to-end checks passed"]].forEach(([h, b], i) => {
       const y = 2.0 + i * 1.12;
       txt(s, h, { x: 11.5, y, w: 1.25, h: .3, fontSize: i === 3 ? 16 : 11, bold: true, fontFace: i === 3 ? "Bahnschrift" : undefined, color: i === 3 ? C.accent4 : C.accent1 });
       txt(s, b, { x: 11.5, y: y + (i === 3 ? .36 : .3), w: 1.22, h: .7, fontSize: 9 });
@@ -399,7 +399,7 @@ async function icon(Comp, color) {
     tag(s, "Every agent runs this loop", 9.35, 1.5, C.accent1, 3.4);
     const LOOP = [["Read", "the local LLM turns a message into a structured request", H.accent1],
       ["Plan", "picks the tools and fills their arguments", H.accent1],
-      ["Act", "map, 18 sports centres, calendars, knowledge base, memory", H.accent2],
+      ["Act", "map, calendars, memory, and its own browser on the venue's booking site", H.accent2],
       ["Check", "verifier on every number; safety gates on advice", H.accent4],
       ["Ask", "anything binding waits for a person's yes", "F2D46B"],
       ["Learn", "feedback and nightly reflection", H.accent3]];
@@ -410,10 +410,10 @@ async function icon(Comp, color) {
       txt(s, h, { x: 9.85, y: y - .03, w: 2.8, h: .26, fontSize: 13, bold: true, color: C.background1 });
       txt(s, b, { x: 9.85, y: y + .22, w: 2.85, h: .42, fontSize: 9.5 });
     });
-    txt(s, "From a real booking run on the station: 1 LLM call, 4 tool calls, a fairness check, then the player's yes; 872 ms.",
+    txt(s, "From a real run on the station. The agent then books on the venue's website in its own browser and stops before the final confirm.",
       { x: 9.35, y: 5.8, w: 3.35, h: .36, fontSize: 8.5, italic: true, color: C.accent5 });
     // the agents
-    [["Coach agents × 6", "answer, advise, cite their evidence", H.accent1], ["Booking agent", "the map, 18 venues, friends, calendar", H.accent2], ["Research agent", "searches and reads papers nightly", H.accent4],
+    [["Coach agents × 6", "answer, advise, cite their evidence", H.accent1], ["Booking agent", "finds the fair court, books it on the venue's site", H.accent2], ["Research agent", "searches and reads papers nightly", H.accent4],
      ["Reflection agent", "proposes playbook changes behind gates", H.accent3], ["Reminder agent", "before and after every session", "F2D46B"]].forEach(([h, b, color], i) => {
       const x = .6 + i * 2.44;
       card(s, x, 6.25, 2.32, .66, C.accent6, "agent " + h, color);
@@ -627,7 +627,7 @@ async function icon(Comp, color) {
     { text: "Agents: Qwen3-4B (Apache-2.0) served locally; OpenVINO GenAI path for the B70; Qwen3-Embedding for the knowledge base. Papers found through the OpenAlex, arXiv and Semantic Scholar APIs; messaging via the Telegram Bot API.", options: { bullet: true, breakLine: true } },
     { text: "Prototype status: coach agents answer on a local 4B model from computed match facts, every figure verified; tested on an RTX 3090 server, moving to the B70 in Stage II. Coach portraits are AI-generated, fictional people.", options: { bullet: true } },
   ], { x: .6, y: 2.5, w: 12.1, h: 4.0, fontSize: 12, paraSpaceAfter: 3 });
-  txt(s, "Team: [names]  ·  Contact: [email]", { x: .6, y: 6.55, w: 12.1, h: .35, fontSize: 13, color: C.accent5 });
+  txt(s, "Team rm-rf-2", { x: .6, y: 6.55, w: 12.1, h: .35, fontSize: 13, color: C.accent5 });
 
   await pres.writeFile({ fileName: OUT });
   await applyTheme(OUT, THEME);

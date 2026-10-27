@@ -20,6 +20,7 @@ export const agentPlaybooks = () => call("/api/playbooks");
 export const agentEvolve = () => call("/api/evolve/run", {});
 export const agentDecide = (coach, id, approve) => call("/api/evolve/decide", { coach, id, approve });
 export const agentRollback = (coach) => call("/api/evolve/rollback", { coach });
+export const agentRetire = (coach, id) => call("/api/evolve/retire", { coach, id });
 export const agentFeedback = (fb) => call("/api/feedback", fb);
 // the club's courts and the games the booking agent is organising
 export const agentVenue = () => call("/api/venue");

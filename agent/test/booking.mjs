@@ -26,7 +26,7 @@ const tg = http.createServer((req, res) => {
 const DEMO = process.env.DEMO === "1", FILES = ["data/test-b-players.json", "data/test-venue.json", "data/test-parties.json"];
 if (!DEMO) for (const f of FILES) fs.rmSync(f, { force: true });
 const gw = spawn(process.execPath, ["src/server.js"], { env: { ...process.env, PORT: String(GW_PORT), TELEGRAM_BOT_TOKEN: "TEST", TELEGRAM_API: `http://127.0.0.1:${TG_PORT}`,
-  ...(DEMO ? {} : { STORE_FILE: FILES[0], VENUE_FILE: FILES[1], PARTY_FILE: FILES[2] }) }, stdio: ["ignore", "pipe", "pipe"] });
+  ...(DEMO ? {} : { STORE_FILE: FILES[0], VENUE_FILE: FILES[1], PARTY_FILE: FILES[2] }), SITE_PORT: "8797" }, stdio: ["ignore", "pipe", "pipe"] });
 gw.stderr.on("data", (d) => process.stdout.write("  [gateway!] " + d));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const api = (p, body) => fetch(`http://127.0.0.1:${GW_PORT}${p}`, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}).then((r) => r.json());
@@ -74,19 +74,26 @@ try {
   const inv = pick.filter((m) => [AMY, BEN].includes(m.to) && m.buttons.some((b) => b.callback_data?.startsWith("bk:in")));
   expect(inv.length === 2 && inv.every((m) => / km from you/.test(m.text)), "Amy and Ben are both invited, each told how far it is from them");
   let v = await api("/api/venue");
-  expect(v.upcoming.some((b) => b.by === String(HOST) && b.status === "held"), "the court is held while they answer");
+  const held = (await api("/api/venue")).parties.find((x) => x.id === pv.id)?.booking;
+  expect(v.upcoming.some((b) => b.id === held && b.status === "held" && b.venue === pv.slots[0].venue), "the agent held the court itself, on the venue's booking site");
+  const steps = (await api("/api/trace?n=20")).find((r) => r.input?.startsWith("bk:pick"))?.steps ?? [];
+  console.log("  browser steps:", steps.filter((x) => x.name.startsWith("browser:")).map((x) => x.name).join(" | "));
+  expect(steps.some((x) => /browser: .*log in/i.test(x.name)) && steps.some((x) => /reached the review page/.test(x.name)) && !steps.some((x) => /confirm booking/i.test(x.name)), "it logged in, filled in the form and stopped before the final confirm");
+  expect(steps.filter((x) => x.shot).length >= 4, "every browser step has a screenshot");
+  expect(!JSON.stringify(steps).includes("demo-only"), "the password never appears in the trace");
 
   await tap(AMY, inv.find((m) => m.to === AMY).buttons[0].callback_data);
   const last = await tap(BEN, inv.find((m) => m.to === BEN).buttons[0].callback_data);
   const ask = last.find((m) => m.to === HOST && m.buttons.some((b) => b.callback_data?.startsWith("bk:ok")));
   expect(!!ask && /each/.test(ask.text), "when both are in, the host is asked to confirm, with the cost per person");
   v = await api("/api/venue");
-  expect(!v.upcoming.some((b) => b.by === String(HOST) && b.status === "booked"), "nothing is booked before the host confirms");
+  expect(!v.upcoming.some((b) => b.id === held && b.status === "booked"), "nothing is booked before the host confirms");
 
   const done = await tap(HOST, ask.buttons[0].callback_data);
   expect(done.filter((m) => /^Booked:/.test(m.text)).length === 3 && done.filter((m) => m.text.startsWith("📍")).length === 3, "all three get the booking and a map pin");
   v = await api("/api/venue");
-  expect(v.upcoming.some((b) => b.by === String(HOST) && b.status === "booked" && b.date === satYmd && b.venue === pv.slots[0].venue), `the court is booked on Saturday at ${pv.slots[0].name}`);
+  expect(v.upcoming.some((b) => b.id === held && b.status === "booked" && b.date === satYmd && b.venue === pv.slots[0].venue), `the court is booked on Saturday at ${pv.slots[0].name}`);
+  expect(done.some((m) => /booking reference TS-[A-Z0-9]+/.test(m.text)), "the agent pressed Confirm booking on the site and read back the reference");
   const ps = await api("/api/players");
   expect(ps.every((p) => p.events.some((e) => e.date === satYmd && /Badminton doubles/.test(e.title))), "it is in all three calendars");
 
@@ -99,7 +106,7 @@ try {
   const rem = sent.slice(n); show(rem);
   expect(rem.some((m) => /Coming up/.test(m.text) && /Badminton doubles/.test(m.text)), "the hour-before reminder covers the booked game");
 } catch (e) { fails.push(String(e.message)); console.log("ERROR", e); }
-gw.kill(); tg.close();
+gw.kill("SIGKILL"); tg.close(); // SIGKILL: the browser it started must not keep the test gateway alive
 if (!DEMO) for (const f of FILES) fs.rmSync(f, { force: true });
 console.log(fails.length ? `\n${fails.length} FAILED` : "\nALL PASSED");
 process.exit(fails.length ? 1 : 0);

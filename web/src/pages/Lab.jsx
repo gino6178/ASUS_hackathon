@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { agentStatus, agentKb, agentKbSearch, agentResearch, agentPlaybooks, agentEvolve, agentDecide, agentRollback, AGENT_URL } from "../agent.js";
+import { agentStatus, agentKb, agentKbSearch, agentResearch, agentPlaybooks, agentEvolve, agentDecide, agentRollback, agentRetire, AGENT_URL } from "../agent.js";
 import { COACHES } from "../coaches/personas.js";
 import "./lab.css";
 
@@ -28,6 +28,7 @@ function Playbook({ coach, pb, onChange }) {
             <span className="tiny muted">
               {r.locked ? <b className="lab-lock">locked safety rule</b> : r.source === "evolution" ? `learned in v${r.since}` : "starting rule"}
               {r.evidence?.length ? ` · ${r.evidence.join(", ")}` : ""}
+              {r.source === "evolution" && <button className="lab-retire" onClick={() => act(agentRetire(coach.id, r.id))}>Retire</button>}
             </span>
           </li>
         ))}

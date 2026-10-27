@@ -1,4 +1,4 @@
-# ShuttleCoach: Stage I demo video script (2:41)
+# ShuttleCoach: Stage I demo video script (2:44)
 
 ASUS UGen AI League 2026 · Battlefield Thunderstorm · Theme: Everyday AI
 Upload to YouTube as **Unlisted** ("anyone with the link"). Narration in English.
@@ -22,14 +22,14 @@ on the station (Kokoro, voice af_heart), `assemble2.mjs` cuts the scenes on the 
 | 5 | 1:00 | Round table: the conflict card, the head coach's ruling, the plan; a question to Coach Kai answered by the local model (real timing, every figure verified). | Like real coaches, they disagree. Lin wants smash-defence blocks; Ren says the knee is sore. The head coach rules: health first, then the points at stake, and writes four measurable goals and a seven-day plan. Ask any coach a question: a local model answers in about a second, and a verifier checks every number before you see it. |
 | 6 | 1:21 | Lab: knowledge base search, playbooks, the safety gate on a health proposal, declined by a person. | And they keep learning. Every night a research agent reads new sports-science papers, and each coach proposes changes to its own playbook. But AI that learns must be AI you can trust. Every change must cite a study, pass a safety check and do no harm on its tests. Anything about health waits for a human coach. So this one is declined. |
 | 7 | 1:44 | Telegram on a phone (meals, check-in, "I want to play doubles with Amy and Ben on Saturday evening"); the Find a court map replaying the search; back to the phone: invitations, "Book it", booked. | Off the court, the same staff lives in Telegram. Coach Mei plans meals from what is in your kitchen, and the bot checks in after the session to log it. Say you want a game. The agent opens the map, finds where everyone starts, checks every sports centre, and picks the court that is fairest for everyone's trip. It invites your friends, and books only when you confirm. |
-| 8 | 2:07 | The booking agent's architecture animation (local LLM → calendars → map and 18 sports centres → fairness → ask → booked), then the Agent trace page. | Here is the agent behind it. The local model reads the request. The agent checks each player's calendar and where they start, searches the sports centres for a free court, ranks them by the longest trip anyone would make, and waits for a person to say yes. Every step is logged on the station, so you can see exactly what it did. |
-| 9 | 2:28 | End card: SHUTTLECOACH, three badges, team and GitHub. | No cloud and no upload, built for a single Intel Arc Pro B70 workstation. ShuttleCoach: a private staff of AI agents that evolves with you, and never leaves your court. |
+| 8 | 2:07 | The booking agent's architecture animation (local LLM → calendars → map and 18 sports centres → fairness), the agent's own browser on the venue's booking site (log in, timetable, form, review, then Confirm booking after the player's yes), then the Agent trace page. | Here is the agent behind it. The local model reads the request. The agent checks each player's calendar and where they start, searches the sports centres for a free court, and ranks them by the longest trip anyone would make. Then it books the court on the venue's own website, the way a person would, and stops before the final confirm until you say yes. Every step is logged on the station. |
+| 9 | 2:31 | End card: SHUTTLECOACH, three badges, team and GitHub. | No cloud and no upload, built for a single Intel Arc Pro B70 workstation. ShuttleCoach: a private staff of AI agents that evolves with you, and never leaves your court. |
 
 ## What the video must not claim
 
 - The uploaded video is not analysed live in this prototype: keep "this demo opens a sample match the station has already analysed".
 - Replies were timed on the test server's GPU; say "a local model" or "built for the Arc Pro B70", not "measured on the B70".
-- The sports centres are real places (OpenStreetMap); their courts, hours and bookings are a sample schedule.
+- The sports centres are real places (OpenStreetMap); their courts, hours and bookings are a sample schedule, and the booking website the agent operates is a demo site on the station, labelled as such.
 - The Telegram screens are an animation of the bot's real end-to-end test output; record the real phone once the bot has a token.
 - No paper names, no research claims, no review status.
 

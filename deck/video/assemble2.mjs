@@ -60,9 +60,9 @@ const S = [];
   const c1 = at(6, 3), c2 = at(6, 4);
   S.push([["s7", 0.3, c1, ["setpts=PTS/1.7", ...BASE]], ["map", 4.5, c2 - c1, BASE], ["s7", 15.2, LEN[6] - c2, ["setpts=PTS/1.36", ...BASE]]]); // the screencast stretches page time by about 1.36
 }
-{ // 8 · the agent, as an architecture animation of the real run; then the live trace page ("every step is logged")
-  const c = at(7, 3), anim = 16.7;
-  S.push([["agentanim", 0.3, c, [`setpts=PTS*${(c / anim).toFixed(4)}`, ...BASE]], ["trace", 2.0, LEN[7] - c, ["setpts=PTS/1.3", ...BASE]]]);
+{ // 8 · the agent: the architecture animation up to the fairest court, its own browser on the venue's site, the trace
+  const c1 = at(7, 3), c2 = at(7, 4), anim = 12.1;
+  S.push([["agentanim", 0.3, c1, [`setpts=PTS*${(c1 / anim).toFixed(4)}`, ...BASE]], ["SHOTS", 0, c2 - c1, null], ["trace", 4.0, LEN[7] - c2, ["setpts=PTS/1.3", ...BASE]]]);
 }
 S.push([["s8", 0.2, LEN[8], BASE]]);
 
@@ -77,6 +77,23 @@ function piece([f, a, d, vf]) {
       `color=0x04070A:s=1920x1080:r=30[bg];[bg][a]overlay=40:190:shortest=1[x];[x][b]overlay=980:190:shortest=1,` +
       `drawtext=fontfile='${FONT}':text='Voice coach  ·  Auto highlights':x=(w-text_w)/2:y=44:fontsize=68:fontcolor=0xF2E6C9,format=yuv420p[v]`,
       "-map", "[v]", "-t", d.toFixed(3), ...enc, o]);
+    return o;
+  }
+  if (f === "SHOTS") { // the booking agent's own browser on the venue's site: the screenshots it saved, in order
+    const cards = [["00", "Opens the venue's booking site"], ["02", "Logs in: code types the password, the model never sees it"], ["05", "Zhongzheng · Sat 10-31 · a free court at 18:00"],
+      ["09", "Fills in 2 hours · 3 players · Hyeok"], ["10", "Review page: stops for the player's OK"], ["99", "Player said yes: Confirm booking · ref TS-MVQ3BQ"]];
+    const each = d / cards.length, parts = [];
+    cards.forEach(([img, cap], k) => {
+      const q = path.join(B, `q_shot${k}.mp4`);
+      ff(["-loop", "1", "-framerate", "30", "-t", each.toFixed(3), "-i", path.join(B, "shots", `${img}.jpg`), "-vf",
+        [`scale=-2:860,pad=1920:1080:(ow-iw)/2:170:color=0x04070A`, `zoompan=z='1+on*0.0012':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=30`, "format=yuv420p",
+          `drawtext=fontfile='${FONT}':text='${esc(cap)}':x=(w-text_w)/2:y=56:fontsize=56:fontcolor=0xF2E6C9`,
+          `drawtext=fontfile='${MONO}':text='BOOKING AGENT · ITS OWN BROWSER':x=(w-text_w)/2:y=20:fontsize=22:fontcolor=0x8E989D`].join(","), ...enc, q]);
+      parts.push(q);
+    });
+    const list = path.join(B, "q_shots.txt");
+    fs.writeFileSync(list, parts.map((m) => `file '${m.replace(/\\/g, "/")}'`).join("\n"));
+    ff(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", o]);
     return o;
   }
   if (f === "GRID") { // the nine features, zooming out from the centre tile

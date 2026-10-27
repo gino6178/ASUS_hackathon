@@ -10,6 +10,7 @@ import path from "node:path";
 import { chat } from "./llm.js";
 import * as kb from "./kb.js";
 import * as trace from "./trace.js";
+import { factSheet } from "./facts.js";
 
 const FILE = path.resolve(process.env.PLAYBOOK_FILE || "data/playbooks.json");
 const FB_FILE = path.resolve(process.env.FEEDBACK_FILE || "data/feedback.json");
@@ -95,7 +96,23 @@ async function gate(coach, p) {
       if (i >= 0) return `it repeats rule ${others[i].id}`;
     }
   }
+  if (p.text) { const why = await relevant(coach, p.text); if (why) return why; }
   return null;
+}
+
+// relevance: a rule must fit the player this staff coaches, not just be true somewhere in the literature
+const OFF_TOPIC = /\b(young|youth|child|children|kids|junior|adolescent|novice|beginner|elderly)\b|\b(cortex|neural activation|brain region|neuroimaging|fmri|eeg)\b/i;
+async function relevant(coach, text) {
+  if (OFF_TOPIC.test(text)) return "not about this player: it targets another population or brain research, not something a coach can do";
+  const s = factSheet("A");
+  try {
+    const r = await chat([
+      { role: "system", content: `You review a rule a badminton coach agent wants to add to its playbook. The player is ${s.name}, an adult international singles player (${s.event}). Answer JSON only: {"relevant": true|false, "why": "one short reason"}. relevant = the rule is about this kind of player and a coach could act on it in training this month.` },
+      { role: "user", content: text },
+    ], { maxTokens: 80, temperature: 0, purpose: `check the rule fits the player (${coach})` });
+    const j = JSON.parse((r.text.match(/\{[\s\S]*\}/) || ["{}"])[0]);
+    return j.relevant === false ? `not relevant to this player: ${j.why || "no reason given"}` : null;
+  } catch { return null; }
 }
 
 const apply = (coach, set, p, version) => {
@@ -164,6 +181,17 @@ export function decide(coach, proposalId, approve) {
   if (approve) { adopt(coach, p, apply(coach, c.rules, p, c.version + 1)); p.status = "adopted (approved)"; }
   else p.status = "declined";
   save(); return p;
+}
+
+// a person retires one learned rule (locked safety rules stay); kept in history like any other change
+export function retire(coach, id, reason = "retired by a human coach") {
+  const c = pb[coach], r = c?.rules.find((x) => x.id === id);
+  if (!r) throw new Error("no such rule");
+  if (r.locked) throw new Error("locked safety rules cannot be retired");
+  trace.step("human", "a human coach retired a rule", { coach, rule: r.text, reason });
+  c.history.push({ version: c.version, rules: c.rules, at: Date.now(), change: `retire: ${r.text}`, reason });
+  c.version += 1; c.rules = c.rules.filter((x) => x.id !== id); save();
+  return c;
 }
 
 export function rollback(coach) {

@@ -2,6 +2,7 @@
 // daily training reminder. Configure in .env (see .env.example).
 import fs from "node:fs";
 import http from "node:http";
+import path from "node:path";
 
 for (const f of [".env"]) if (fs.existsSync(f)) for (const l of fs.readFileSync(f, "utf8").split(/\r?\n/)) {
   const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
@@ -18,6 +19,8 @@ const life = await import("./life.js");
 const venue = await import("./venue.js");
 const booking = await import("./booking.js");
 const trace = await import("./trace.js");
+const site = await import("./site.js");
+site.start(); // the demo venue booking site the booking agent operates
 
 const PORT = +(process.env.PORT || 8787);
 const ORIGINS = (process.env.ALLOW_ORIGINS || "http://127.0.0.1:5190,http://localhost:5190").split(",");
@@ -121,7 +124,10 @@ http.createServer(async (req, res) => {
       try { return json(res, 200, await trace.run("reflection", { who: "web" }, () => evolve.run(b.coaches ? { coaches: b.coaches } : {})), o); } finally { busy.evolve = false; }
     }
     if (u.pathname === "/api/evolve/decide" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, await trace.run("human decision", { who: "web", input: `${b.approve ? "approve" : "decline"} ${b.coach}` }, async () => evolve.decide(b.coach, b.id, !!b.approve)), o); }
+    const sh = u.pathname.match(/^\/api\/shot\/(r[a-z0-9]+|g[a-z0-9]+)\/(\d{2}\.jpg)$/);
+    if (sh) { const f = path.resolve(process.env.SHOT_DIR || "data/shots", sh[1], sh[2]); if (!fs.existsSync(f)) return json(res, 404, { error: "no such shot" }, o); res.writeHead(200, { "content-type": "image/jpeg", "access-control-allow-origin": "*" }); return res.end(fs.readFileSync(f)); }
     if (u.pathname === "/api/trace") return json(res, 200, trace.recent(+(u.searchParams.get("n") || 40), u.searchParams.get("kind")), o);
+    if (u.pathname === "/api/evolve/retire" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, await trace.run("human decision", { who: "web", input: `retire ${b.coach} ${b.id}` }, async () => evolve.retire(b.coach, b.id, b.reason)), o); }
     if (u.pathname === "/api/evolve/rollback" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, evolve.rollback(b.coach), o); }
     if (u.pathname === "/api/feedback" && req.method === "POST") { const b = await bodyOf(req); evolve.feedback({ ...b, source: "web" }); return json(res, 200, { ok: true }, o); }
     if (u.pathname === "/api/remind" && req.method === "POST") {

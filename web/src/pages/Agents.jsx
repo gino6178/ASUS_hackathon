@@ -14,7 +14,7 @@ const TYPE = {
 };
 const KIND = { "telegram message": "Telegram", "telegram button": "Telegram button", "web chat": "Web chat", research: "Research agent", reflection: "Reflection", reminder: "Reminder", "human decision": "Human decision" };
 const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); };
-const DETAIL_SKIP = new Set(["type", "name", "t", "t0", "ms", "out", "text"]);
+const DETAIL_SKIP = new Set(["type", "name", "t", "t0", "ms", "out", "text", "shot"]);
 
 function Step({ s }) {
   const [label, color] = TYPE[s.type] ?? ["Step", "#8E989D"];
@@ -27,6 +27,7 @@ function Step({ s }) {
         <b>{s.name}</b>{s.ms != null && <span className="tiny muted"> · {s.ms} ms</span>}
         {rest.length > 0 && <p className="tiny muted">{rest.map(([k, v]) => `${k}: ${typeof v === "boolean" ? (v ? "yes" : "no") : v}`).join(" · ")}</p>}
         {(s.out || s.text) && <p className="tr-out">{s.out || s.text}</p>}
+        {s.shot && <a href={AGENT_URL + s.shot} target="_blank" rel="noreferrer"><img className="tr-shot" src={AGENT_URL + s.shot} alt={`Screenshot after: ${s.name}`} loading="lazy" /></a>}
       </div>
     </li>
   );

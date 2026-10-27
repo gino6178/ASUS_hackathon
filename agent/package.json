@@ -3,5 +3,6 @@
   "private": true,
   "type": "module",
   "description": "Coach agent gateway: grounded chat on a local LLM, player memory, Telegram notifications and conversations.",
-  "scripts": { "start": "node src/server.js", "test": "node test/e2e.mjs" }
+  "scripts": { "start": "node src/server.js", "test": "node test/e2e.mjs" },
+  "dependencies": { "puppeteer-core": "^24.0.0" }
 }

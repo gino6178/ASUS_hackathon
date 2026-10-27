@@ -52,9 +52,11 @@ End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the r
   `/forget` deletes everything stored about a player.
 - **Booking agent.** "Doubles with Amy and Ben on Saturday evening": the local model reads the request; the agent checks
   every player's calendar and rough area (shared on Telegram, rounded to about 1 km), searches 18 sports centres and
-  ranks the free courts by the longest trip anyone would make. It holds the court, invites the friends, and books only
-  when the player taps "Book it" (web: Find a court). Venue names and locations are from OpenStreetMap; courts, hours
-  and bookings are a sample schedule until a venue's own booking system is connected.
+  ranks the free courts by the longest trip anyone would make. Then it books on the venue's website itself, in a
+  headless browser on the station: the local model reads each page and picks the next control, code types the member
+  password (the model never sees it) and stops before the final confirm until the player taps "Book it"; then the agent
+  confirms and reads back the booking reference (web: Find a court, Agent trace, with a screenshot per step). Venue
+  names and locations are from OpenStreetMap; the booking site is a demo site on the station with sample schedules.
 - **Agent trace.** Every run records its LLM calls, tool calls, checks, messages and the moments it waits for a person,
   on the station (web: Agent trace; `GET /api/trace`).
 

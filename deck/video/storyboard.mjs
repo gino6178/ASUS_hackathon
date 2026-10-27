@@ -34,8 +34,9 @@ const SHOTS = [
   [7, "Fairest: Zhongzheng · longest trip 7.7 km", "Find a court 地圖（OpenStreetMap）：依序出現三人的大略位置（Hyeok 內湖、Amy 大安、Ben 板橋）→「the middle」→ 18 個運動中心（有空場為白點）→ 前三名 → 中正運動中心勝出，三條虛線標出每人距離 7.7 / 2.3 / 6.8 km。", "代理開地圖、考量每個人的距離、找中間有空的場館；場地時段為範例資料"],
   [7, "", "回到手機：Telegram 地圖釘（Zhongzheng Sports Center）→ 球場暫留、邀請 Amy 與 Ben（各附離自己的距離）→ 兩人都 I'm in → 問主揪確認（NT$1000，每人 NT$334）→ Book it → Booked。", "下單前一定要主揪按確認"],
   [8, "Read → Plan → Act → Check → Ask → Done", "代理架構動畫（取自 station 上的真實執行）：Telegram 訊息 → 本地 LLM 讀成結構化請求 → Booking agent 呼叫工具：三人行事曆（週六晚上都有空 ✓）→ 地圖：三人大略位置、中間點、18 個運動中心（灰色為沒空場）→ 公平性排序（最遠的人最短：中正 7.7 km；中山較近但已滿）→ 問主揪、朋友回覆 I'm in → Booked。", "強調大語言模型代理：看每個人的行事曆與地點，找到中間有空的場館"],
+  [8, "Booking agent · its own browser", "代理自己用無頭瀏覽器操作場館的訂場網站（本機模擬站）：開網站 → 登入（密碼由程式填入，模型看不到）→ 中正運動中心 · 10/31 週六 18:00 有空的場 → 填 2 小時、3 人、Hyeok → 確認頁停下等主揪 OK → 主揪說好後按 Confirm booking，讀回訂位編號 TS-MVQ3BQ。", "每張圖都是代理在 station 上自己存的截圖"],
   [8, "", "Agent trace 頁：同一次執行的每一步（LLM、open the map、search venues near the middle、rank by fairness、ask the player…）。", "Every step is logged on the station"],
-  [9, "", "結尾卡：SHUTTLECOACH、標語，三個銘牌依序亮起：100% local processing / Multi-agent round table / Built for Intel Arc Pro B70 · 32 GB；上方是隊名與 GitHub 網址。", "[Team name] 待填；QR code 尚未加入"],
+  [9, "", "結尾卡：SHUTTLECOACH、標語，三個銘牌依序亮起：100% local processing / Multi-agent round table / Built for Intel Arc Pro B70 · 32 GB；上方是隊名與 GitHub 網址。", "隊名 rm-rf-2；QR code 尚未加入"],
 ];
 const SCENE_NAME = { 1: "開場：平台定位", 2: "功能總覽：四大節點", 3: "怎麼運作、隱私", 4: "四位專科教練", 5: "亮點一：圓桌會議", 6: "亮點二：自我進化與安全審查", 7: "延伸：24 小時教練", 8: "大語言模型代理：真實執行紀錄", 9: "結尾" };
 
