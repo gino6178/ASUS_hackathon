@@ -1,0 +1,23 @@
+{
+ "source": "Venue names and locations: © OpenStreetMap contributors (ODbL). Courts, hours, prices and bookings are a sample schedule for the prototype.",
+ "venues": [
+  { "id": "zhongzheng", "name": "Zhongzheng Sports Center", "local": "臺北市中正運動中心", "lat": 25.03856, "lon": 121.51934 },
+  { "id": "daan", "name": "Da'an Sports Center", "local": "大安運動中心", "lat": 25.02071, "lon": 121.54603 },
+  { "id": "xinyi", "name": "Xinyi Sports Center", "local": "信義運動中心", "lat": 25.03167, "lon": 121.56677 },
+  { "id": "songshan", "name": "Songshan Sports Center", "local": "松山運動中心", "lat": 25.04896, "lon": 121.55037 },
+  { "id": "zhongshan", "name": "Zhongshan Sports Center", "local": "臺北市中山運動中心", "lat": 25.05486, "lon": 121.52139 },
+  { "id": "datong", "name": "Datong Sports Center", "local": "大同運動中心", "lat": 25.06529, "lon": 121.51636 },
+  { "id": "wanhua", "name": "Wanhua Sports Center", "local": "萬華運動中心", "lat": 25.04749, "lon": 121.50657 },
+  { "id": "wenshan", "name": "Wenshan Sports Center", "local": "文山運動中心", "lat": 24.99696, "lon": 121.55936 },
+  { "id": "nangang", "name": "Nangang Sports Center", "local": "南港運動中心", "lat": 25.04888, "lon": 121.58189 },
+  { "id": "neihu", "name": "Neihu Sports Center", "local": "內湖運動中心", "lat": 25.07821, "lon": 121.57514 },
+  { "id": "shilin", "name": "Shilin Sports Center", "local": "士林運動中心", "lat": 25.08942, "lon": 121.52151 },
+  { "id": "beitou", "name": "Beitou Sports Center", "local": "台北市北投運動中心", "lat": 25.11653, "lon": 121.50985 },
+  { "id": "sanchong", "name": "Sanchong Civil Sports Center", "local": "三重國民運動中心", "lat": 25.05462, "lon": 121.48795 },
+  { "id": "luzhou", "name": "Luzhou Civil Sports Center", "local": "蘆洲國民運動中心", "lat": 25.09111, "lon": 121.46203 },
+  { "id": "banqiao", "name": "Banqiao Civil Sports Center", "local": "板橋國民運動中心", "lat": 25.02268, "lon": 121.45766 },
+  { "id": "zhonghe", "name": "Zhonghe Civil Sports Center", "local": "新北市中和國民運動中心", "lat": 24.99298, "lon": 121.48746 },
+  { "id": "yonghe", "name": "Yonghe Civil Sports Center", "local": "新北市永和國民運動中心", "lat": 25.00318, "lon": 121.52462 },
+  { "id": "tucheng", "name": "Tucheng Civil Sports Center", "local": "土城國民運動中心", "lat": 24.98566, "lon": 121.45722 }
+ ]
+}

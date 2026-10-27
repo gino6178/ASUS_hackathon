@@ -37,3 +37,6 @@ deck/ShuttleCoach_StageI_Proposal.pptx
 deck/*_v2*
 deck/*_v3*
 deck/anim/frames*/
+deck/video/build/
+deck/video/probe/
+deck/video/*.mp4

@@ -1,39 +1,40 @@
-# ShuttleCoach: Stage I demo video script (3:00)
+# ShuttleCoach: Stage I demo video script (2:41)
 
 ASUS UGen AI League 2026 · Battlefield Thunderstorm · Theme: Everyday AI
-Upload to YouTube as **Unlisted** ("anyone with the link"). Narration in English, about 140 words per minute.
+Upload to YouTube as **Unlisted** ("anyone with the link"). Narration in English.
 
-## Before recording
+Story: what the platform is, the whole platform in four nodes, how it works, the coaches, then the two things that make
+them feel like real coaches (the round table and self-evolution), the 24-hour coach on Telegram with the booking agent,
+and the LLM agent behind it.
 
-- Run the site: `npm --prefix D:/COmp2/shuttle-analyst/web run dev`, open `http://localhost:5190`, browser at 1920×1080, zoom 100%.
-- Open the site once while online so the fonts are cached; the offline shot at 2:50 then looks the same.
-- Have a short video file ready to drop in at 0:35 (ideally your own club footage).
-- Hide the bookmarks bar and notifications. Record the screen at 30 fps; record narration separately and lay it under.
-- **Footage rights:** the sample rally is broadcast footage. YouTube links are public; if you can, replace it with your own recording, or keep it to the few seconds below and say "sample broadcast rally".
+The video is built from the running app (`deck/video`): `record.mjs` records each scene, `tts.py` makes the narration
+on the station (Kokoro, voice af_heart), `assemble2.mjs` cuts the scenes on the spoken words, adds subtitles and writes
+`ShuttleCoach_demo.mp4` (and a version without narration). `storyboard.mjs` writes the storyboard PDF with a frame per shot.
 
-## Shot list and narration
+## Scenes
 
-| Time | Screen (what to do) | Narration | On-screen caption |
+| # | Time | Screen | Narration |
 |---|---|---|---|
-| 0:00–0:12 | Landing page. Let the 3D rally play in the hero. Slowly move the mouse toward "Analyze a match". | Elite badminton players have analysts, multi-camera tracking and full-time coaches. Everyone else has a phone video and a guess. ShuttleCoach changes that, without your video ever leaving the device. | ShuttleCoach: a private, on-device badminton analyst |
-| 0:12–0:30 | Scroll through "How it works" and "Measured, not guessed". Pause on the four numbers. | One ordinary camera goes in. Out come the shuttle's flight in metric 3D, every hit, both players' positions, and a coaching staff of AI agents. The perception comes from our lab's research: a 0.42 metre median 3D error against a ten-camera reference, from a single camera. | One camera → 3D flight → coaching |
-| 0:30–0:50 | Click "Analyze a match". Drop the video file in. Point at "Stored: this device only". Click "Start on-device analysis". Let the stages run. | Drop in a match video. The browser opens it locally; nothing is uploaded. The pipeline tracks the shuttle, calibrates the camera from the court lines, lifts every flight into 3D, detects hits and locates the players. | Nothing is uploaded |
-| 0:50–1:25 | Report opens. Note the yellow demo notice. Press play on the rally. Drag the 3D court to orbit. Click shot 5, the smash, in the stroke strip. Point at the telemetry and the speed chart. | In this prototype the report shows a precomputed sample rally. On the left, the tracker's detections on the video. On the right, the same rally reconstructed in 3D. Every shot is measured: launch speed, apex, contact height, flight time. This smash left the racket at about 200 kilometres an hour, estimated from the 3D track itself. | Speeds estimated from the 3D track |
-| 1:25–1:45 | Scroll to "Match patterns". Point at the court map, then the stroke-mix bars. | Across all 949 shots of the match, patterns appear. Of the 55 smashes into this player's half, 33 landed in the mid forehand. | 949 shots · 55 smashes · 60% to one zone |
-| 1:45–2:15 | Scroll to "Ask your agents". Click "Where is my opponent hurting me?". Let all five messages appear. Click an evidence chip such as "#4" to show it on the map, then "Watch shot 5". | Now the coaching staff. A Head Coach splits the question. A Stats Analyst queries the match database. A Positioning agent explains the pattern: short lifts invite the smash. And an Evidence Verifier re-runs every count. No citation, no claim. Every number links back to the shots that prove it. | Every claim cites the shots behind it |
-| 2:15–2:35 | Scroll to "Body focus". Click the quadriceps, then the calves. Show the "Why" and "Drills" panels. | The findings also tell you what to train. Smash defence to the forehand loads the legs and the first step; short lifts point to the forearm and the lunge. Each body part shows the evidence behind it and the drills to fix it. | From match data to a training plan |
-| 2:35–2:50 | Scroll to "Sparring simulator". Switch the style to "Net controller", click the court to move the base, then click "Move to the best base". | Before any advice is given, it is tested. The sparring simulator replays thousands of rallies against an elite style. Here it shows this player's base is already sound, so the advice is to react earlier, not to move. | Advice is simulated before it is given |
-| 2:50–3:00 | Turn Wi-Fi off (show the system tray icon), reload the page, show it still works. End on the landing hero. | Everything runs on one Intel Arc Pro B70: perception, five agents and the simulator. No cloud, no upload. ShuttleCoach: a coaching staff in a box. | Runs fully offline · Intel Arc Pro B70 32GB |
-
-Total narration: about 400 words, which leaves room for pauses at 140 words per minute.
+| 1 | 0:00 | The 3D rally on the home page; title, "One camera in. A full coaching staff out. 100% offline.", "Built for Intel Arc Pro B70 · 32 GB". | This is ShuttleCoach: a team of AI coaching agents that runs entirely on local hardware. One camera in, an elite coaching team out. |
+| 2 | 0:10 | Four nodes, each labelled: Perception & 3D replay · Round table · Voice coach and auto highlights · 24-hour coach on Telegram; then a 3×3 grid zooming out. | Here is how it works. One camera becomes a 3D replay of every rally. Four specialist coaches debate your match at a round table. Ask them by voice, and get highlights ready to post. And between sessions, they stay with you on Telegram. |
+| 3 | 0:28 | Drop a video in; the on-device stages; the Rally 3D view (the demo-mode notice is on screen). | Drop in match footage: zero bytes leave your machine. The pipeline calibrates the court, isolates the shuttle and lifts every trajectory into 3D. This demo opens a sample match the station has already analysed. |
+| 4 | 0:43 | Lin, Kai, Ren, Ada, each with a camera move and a card quoting the page's own numbers (7 of 24 winners conceded; A/B/C grades; right knee sore; smash 38% after a lift or clear). | Four coaches read the same match. Coach Lin flashes the zone that cost the most points. Coach Kai grades every shot from its 3D flight. Coach Ren shows which muscles to train, and adapts to a sore knee. Coach Ada finds the opponent's habits under pressure. |
+| 5 | 1:00 | Round table: the conflict card, the head coach's ruling, the plan; a question to Coach Kai answered by the local model (real timing, every figure verified). | Like real coaches, they disagree. Lin wants smash-defence blocks; Ren says the knee is sore. The head coach rules: health first, then the points at stake, and writes four measurable goals and a seven-day plan. Ask any coach a question: a local model answers in about a second, and a verifier checks every number before you see it. |
+| 6 | 1:21 | Lab: knowledge base search, playbooks, the safety gate on a health proposal, declined by a person. | And they keep learning. Every night a research agent reads new sports-science papers, and each coach proposes changes to its own playbook. But AI that learns must be AI you can trust. Every change must cite a study, pass a safety check and do no harm on its tests. Anything about health waits for a human coach. So this one is declined. |
+| 7 | 1:44 | Telegram on a phone (meals, check-in, "I want to play doubles with Amy and Ben on Saturday evening"); the Find a court map replaying the search; back to the phone: invitations, "Book it", booked. | Off the court, the same staff lives in Telegram. Coach Mei plans meals from what is in your kitchen, and the bot checks in after the session to log it. Say you want a game. The agent opens the map, finds where everyone starts, checks every sports centre, and picks the court that is fairest for everyone's trip. It invites your friends, and books only when you confirm. |
+| 8 | 2:07 | The booking agent's architecture animation (local LLM → calendars → map and 18 sports centres → fairness → ask → booked), then the Agent trace page. | Here is the agent behind it. The local model reads the request. The agent checks each player's calendar and where they start, searches the sports centres for a free court, ranks them by the longest trip anyone would make, and waits for a person to say yes. Every step is logged on the station, so you can see exactly what it did. |
+| 9 | 2:28 | End card: SHUTTLECOACH, three badges, team and GitHub. | No cloud and no upload, built for a single Intel Arc Pro B70 workstation. ShuttleCoach: a private staff of AI agents that evolves with you, and never leaves your court. |
 
 ## What the video must not claim
 
-- The uploaded video is **not** analysed live in this prototype; the narration says "precomputed sample rally" at 0:50. Do not cut that line.
-- The agents' answers are generated from the computed match facts; the local LLM is not connected yet. If asked, it is Stage II work.
-- The speeds are **estimates** from the reconstructed 3D track; the narration says "about 200 kilometres an hour".
-- The body map is a coaching heuristic, not a medical assessment.
+- The uploaded video is not analysed live in this prototype: keep "this demo opens a sample match the station has already analysed".
+- Replies were timed on the test server's GPU; say "a local model" or "built for the Arc Pro B70", not "measured on the B70".
+- The sports centres are real places (OpenStreetMap); their courts, hours and bookings are a sample schedule.
+- The Telegram screens are an animation of the bot's real end-to-end test output; record the real phone once the bot has a token.
+- No paper names, no research claims, no review status.
 
-## End card (3 s, optional)
+## Before a final take
 
-ShuttleCoach · [Team name] · [GitHub repository URL]
+- Put the team name on the end card (`deck/video/scenes/endcard.html`).
+- Create the Telegram bot and record the phone for scene 7.
+- The narration is a neural voice; replace it with a human voice if preferred (`ShuttleCoach_demo_no_voice.mp4` plus the script above).

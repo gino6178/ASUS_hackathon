@@ -25,7 +25,7 @@ const OUT = STATIC ? "ShuttleCoach_StageI_Proposal_v4_static.pptx" : "ShuttleCoa
 const STILL = { "clips/process.gif": "shots/processing.png", "clips/replay.gif": "shots/replay.png", "clips/heat.gif": "shots/heat.png",
   "clips/agents.gif": "shots/agents.png", "clips/body.gif": "shots/body_front.png", "clips/sparring.gif": "shots/sparring.png",
   "clips/architecture.gif": "shots/architecture_frame.png", "clips/hardware.gif": "shots/hardware_frame.png", "clips/coach_tactics.gif": "clips/_coach_tactics.jpg", "clips/coach_technique.gif": "clips/_coach_technique.jpg", "clips/coach_fitness.gif": "clips/_coach_fitness.jpg", "clips/coach_analyst.gif": "clips/_coach_analyst.jpg",
-  "clips/match_tour.gif": "clips/_match_tour.jpg", "clips/live.gif": "clips/_live.jpg", "clips/highlight.gif": "shots/hl_replay.png", "clips/roundtable.gif": "shots/rt_conflict.png", "clips/recon.gif": "shots/recon_still.png" };
+  "clips/match_tour.gif": "clips/_match_tour.jpg", "clips/live.gif": "clips/_live.jpg", "clips/highlight.gif": "shots/hl_replay.png", "clips/roundtable.gif": "shots/rt_conflict.png", "clips/recon.gif": "shots/recon_still.png", "clips/agent_arch.gif": "shots/agent_arch.png" };
 const MONO = "Consolas";
 const FOOT = "SHUTTLECOACH  ·  ASUS UGEN AI LEAGUE 2026  ·  BATTLEFIELD THUNDERSTORM";
 const GH_URL = "https://github.com/gino6178/ASUS_hackathon";
@@ -76,7 +76,7 @@ async function icon(Comp, color) {
   // images and looping GIF clips (recorded from the running prototype); keyed by path
   const sz = {};
   const MEDIA = ["shots/processing.png", "shots/patterns.png", "clips/process.gif", "clips/replay.gif", "clips/heat.gif",
-    "clips/agents.gif", "clips/body.gif", "clips/sparring.gif", "clips/architecture.gif", "clips/hardware.gif", "shots/plan.png", "clips/roundtable.gif", "clips/match_tour.gif", "clips/highlight.gif", "clips/live.gif", "clips/recon.gif", "shots/rt_ruling.png", "shots/hl_follow.png", "shots/hl_replay.png", "shots/hl_freeze.png", "shots/hl_done.png", "shots/live_brief.png", "shots/voice.png", "shots/calib.png", "shots/risk_feed.png", "shots/positions_court.png", "clips/coach_tactics.gif", "clips/coach_technique.gif", "clips/coach_fitness.gif", "clips/coach_analyst.gif"];
+    "clips/agents.gif", "clips/body.gif", "clips/sparring.gif", "clips/architecture.gif", "clips/hardware.gif", "shots/plan.png", "clips/roundtable.gif", "clips/match_tour.gif", "clips/highlight.gif", "clips/live.gif", "clips/recon.gif", "shots/rt_ruling.png", "shots/hl_follow.png", "shots/hl_replay.png", "shots/hl_freeze.png", "shots/hl_done.png", "shots/live_brief.png", "shots/voice.png", "shots/calib.png", "shots/risk_feed.png", "shots/positions_court.png", "shots/agent_trace.png", "clips/agent_arch.gif", "clips/coach_tactics.gif", "clips/coach_technique.gif", "clips/coach_fitness.gif", "clips/coach_analyst.gif"];
   for (const f of MEDIA) { const m = await sharp(f, { animated: false }).metadata(); sz[f] = m.width / m.height; }
   // place an image inside a box, keeping its aspect ratio, aligned top-left unless centred
   for (const f of Object.values(STILL)) { const m = await sharp(f).metadata(); sz[f] = m.width / m.height; }
@@ -236,31 +236,6 @@ async function icon(Comp, color) {
   s = content("How the system works, end to end", 2);
   fit(s, "clips/architecture.gif", .6, 1.55, 12.1, 5.35, "architecture animation");
 
-  // 5 Our perception research: the two in-house blocks appear only by what they do (papers under review, no names)
-  s = content("Built on our own perception research", 2);
-  // pills: [label, emphasis]; 1 = highlighted, 0 = plain, -1 = status
-  [["TrackNetV5", "2D shuttle tracking", "Finds the shuttle in every broadcast frame, using motion cues across neighbouring frames. Used as a frozen backbone.", [["F1 98.1%", 1], ["Public code", 0], ["Frozen backbone", 0], ["In ShuttleCoach", 0]]],
-   ["Monocular scene reconstruction", "", "IN  broadcast video   \u2192   OUT  3D shuttle flight (m)", [["0.42 m median error", 1], ["Single camera", 0], ["In ShuttleCoach", 0]]],
-   ["Intent detection", "", "IN  live 3D rally   \u2192   OUT  opponent's next stroke", [["400 ms before contact", 1], ["Real-time", 0]]]].forEach(([n, h, b, pills], i) => {
-    const y = 1.6 + i * 1.72;
-    card(s, .6, y, 6.75, 1.58, C.accent6, "method " + i);
-    txt(s, n, { x: .85, y: y + .14, w: h ? 2.2 : 6.3, h: .4, fontSize: 19, bold: true, color: C.accent1, fontFace: "Bahnschrift" });
-    if (h) txt(s, h, { x: 3.0, y: y + .17, w: 4.2, h: .35, fontSize: 13, bold: true, color: C.background1 });
-    if (i === 0) txt(s, b, { x: .85, y: y + .56, w: 6.3, h: .62, fontSize: 11 });
-    else { // a closed block: only what goes in and what comes out
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: .85, y: y + .58, w: 6.3, h: .5, rectRadius: .06, fill: { color: H.dk1 }, line: { color: "3A444A", width: .75, dashType: "dash" }, objectName: "black box " + i });
-      txt(s, b, { x: 1.0, y: y + .58, w: 6.0, h: .5, fontSize: 12, fontFace: MONO, valign: "middle", color: C.background1 });
-    }
-    pills.forEach(([t, em], k) => {
-      const x = .85 + k * 1.58;
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: y + 1.16, w: 1.5, h: .3, rectRadius: .06, fill: { color: em === 1 ? H.accent1 : em === 0 ? H.dk1 : H.accent6 },
-        line: { color: em === 1 ? H.accent1 : em === 0 ? "3A444A" : H.accent5, width: .75, dashType: em === -1 ? "dash" : "solid" }, objectName: `pill ${i}-${k}` });
-      txt(s, t, { x, y: y + 1.16, w: 1.5, h: .3, fontSize: 9.5, bold: em === 1, align: "center", valign: "middle", color: em === 1 ? C.text1 : em === 0 ? C.background1 : C.accent5 });
-    });
-  });
-  fit(s, "clips/recon.gif", 7.6, 1.6, 5.1, 4.75, "broadcast to 3D clip");
-  txt(s, "The two in-house blocks are shown by what goes in and what comes out, with their headline results; the details stay closed.", { x: 7.6, y: 6.4, w: 5.1, h: .5, fontSize: 9.5, align: "center", color: C.accent5 });
-
   // 6 Replay & speed
   s = content("Every shot measured: 3D flight, speed, apex, contact height", 2);
   fit(s, "clips/replay.gif", .6, 1.6, 8.3, 5.25, "rally replay clip", false);
@@ -376,7 +351,7 @@ async function icon(Comp, color) {
     txt(s, [{ text: "First reflection run", options: { bold: true, color: "F2D46B", breakLine: true } },
       { text: "A coach proposed lunges for knee pain, citing a real study. The gates held it for a human coach instead of adopting it.", options: {} },
     ], { x: 5.35, y: 4.8, w: 2.8, h: 1.3, fontSize: 10.5 });
-    [["43", "findings from 16 papers"], ["0.8 s", "median reply, local 4B"]].forEach(([n, l], k) => {
+    [["67", "findings from 24 papers, 3 nightly runs"], ["0.8 s", "median reply, local 4B"]].forEach(([n, l], k) => {
       txt(s, n, { x: 5.35 + k * 1.45, y: 6.08, w: 1.35, h: .42, fontSize: 20, bold: true, fontFace: "Bahnschrift", color: k ? C.accent4 : C.accent1 });
       txt(s, l, { x: 5.35 + k * 1.45, y: 6.48, w: 1.35, h: .35, fontSize: 8.5 });
     });
@@ -402,19 +377,51 @@ async function icon(Comp, color) {
     bubble("In your calendar: Wed 2026-10-28 19:00-21:00 club training (training). I'll message you an hour before, with what to eat.", .43, false);
     bubble("/meal", .22, true);
     bubble([{ text: "Coach Mei: ", options: { bold: true, color: "F2D46B" } }, { text: "Eat a meal of rice (1 cup) and stir-fried broccoli with tofu (1 fist) about 2 hours before your next session. …" }], .56, false);
-    bubble("Did 45 minutes of footwork and net drills today, knee felt fine", .3, true);
-    bubble("Logged for 2026-10-26: footwork and net drills, 45 min.", .3, false);
-    bubble("How did today's session go? Tell me what you did, roughly how long, and any pain.", .43, false, { italic: true, color: C.accent5 });
+    bubble("I want to play doubles with Amy and Ben on Saturday evening", .3, true);
+    bubble("Booked: Zhongzheng Sports Center · Sat 10-31 18:00-20:00 · court 4, doubles with Amy and Ben. It's in your calendar.", .43, false);
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: 8.96, y: 6.08, w: 2.22, h: .24, rectRadius: .1, fill: { color: "17212B" }, line: { color: "17212B" }, objectName: "message box" });
     txt(s, "Message", { x: 9.08, y: 6.08, w: 2.0, h: .24, fontSize: 7, valign: "middle", color: C.accent5 });
     txt(s, "Bot output from its end-to-end test", { x: 8.8, y: 6.55, w: 2.55, h: .25, fontSize: 8.5, align: "center", color: C.accent5 });
-    [["Food at home", "meals timed to training"], ["Schedule", "reminder 1 h before; plans around exams"], ["Training log", "evening check-in; weekly totals"], ["21 / 21", "end-to-end checks passed"]].forEach(([h, b], i) => {
+    [["Food at home", "meals timed to training"], ["Schedule & log", "reminder 1 h before; evening check-in"], ["Court booking", "a court in the middle, fair to everyone; books on your OK"], ["39 / 39", "end-to-end checks passed"]].forEach(([h, b], i) => {
       const y = 2.0 + i * 1.12;
       txt(s, h, { x: 11.5, y, w: 1.25, h: .3, fontSize: i === 3 ? 16 : 11, bold: true, fontFace: i === 3 ? "Bahnschrift" : undefined, color: i === 3 ? C.accent4 : C.accent1 });
       txt(s, b, { x: 11.5, y: y + (i === 3 ? .36 : .3), w: 1.22, h: .7, fontSize: 9 });
     });
   }
   s.addNotes("Real coaches keep reading and learn from their players; so do these. Each night a research agent reads new papers into a local knowledge base, and each coach reflects on player feedback, rejected drafts and new findings to change its own playbook, behind gates a head coach would apply: a cited study, a safety check, no regression, and a human sign-off for anything about health. The same staff extends to Telegram as a 24-hour coach: food at home, schedule and training log, with reminders before each session and an evening check-in. Only text passes through Telegram.");
+
+  // LLM agents that act: the loop every agent runs, a real trace from the station, and the agents themselves
+  s = content("LLM agents that act: read, plan, use tools, check, ask", 2);
+  {
+    // the booking agent, animated from a real run on the station: large, on the left
+    fit(s, "clips/agent_arch.gif", .6, 1.42, 8.5, 4.78, "booking agent architecture animation", false);
+    // the loop every agent runs, as a compact list on the right
+    tag(s, "Every agent runs this loop", 9.35, 1.5, C.accent1, 3.4);
+    const LOOP = [["Read", "the local LLM turns a message into a structured request", H.accent1],
+      ["Plan", "picks the tools and fills their arguments", H.accent1],
+      ["Act", "map, 18 sports centres, calendars, knowledge base, memory", H.accent2],
+      ["Check", "verifier on every number; safety gates on advice", H.accent4],
+      ["Ask", "anything binding waits for a person's yes", "F2D46B"],
+      ["Learn", "feedback and nightly reflection", H.accent3]];
+    LOOP.forEach(([h, b, color], i) => {
+      const y = 1.88 + i * .65;
+      s.addShape(pres.shapes.OVAL, { x: 9.35, y, w: .36, h: .36, fill: { color }, line: { color }, objectName: "agent step " + (i + 1) });
+      txt(s, String(i + 1), { x: 9.35, y, w: .36, h: .36, fontSize: 12, bold: true, align: "center", valign: "middle", color: C.text1 });
+      txt(s, h, { x: 9.85, y: y - .03, w: 2.8, h: .26, fontSize: 13, bold: true, color: C.background1 });
+      txt(s, b, { x: 9.85, y: y + .22, w: 2.85, h: .42, fontSize: 9.5 });
+    });
+    txt(s, "From a real booking run on the station: 1 LLM call, 4 tool calls, a fairness check, then the player's yes; 872 ms.",
+      { x: 9.35, y: 5.8, w: 3.35, h: .36, fontSize: 8.5, italic: true, color: C.accent5 });
+    // the agents
+    [["Coach agents × 6", "answer, advise, cite their evidence", H.accent1], ["Booking agent", "the map, 18 venues, friends, calendar", H.accent2], ["Research agent", "searches and reads papers nightly", H.accent4],
+     ["Reflection agent", "proposes playbook changes behind gates", H.accent3], ["Reminder agent", "before and after every session", "F2D46B"]].forEach(([h, b, color], i) => {
+      const x = .6 + i * 2.44;
+      card(s, x, 6.25, 2.32, .66, C.accent6, "agent " + h, color);
+      txt(s, h, { x: x + .14, y: 6.29, w: 2.1, h: .28, fontSize: 11.5, bold: true, color: C.background1 });
+      txt(s, b, { x: x + .14, y: 6.56, w: 2.1, h: .3, fontSize: 9 });
+    });
+  }
+  s.addNotes("ShuttleCoach is built from LLM agents that act, not a chatbot. Each agent runs the same loop on the local model: read the request, plan the tool calls, act with tools such as calendars, the map and the sports centres, the knowledge base and memory, check the result with the verifier and safety gates, ask a person before anything binding, and learn from feedback overnight. The animation follows a real booking run logged on the station: each player's calendar and area, 18 sports centres, the fairest free court, and the player's yes.");
 
   // Auto highlights: picked, filmed with camera moves, captioned and shared, all on the device
   s = content("Auto highlights: picked, filmed and shared on the device", 2);

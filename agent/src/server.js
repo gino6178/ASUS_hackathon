@@ -15,6 +15,9 @@ const kb = await import("./kb.js");
 const researcher = await import("./researcher.js");
 const evolve = await import("./evolve.js");
 const life = await import("./life.js");
+const venue = await import("./venue.js");
+const booking = await import("./booking.js");
+const trace = await import("./trace.js");
 
 const PORT = +(process.env.PORT || 8787);
 const ORIGINS = (process.env.ALLOW_ORIGINS || "http://127.0.0.1:5190,http://localhost:5190").split(",");
@@ -66,13 +69,13 @@ const busy = { research: false, evolve: false }, done = {};
 async function nightly() {
   const now = new Date(), day = now.toISOString().slice(0, 10);
   if (now.getHours() === +(process.env.RESEARCH_HOUR ?? 3) && done.research !== day && !busy.research) {
-    done.research = day; busy.research = true; await researcher.run().catch(() => {}); busy.research = false;
+    done.research = day; busy.research = true; await trace.run("research", { who: "nightly" }, () => researcher.run()).catch(() => {}); busy.research = false;
   }
   if (now.getHours() === +(process.env.EVOLVE_HOUR ?? 4) && done.evolve !== day && !busy.evolve) {
-    done.evolve = day; busy.evolve = true; await evolve.run().catch(() => {}); busy.evolve = false;
+    done.evolve = day; busy.evolve = true; await trace.run("reflection", { who: "nightly" }, () => evolve.run()).catch(() => {}); busy.evolve = false;
   }
 }
-setInterval(() => { remind().catch(() => {}); lifeTick().catch(() => {}); nightly().catch(() => {}); }, 60000);
+setInterval(() => { remind().catch(() => {}); lifeTick().catch(() => {}); booking.expire(tg.send).catch(() => {}); nightly().catch(() => {}); }, 60000);
 
 http.createServer(async (req, res) => {
   const o = req.headers.origin, u = new URL(req.url, "http://x");
@@ -85,11 +88,11 @@ http.createServer(async (req, res) => {
         playbooks: Object.fromEntries(Object.entries(pbs).map(([c, p]) => [c, { version: p.version, rules: p.rules.length, pending: p.proposals.filter((x) => x.status === "pending").length }])), telegram: { enabled: tg.state.enabled, bot: tg.state.bot?.username ?? null, error: tg.state.error, lastPoll: tg.state.lastPoll },
         players: store.players().length, athlete: s.name, facts: s.facts.length }, o);
     }
-    if (u.pathname === "/api/players") return json(res, 200, store.players().map(({ id, name, memories, history, plan, prefs, pantry, events, logs }) => ({ id, name, memories, history: history.slice(-20), plan, prefs, pantry, events, logs })), o);
+    if (u.pathname === "/api/players") return json(res, 200, store.players().map(({ id, name, memories, history, plan, prefs, pantry, events, logs, home }) => ({ id, name, memories, history: history.slice(-20), plan, prefs, pantry, events, logs, home })), o);
     if (u.pathname === "/api/facts") return json(res, 200, factSheet("A").facts, o);
     if (u.pathname === "/api/chat" && req.method === "POST") {
       const b = await bodyOf(req);
-      const r = await reply({ text: String(b.message || ""), coach: b.coach, history: b.history || [] });
+      const r = await trace.run("web chat", { who: "web", input: String(b.message || "") }, () => reply({ text: String(b.message || ""), coach: b.coach, history: b.history || [] }));
       return json(res, 200, r, o);
     }
     if (u.pathname === "/api/notify" && req.method === "POST") {
@@ -102,25 +105,28 @@ http.createServer(async (req, res) => {
       return json(res, 200, { sent }, o);
     }
     const flat = ({ paper, ...f }) => ({ ...f, cite: kb.cite(paper), title: paper.title, url: paper.url, year: paper.year, venue: paper.venue, source: paper.source });
+    if (u.pathname === "/api/venue") return json(res, 200, { ...venue.meta(), venues: venue.venues().map(({ id, name, local, lat, lon, courts, price, currency, hours }) => ({ id, name, local, lat, lon, courts, price, currency, hours })),
+      upcoming: venue.upcoming().slice(0, 3000), parties: booking.list().slice(-30).reverse().map((p) => ({ ...p, hostName: store.get(p.host)?.name, invitees: p.invitees.map((x) => ({ ...x, name: store.get(x.id)?.name })) })) }, o);
     if (u.pathname === "/api/kb") return json(res, 200, { stats: kb.stats(), findings: kb.listFindings().map(flat), runs: kb.runs() }, o);
     if (u.pathname === "/api/kb/search") return json(res, 200, (await kb.search(u.searchParams.get("q") || "", { k: 6, min: 0.2 })).map(flat), o);
     if (u.pathname === "/api/research/run" && req.method === "POST") {
       if (busy.research) return json(res, 409, { error: "a research run is already going" }, o);
       const b = await bodyOf(req); busy.research = true;
-      try { return json(res, 200, await researcher.run({ topics: b.topics || [], maxPapers: b.maxPapers || 6 }), o); } finally { busy.research = false; }
+      try { return json(res, 200, await trace.run("research", { who: "web", input: (b.topics || []).join(", ") }, () => researcher.run({ topics: b.topics || [], maxPapers: b.maxPapers || 6 })), o); } finally { busy.research = false; }
     }
     if (u.pathname === "/api/playbooks") return json(res, 200, { playbooks: evolve.playbooks(), feedback: evolve.feedbackStats() }, o);
     if (u.pathname === "/api/evolve/run" && req.method === "POST") {
       if (busy.evolve) return json(res, 409, { error: "an evolution run is already going" }, o);
       const b = await bodyOf(req); busy.evolve = true;
-      try { return json(res, 200, await evolve.run(b.coaches ? { coaches: b.coaches } : {}), o); } finally { busy.evolve = false; }
+      try { return json(res, 200, await trace.run("reflection", { who: "web" }, () => evolve.run(b.coaches ? { coaches: b.coaches } : {})), o); } finally { busy.evolve = false; }
     }
-    if (u.pathname === "/api/evolve/decide" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, evolve.decide(b.coach, b.id, !!b.approve), o); }
+    if (u.pathname === "/api/evolve/decide" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, await trace.run("human decision", { who: "web", input: `${b.approve ? "approve" : "decline"} ${b.coach}` }, async () => evolve.decide(b.coach, b.id, !!b.approve)), o); }
+    if (u.pathname === "/api/trace") return json(res, 200, trace.recent(+(u.searchParams.get("n") || 40), u.searchParams.get("kind")), o);
     if (u.pathname === "/api/evolve/rollback" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, evolve.rollback(b.coach), o); }
     if (u.pathname === "/api/feedback" && req.method === "POST") { const b = await bodyOf(req); evolve.feedback({ ...b, source: "web" }); return json(res, 200, { ok: true }, o); }
     if (u.pathname === "/api/remind" && req.method === "POST") {
       const b = await bodyOf(req);
-      return json(res, 200, { sent: b.kind && b.kind !== "morning" ? await lifeTick({ kind: b.kind, force: true }) : await remind(true) }, o);
+      return json(res, 200, { sent: await trace.run("reminder", { who: "station", input: b.kind || "morning" }, () => (b.kind && b.kind !== "morning" ? lifeTick({ kind: b.kind, force: true }) : remind(true))) }, o);
     }
     return json(res, 404, { error: "not found" }, o);
   } catch (e) { return json(res, 500, { error: String(e.message || e) }, o); }

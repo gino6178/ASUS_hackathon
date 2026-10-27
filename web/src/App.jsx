@@ -12,6 +12,8 @@ import Live from "./pages/Live.jsx";
 import RoundTable from "./pages/RoundTable.jsx";
 import Messages from "./pages/Messages.jsx";
 import Lab from "./pages/Lab.jsx";
+import Agents from "./pages/Agents.jsx";
+import Courts from "./pages/Courts.jsx";
 import { memory } from "./memory.js";
 import VoiceCoach from "./voice/VoiceCoach.jsx";
 import { loadSample } from "./data.js";
@@ -32,6 +34,8 @@ const MAIN = [
 ];
 const MORE = [
   { k: "analyze", label: "Analyze a video", note: "Add a match from this device", icon: "plus" },
+  { k: "courts", label: "Find a court", note: "The booking agent's search on a map", icon: "match" },
+  { k: "agents", label: "Agent trace", note: "What the LLM agents did, step by step", icon: "coaches" },
   { k: "messages", label: "Messages", note: "Coaches on Telegram", icon: "chat" },
   { k: "lab", label: "Lab", note: "Research and self-improvement", icon: "memory" },
   { k: "memory", label: "Player memory", note: "What the coaches remember", icon: "memory" },
@@ -153,6 +157,8 @@ export default function App() {
         {page === "roundtable" && <RoundTable data={data} />}
         {page === "messages" && <Messages />}
         {page === "lab" && <Lab />}
+        {page === "agents" && <Agents />}
+        {page === "courts" && <Courts />}
       </main>
     </>
   );

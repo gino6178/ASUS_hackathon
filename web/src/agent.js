@@ -21,3 +21,7 @@ export const agentEvolve = () => call("/api/evolve/run", {});
 export const agentDecide = (coach, id, approve) => call("/api/evolve/decide", { coach, id, approve });
 export const agentRollback = (coach) => call("/api/evolve/rollback", { coach });
 export const agentFeedback = (fb) => call("/api/feedback", fb);
+// the club's courts and the games the booking agent is organising
+export const agentVenue = () => call("/api/venue");
+// what the agents did: recent runs with their LLM calls, tool calls, checks, messages and human confirmations
+export const agentTrace = (n = 40, kind = null) => call(`/api/trace?n=${n}${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`);

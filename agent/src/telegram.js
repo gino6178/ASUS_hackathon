@@ -5,6 +5,8 @@ import { reply, learn, COACHES } from "./coach.js";
 import { factSheet } from "./facts.js";
 import * as evolve from "./evolve.js";
 import * as life from "./life.js";
+import * as booking from "./booking.js";
+import * as trace from "./trace.js";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const API = (process.env.TELEGRAM_API || "https://api.telegram.org").replace(/\/$/, "");
@@ -16,11 +18,13 @@ const call = async (method, body) => {
   return j.result;
 };
 
-export const send = (chatId, text, extra = {}) => call("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true, ...extra });
+// a map pin: Telegram shows the venue on a map the player can open in their map app
+export const sendVenue = (chatId, v) => { trace.step("message", "send a map pin", { to: store.get(String(chatId))?.name ?? chatId, venue: v.name }); return call("sendVenue", { chat_id: chatId, latitude: v.lat, longitude: v.lon, title: v.name, address: v.local ?? "" }); };
+export const send = (chatId, text, extra = {}) => { trace.step("message", "send on Telegram", { to: store.get(String(chatId))?.name ?? chatId, text, buttons: extra.reply_markup ? extra.reply_markup.inline_keyboard.flat().map((b) => b.text).join(" | ") : null }); return call("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true, ...extra }); };
 
 const HELP = `I'm your ShuttleCoach staff, here 24 hours a day: Coach Lin (tactics), Coach Kai (technique), Coach Ren (fitness), Coach Ada (data), Coach Mei (nutrition) and the Head Coach.
-Just write to us: what you bought ("eggs, tofu, rice"), your schedule ("club training Wed 19:00-21:00", "exam Friday"), what you trained ("45 min footwork, knee fine"), or any question. We file it and plan around it.
-/week calendar and training log · /today today's plan · /meal what to eat next · /pantry your kitchen · /log a session · /plan the round-table plan · /summary match summary · /coach lin|kai|ren|ada|mei|head · /forget delete everything we stored about you`;
+Just write to us: what you bought ("eggs, tofu, rice"), your schedule ("club training Wed 19:00-21:00", "exam Friday"), what you trained ("45 min footwork, knee fine"), or that you want a game ("doubles with Amy and Ben on Saturday evening": we find a court, invite them and book it when you say so).
+/courts your games and courts · /open open to games from club players · /week calendar and training log · /today today's plan · /meal what to eat next · /pantry your kitchen · /log a session · /plan the round-table plan · /summary match summary · /coach lin|kai|ren|ada|mei|head · /forget delete everything we stored about you`;
 
 export function planText(plan, today = null) {
   if (!plan) return "No plan yet. Your coaches will send one after the next round table.";
@@ -31,6 +35,13 @@ export function planText(plan, today = null) {
 
 async function handle(msg) {
   const id = String(msg.chat.id), text = (msg.text || "").trim(), name = msg.from?.first_name || "player";
+  if (msg.location && store.get(id)) {
+    // only the rough area is kept (about 1 km), enough to find a court in the middle
+    const home = { lat: +msg.location.latitude.toFixed(2), lon: +msg.location.longitude.toFixed(2), at: Date.now() };
+    store.update(id, (q) => { q.home = home; });
+    trace.step("tool", "save the player's area", { lat: home.lat, lon: home.lon, precision: "about 1 km" });
+    return send(id, "Got your area (rounded to about 1 km). When you want a game I'll look for courts that are fair for everyone. /forget deletes it.");
+  }
   if (!text) return;
   if (text.startsWith("/start")) {
     store.link(id, name);
@@ -44,6 +55,8 @@ async function handle(msg) {
   if (text.startsWith("/help")) return send(id, HELP);
   if (text.startsWith("/week") || text.startsWith("/schedule")) return send(id, life.weekText(p, p.plan));
   if (text.startsWith("/today")) return send(id, todayText(p));
+  if (text.startsWith("/courts") || text.startsWith("/book")) return send(id, booking.summary(id));
+  if (text.startsWith("/open")) { const on = !/off/i.test(text); store.setPref(id, "openToPlay", on); return send(id, on ? "You're open to games: when a club player looks for partners, I'll invite you. /open off to stop." : "Okay, no game invitations from other players."); }
   if (text.startsWith("/pantry")) {
     const arg = text.replace(/^\/pantry\S*\s*/, "").trim();
     if (/^clear$/i.test(arg)) life.clearPantry(id);
@@ -67,13 +80,16 @@ async function handle(msg) {
   const body = text.replace(/^\/log\S*\s*/, "");
   const r = await life.read(body).catch(() => ({ intent: "chat", items: [], events: [], log: {} }));
   if (text.startsWith("/log")) r.intent = "log";
+  if (r.intent === "play") { await booking.start(send, id, r.play); return learnFrom(id, text); }
   if (r.intent === "pantry" && r.items.length) {
     const added = life.addPantry(id, r.items);
+    trace.step("tool", "add to the kitchen list", { items: added.join(", ") });
     await send(id, `Added to your kitchen: ${added.join(", ") || "(already there)"}. Send /meal any time and Coach Mei plans around it.`);
     return learnFrom(id, text);
   }
   if (r.intent === "event" && r.events.length) {
     const evs = life.addEvents(id, r.events);
+    trace.step("tool", "add to the calendar", { events: evs.map(life.evText).join("; ") });
     const sessions = evs.filter((e) => ["training", "match"].includes(e.kind) && e.start);
     await send(id, `In your calendar:\n${evs.map((e) => `• ${life.evText(e)}`).join("\n")}${sessions.length ? "\nI'll message you an hour before, with what to eat." : ""}\nSee the week with /week.`);
     if (evs.some((e) => ["match", "exam", "travel"].includes(e.kind))) await answer(id, `I just added this to my calendar: ${evs.map(life.evText).join("; ")}. How should my training this week change around it? Two sentences.`, "head", text, false);
@@ -81,6 +97,7 @@ async function handle(msg) {
   }
   if (r.intent === "log") {
     const l = life.addLog(id, r.log, body);
+    trace.step("tool", "log the session", { date: l.date, minutes: l.minutes, what: l.what, pain: l.pain || null });
     await send(id, `Logged for ${l.date}: ${l.what}${l.minutes ? `, ${l.minutes} min` : ""}${l.pain ? ` · pain: ${l.pain}` : ""}.`);
     await answer(id, `I just finished this session: ${body}. Give me one short reaction and what to do next.`, l.pain ? "fitness" : null, text, false);
     return learnFrom(id, text);
@@ -114,12 +131,15 @@ export function todayText(p, now = new Date()) {
 }
 
 async function onButton(q) {
+  if ((q.data || "").startsWith("bk:")) { const msg = await booking.button(send, String(q.from?.id ?? q.message?.chat?.id), q.data).catch((e) => String(e.message)); return call("answerCallbackQuery", { callback_query_id: q.id, text: msg }); }
   const m = /^fb:(\d+):(-?1)$/.exec(q.data || ""), id = String(q.message?.chat?.id), p = store.get(id);
   if (!m || !p) return call("answerCallbackQuery", { callback_query_id: q.id });
   const turn = p.history[+m[1]], ask = [...p.history.slice(0, +m[1])].reverse().find((h) => h.role === "user");
   evolve.feedback({ coach: turn?.coach, question: ask?.content, reply: turn?.content, value: +m[2], source: "telegram" });
   return call("answerCallbackQuery", { callback_query_id: q.id, text: +m[2] > 0 ? "Thanks, noted for your coaches." : "Thanks, your coaches will review this." });
 }
+
+booking.usePin(sendVenue);
 
 export async function start() {
   if (!TOKEN) { state.error = "TELEGRAM_BOT_TOKEN not set"; return; }
@@ -131,8 +151,8 @@ export async function start() {
       state.lastPoll = Date.now(); state.error = null;
       for (const u of ups) {
         offset = u.update_id + 1;
-        if (u.message) handle(u.message).catch((e) => { state.error = String(e.message); });
-        if (u.callback_query) onButton(u.callback_query).catch((e) => { state.error = String(e.message); });
+        if (u.message) trace.run("telegram message", { who: u.message.from?.first_name, input: u.message.text ?? (u.message.location ? "📍 shared a location" : "") }, () => handle(u.message)).catch((e) => { state.error = String(e.message); });
+        if (u.callback_query) trace.run("telegram button", { who: u.callback_query.from?.first_name, input: u.callback_query.data }, () => onButton(u.callback_query)).catch((e) => { state.error = String(e.message); });
       }
     } catch (e) { state.error = String(e.message); await new Promise((r) => setTimeout(r, 5000)); }
   }

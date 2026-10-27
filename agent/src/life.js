@@ -34,8 +34,33 @@ const PAST = /\b(did|done|finished|trained|played|completed|ran|had)\b|just (did
 const DURATION = /\d+\s*(min|minute|hour|hr|h\b)|分鐘|小時/i;
 const minutesIn = (t) => { const m = t.match(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|h\b|小時)/i); if (m) return Math.round(+m[1] * 60); const n = t.match(/(\d+)\s*(min|minutes?|分鐘)/i); return n ? +n[1] : 0; };
 
+// "I want to play" is its own intent: the booking agent finds a court and gets the friends together
+const PLAY = /\b(want|wanna|like|let'?s|can we|could we|find|book|up for)\b.{0,40}\b(play|hit|game|court|badminton|doubles|singles)\b|\bbook (a )?court\b|約球|打球|訂場|找人打|想運動|想打|揪/i;
+export async function readPlay(text, now = new Date()) {
+  const r = await chat([{ role: "system", content: `A badminton player wants to play. Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now)}. Dates: ${calendar(now)}.
+Return one JSON object only: {"days": ["YYYY-MM-DD", ...], "from": "HH:MM", "to": "HH:MM", "hours": number, "format": "singles" | "doubles", "friends": ["first names the player mentions"]}.
+days: the dates they could play; "weekend" means Saturday and Sunday; no day mentioned means the next three days.
+from/to: the window they could start and finish; evening 18:00-22:00, morning 08:00-12:00, afternoon 13:00-18:00; "at 7pm" means from 19:00 to 22:00; nothing said means 18:00-22:00.
+hours: how long to play, 2 if not said. format: doubles if they say doubles or name two or more friends, else singles.` }, { role: "user", content: text }], { maxTokens: 160, temperature: 0, purpose: "read the play request" });
+  const j = json(r.text);
+  const days = (j.days || []).filter((d) => /^\d{4}-\d\d-\d\d$/.test(d) && d >= ymd(now));
+  const next3 = [0, 1, 2].map((k) => { const d = new Date(now); d.setDate(d.getDate() + k); return ymd(d); });
+  const t = (x, f) => (/^\d\d:\d\d$/.test(x || "") ? x : f);
+  const friends = (j.friends || []).filter((x) => typeof x === "string" && x.trim() && !/^(me|i|myself)$/i.test(x)).map((x) => x.trim());
+  // time-of-day words and the length are read by rule; the model fills in the rest
+  const WIN = [[/morning|早上|上午/i, "08:00", "12:00"], [/afternoon|下午/i, "13:00", "18:00"], [/evening|tonight|night|after work|晚上|今晚|下班/i, "18:00", "22:00"]];
+  const win = WIN.find(([re]) => re.test(text)), at = /at\s*(\d{1,2})(?::(\d\d))?\s*(am|pm)?|(\d{1,2})\s*點/i.exec(text);
+  let from = t(j.from, "18:00"), to = t(j.to, "22:00");
+  if (win && !at) [, from, to] = win;
+  const len = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|小時)/i.exec(text);
+  return { days: days.length ? days : next3, from, to, hours: len ? Math.min(4, Math.max(1, Math.round(+len[1]))) : 2,
+    format: j.format === "doubles" || friends.length >= 2 ? "doubles" : "singles", friends };
+}
+
 export async function read(text, now = new Date()) {
-  const r = await chat([{ role: "system", content: PROMPT(now) }, { role: "user", content: text }], { maxTokens: 220, temperature: 0 });
+  const asks = /\?|？|嗎|how|what/i.test(text) && !PLAY.test(text);
+  if (!asks && PLAY.test(text) && !PAST.test(text)) return { intent: "play", play: await readPlay(text, now), items: [], events: [], log: {} };
+  const r = await chat([{ role: "system", content: PROMPT(now) }, { role: "user", content: text }], { maxTokens: 220, temperature: 0, purpose: "understand the message" });
   const j = json(r.text);
   const out = { intent: ["pantry", "event", "log", "chat"].includes(j.intent) ? j.intent : "chat", items: (j.items || []).filter((x) => typeof x === "string" && x.trim()),
     events: (j.events || []).filter((e) => /^\d{4}-\d\d-\d\d$/.test(e?.date || "")), log: j.log || {} };
@@ -52,14 +77,14 @@ export async function read(text, now = new Date()) {
 }
 
 async function extractFood(text) {
-  const r = await chat([{ role: "system", content: "List the foods in the message as a JSON array of short English names, e.g. [\"chicken breast\", \"broccoli\"]. JSON only." }, { role: "user", content: text }], { maxTokens: 120, temperature: 0 });
+  const r = await chat([{ role: "system", content: "List the foods in the message as a JSON array of short English names, e.g. [\"chicken breast\", \"broccoli\"]. JSON only." }, { role: "user", content: text }], { maxTokens: 120, temperature: 0, purpose: "list the foods" });
   try { return (JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]) || []).filter((x) => typeof x === "string" && x.trim()); } catch { return []; }
 }
 
 async function extractEvents(text, now) {
   const r = await chat([{ role: "system", content: `Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now)}. Dates: ${calendar(now)}.
 List the calendar entries in the message as a JSON array only: [{"date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM or empty", "title": "short", "kind": "training" | "match" | "exam" | "travel" | "other"}]. Use 24-hour times; "7pm" is "19:00". A weekday means its next date in the list.` },
-    { role: "user", content: text }], { maxTokens: 200, temperature: 0 });
+    { role: "user", content: text }], { maxTokens: 200, temperature: 0, purpose: "read the calendar entries" });
   try { return (JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]) || []).filter((e) => /^\d{4}-\d\d-\d\d$/.test(e?.date || "")); } catch { return []; }
 }
 

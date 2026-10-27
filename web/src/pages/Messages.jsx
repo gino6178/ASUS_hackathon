@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { agentStatus, agentPlayers, agentRemind, AGENT_URL } from "../agent.js";
+import { agentStatus, agentPlayers, agentRemind, agentVenue, AGENT_URL } from "../agent.js";
 import { COACHES } from "../coaches/personas.js";
 import Avatar from "../coaches/Avatar.jsx";
+import "./lab.css";
 
 // Messages: the coaching staff outside the app. Status of the local LLM and the Telegram bot, the linked players,
 // what the coaches learned from each conversation, and the conversation itself.
@@ -53,6 +54,7 @@ export default function Messages() {
           <ol className="setup">{steps.map((x, k) => <li key={k} className={x.done ? "done" : ""}><span>{x.t}</span></li>)}</ol>
         </section>
       )}
+      <Courts />
       {ps.map((p) => (
         <section key={p.id} className="panel msg-player">
           <header><h3>{p.name}</h3><span className="tiny muted">chat {p.id} · coach: {p.prefs.coach} · reminders at {p.prefs.reminderHour}:00</span></header>
@@ -84,5 +86,23 @@ export default function Messages() {
         </section>
       ))}
     </div>
+  );
+}
+
+// games the booking agent is organising; the map view is on the Find a court page
+const STATE = { choosing: "choosing a slot", inviting: "waiting for friends", confirming: "waiting for the host to confirm", booked: "booked", cancelled: "cancelled", expired: "hold expired" };
+function Courts() {
+  const [v, setV] = useState(null);
+  useEffect(() => { const f = () => agentVenue().then(setV).catch(() => {}); f(); const id = setInterval(f, 8000); return () => clearInterval(id); }, []);
+  if (!v) return null;
+  return (
+    <section className="panel courts">
+      <h2 className="panel-h">Courts and games</h2>
+      <p className="muted small">The booking agent checks {v.venues.length} sports centres{v.sample ? " (sample schedules)" : ""} and picks the one fairest for everyone's trip. <a href="#/courts">See it on the map</a>.</p>
+      {v.parties.length ? <ul className="msg-mem">{v.parties.slice(0, 8).map((p) => {
+        const s = p.booking ? v.upcoming.find((b) => b.id === p.booking) : null, venue = s ? v.venues.find((x) => x.id === s.venue) : null;
+        return <li key={p.id}><b>{p.hostName}</b> · {p.format}{s ? ` · ${venue?.name ?? ""} ${s.date.slice(5)} ${s.start}-${s.end} court ${s.court}` : ""} · {p.invitees.map((x) => `${x.name} ${x.answer === true ? "✓" : x.answer === false ? "✗" : "…"}`).join(", ") || "no invitees"} · <span className={p.status === "booked" ? "ok" : "muted"}>{STATE[p.status]}</span></li>;
+      })}</ul> : <p className="tiny muted">None yet.</p>}
+    </section>
   );
 }

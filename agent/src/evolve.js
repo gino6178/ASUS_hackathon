@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { chat } from "./llm.js";
 import * as kb from "./kb.js";
+import * as trace from "./trace.js";
 
 const FILE = path.resolve(process.env.PLAYBOOK_FILE || "data/playbooks.json");
 const FB_FILE = path.resolve(process.env.FEEDBACK_FILE || "data/feedback.json");
@@ -114,7 +115,7 @@ async function propose(coach) {
   const r = await chat([
     { role: "system", content: `You improve the playbook of a badminton coach agent (${coach}). Propose at most 2 changes that would make its advice better, each backed by a research finding id like E14 from NEW FINDINGS. Never weaken safety or advise training through pain. Return a JSON array only: [{"action":"add"|"replace"|"remove","target":"rule id for replace/remove","text":"the new rule, one sentence","evidence":["E14"],"reason":"one short reason"}]. Return [] if nothing should change.` },
     { role: "user", content: `CURRENT PLAYBOOK:\n${rulesText(coach)}\n\nNEW FINDINGS:\n${fresh.map((f) => `[${f.id}] ${f.claim} -> ${f.practice} (${kb.cite(f.paper)})`).join("\n") || "(none)"}\n\nREPLIES PLAYERS DISLIKED:\n${down.map((x) => `Q: ${x.question}\nA: ${x.reply}${x.note ? `\nNote: ${x.note}` : ""}`).join("\n\n") || "(none)"}\n\nREPLIES PLAYERS LIKED:\n${up.map((x) => `Q: ${x.question}\nA: ${x.reply}`).join("\n\n") || "(none)"}\n\nDRAFTS THE VERIFIER REJECTED:\n${rej.map((x) => `Q: ${x.question}\nWhy: ${x.bad.join("; ")}`).join("\n") || "(none)"}` },
-  ], { maxTokens: 400, temperature: 0.2 });
+  ], { maxTokens: 400, temperature: 0.2, purpose: `propose playbook changes (${coach})` });
   try { return (JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]) || []).slice(0, 2); } catch { return []; }
 }
 
@@ -130,16 +131,18 @@ export async function run({ coaches = Object.keys(pb) } = {}) {
     for (const p of props) {
       const entry = { ...p, id: `P${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, at: Date.now(), baseline: base };
       const why = await gate(coach, p);
+      trace.step("check", "safety and evidence gates", { coach, proposal: p.text ?? p.target, passed: !why, reason: why });
       if (why) { entry.status = "rejected"; entry.gate = why; }
       else {
         const candidate = apply(coach, rules(coach), p, pb[coach].version + 1);
-        entry.candidate = await score(coach, candidate);
+        entry.candidate = await trace.timed("tool", "regression test on benchmark questions", { coach, result: (v) => ({ failures: v.fails, before: base.fails, unsafe: v.unsafe }) }, () => score(coach, candidate));
         const better = entry.candidate.fails <= base.fails && entry.candidate.unsafe <= base.unsafe;
         if (!better) { entry.status = "pending"; entry.gate = `regression: ${entry.candidate.fails} failures vs ${base.fails} before`; }
         else if (HEALTH.test(p.text || "")) { entry.status = "pending"; entry.gate = "touches health: needs a human coach's approval"; }
         else if (AUTO) { adopt(coach, entry, candidate); entry.status = "adopted"; }
         else entry.status = "pending";
       }
+      trace.step(entry.status === "pending" ? "human" : "tool", entry.status === "pending" ? "wait for a human coach" : entry.status === "adopted" ? "adopt into the playbook" : "reject the proposal", { coach, reason: entry.gate ?? null });
       pb[coach].proposals.push(entry); pb[coach].proposals = pb[coach].proposals.slice(-30);
       out.proposals.push({ id: entry.id, action: p.action, text: p.text, evidence: p.evidence, status: entry.status, gate: entry.gate ?? null });
     }
@@ -157,6 +160,7 @@ function adopt(coach, entry, set) {
 export function decide(coach, proposalId, approve) {
   const c = pb[coach], p = c?.proposals.find((x) => x.id === proposalId);
   if (!p || p.status !== "pending") throw new Error("no pending proposal with that id");
+  trace.step("human", approve ? "a human coach approved" : "a human coach declined", { coach, proposal: p.text ?? p.target });
   if (approve) { adopt(coach, p, apply(coach, c.rules, p, c.version + 1)); p.status = "adopted (approved)"; }
   else p.status = "declined";
   save(); return p;

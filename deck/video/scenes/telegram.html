@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Telegram scene</title>
+<style>
+  :root { --bg: #04070A; --ink: #EEF1F2; --ink2: #C3CACD; --mute: #8E989D; --acc: #F2E6C9; --mei: #F2D46B; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: radial-gradient(1200px 700px at 30% 40%, #10202A 0%, var(--bg) 60%); color: var(--ink); font: 400 20px/1.4 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  .stage { position: absolute; left: 300px; top: 60px; perspective: 1800px; }
+  .phone { position: relative; transform: rotateY(16deg) rotateX(4deg); transform-style: preserve-3d; animation: sway 14s ease-in-out infinite alternate; width: 470px; height: 940px; border-radius: 56px; background: #1A2228; border: 3px solid #4A555C; padding: 18px; box-shadow: -30px 50px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04); }
+  @keyframes sway { from { transform: rotateY(18deg) rotateX(5deg); } to { transform: rotateY(10deg) rotateX(2deg); } }
+  .screen { width: 100%; height: 100%; border-radius: 40px; background: #0E1621; overflow: hidden; display: flex; flex-direction: column; }
+  .head { height: 74px; background: #17212B; display: flex; align-items: center; gap: 14px; padding: 0 22px; flex: none; }
+  .head .ava { width: 42px; height: 42px; border-radius: 50%; background: #2AABEE; display: grid; place-items: center; font-weight: 700; color: #fff; }
+  .head b { font-size: 19px; } .head span { display: block; font-size: 14px; color: var(--mute); }
+  .log { flex: 1; padding: 14px 14px 10px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; }
+  .msg { max-width: 82%; padding: 9px 13px 7px; border-radius: 16px; font-size: 16.5px; line-height: 1.35; white-space: pre-line; opacity: 0; transform: translateY(14px); transition: opacity .35s, transform .35s; }
+  .msg.on { opacity: 1; transform: none; }
+  .me { align-self: flex-end; background: #2B5278; border-bottom-right-radius: 5px; }
+  .bot { align-self: flex-start; background: #182533; border-bottom-left-radius: 5px; }
+  .msg time { display: block; text-align: right; font-size: 12px; color: #8FA6BA; margin-top: 2px; }
+  .day { align-self: center; font-size: 13px; color: #B8C7D3; background: rgba(23,33,43,.9); padding: 3px 12px; border-radius: 12px; opacity: 0; transition: opacity .35s; }
+  .day.on { opacity: 1; }
+  .who { font-weight: 700; color: var(--mei); }
+  .pin { padding: 0; overflow: hidden; width: 78%; } .pin b { display: block; padding: 8px 12px 0; } .pin span { display: block; padding: 0 12px 9px; font-size: 13px; color: #8FA6BA; }
+  .pinmap { height: 96px; background: linear-gradient(135deg, #1c2a35 25%, #22323f 25% 50%, #1c2a35 50% 75%, #22323f 75%) 0 0/28px 28px; position: relative; }
+  .pinmap i { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -18px 0 0 -9px; background: #FF5A4E; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 0 0 4px rgba(255,90,78,.25); }
+  .btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 5px; margin-top: 7px; }
+  .btns span { background: #22364a; border-radius: 8px; padding: 6px 4px; text-align: center; font-size: 14px; color: #cfe3f5; transition: background .25s; }
+  .btns span.hit { background: #2AABEE; color: #fff; }
+  .input { height: 62px; margin: 0 12px 14px; border-radius: 31px; background: #17212B; color: var(--mute); display: flex; align-items: center; padding: 0 24px; font-size: 17px; flex: none; }
+  .side { position: absolute; left: 900px; top: 210px; width: 820px; }
+  .tag { font: 600 18px/1 Consolas, monospace; letter-spacing: 6px; color: var(--acc); text-transform: uppercase; }
+  h1 { font: 700 64px/1.08 Bahnschrift, "Segoe UI", sans-serif; margin: 22px 0 46px; }
+  .feat { display: flex; gap: 22px; align-items: flex-start; margin-bottom: 26px; padding: 18px 22px; border-radius: 16px; background: rgba(17,26,32,.7); border: 1px solid #1f2a31; opacity: 0; transform: translateX(40px); transition: opacity .6s, transform .6s, border-color .6s; }
+  .feat.seen { opacity: .45; transform: none; }
+  .feat.on { opacity: 1; transform: none; border-color: var(--acc); }
+  .feat i { flex: none; width: 54px; height: 54px; border-radius: 50%; background: #111A20; border: 2px solid var(--acc); display: grid; place-items: center; font-style: normal; font-size: 26px; }
+  .feat b { display: block; font: 700 30px/1.2 Bahnschrift, sans-serif; color: var(--acc); }
+  .feat span { font-size: 22px; color: var(--ink2); }
+  .note { position: absolute; left: 300px; top: 1030px; width: 470px; text-align: center; font-size: 15px; color: var(--mute); }
+</style></head>
+<body>
+<div class="stage"><div class="phone"><div class="screen">
+  <div class="head"><div class="ava">SC</div><div><b>ShuttleCoach staff</b><span>bot</span></div></div>
+  <div class="log" id="log"></div>
+  <div class="input">Message</div>
+</div></div></div>
+<div class="note">Bot replies from its end-to-end test on the local model</div>
+<div class="side">
+  <div class="tag">Extension · Telegram</div>
+  <h1>A coach in your pocket,<br>24 hours a day</h1>
+  <div class="feat" id="f0"><i>🍗</i><div><b>Meals from your kitchen</b><span>Coach Mei plans around your next session</span></div></div>
+  <div class="feat" id="f1"><i>📝</i><div><b>Evening check-in</b><span>Logs what you trained, and any pain</span></div></div>
+  <div class="feat" id="f2"><i>🏸</i><div><b>Court booking</b><span>A court in the middle, fair to everyone; books on your OK</span></div></div>
+</div>
+<script>
+// [delay ms from start, kind, text, time, feature to light]
+const S = [
+  [300, "day", "Today"],
+  [500, "me", "I bought chicken breast and broccoli today", "18:41", 0],
+  [1300, "bot", "Added to your kitchen: chicken breast, broccoli. Send /meal any time and Coach Mei plans around it.", "18:41"],
+  [2400, "me", "/meal", "18:43"],
+  [3000, "bot", "<span class=who>Coach Mei:</span> Eat a meal of rice (1 cup) and stir-fried broccoli with tofu (1 fist) about 2 hours before your next session.", "18:43"],
+  [4800, "bot", "How did today's session go? Tell me what you did, roughly how long, and any pain or soreness.", "21:00", 1],
+  [5800, "me", "Did 45 minutes of footwork and net drills today, knee felt fine", "21:06"],
+  [6500, "bot", "Logged for 2026-10-26: footwork and net drills, 45 min.", "21:06"],
+  [8200, "me", "I want to play doubles with Amy and Ben on Saturday evening", "21:10", 2],
+  [9200, "bot", "I checked 18 sports centres for doubles (2 h), with Amy and Ben. Fairest for everyone:\n1. Zhongzheng Sports Center · 10-31 18:00-20:00\n   Hyeok 7.7 km, Amy 2.3 km, Ben 6.8 km\n2. Wanhua Sports Center · 10-31 18:00-20:00\n   Hyeok 8.2 km, Amy 3.9 km, Ben 6.3 km", "21:10", undefined, ["1. Zhongzheng 18:00", "2. Wanhua 18:00", "3. Datong 18:00"]],
+  [9900, "pin", "Zhongzheng Sports Center", "臺北市中正運動中心"],
+  [10700, "tap", 0],
+  [11000, "bot", "Court 4 is held until 23:10. I've invited Amy and Ben; I'll ask you to confirm when they answer.", "21:10"],
+  [11700, "bot", "Amy is in (1 of 2 in).", "21:12"],
+  [12200, "bot", "Ben is in (2 of 2 in).", "21:15"],
+  [12800, "bot", "Book Zhongzheng Sports Center · Sat 10-31 18:00-20:00 · court 4 for Hyeok, Amy and Ben? NT$1000 for the court, NT$334 each, paid at the counter.", "21:15", undefined, ["Book it", "Cancel"]],
+  [13900, "tap", 0],
+  [14200, "bot", "Booked: Zhongzheng Sports Center · Sat 10-31 18:00-20:00 · court 4, doubles with Amy and Ben. It's in your calendar.", "21:15"],
+];
+const PACE = 1; // the whole conversation in about 13 s
+const log = document.getElementById("log");
+for (const [t, kind, text, time, f, btns] of S) setTimeout(() => {
+  if (kind === "pin") { const el = document.createElement("div"); el.className = "msg bot pin"; el.innerHTML = `<div class="pinmap"><i></i></div><b>📍 ${text}</b><span>${time}</span>`; log.appendChild(el); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on"))); return; }
+  if (kind === "tap") { const row = [...log.querySelectorAll(".btns")].at(-1); row?.children[text]?.classList.add("hit"); return; }
+  const el = document.createElement("div");
+  el.className = kind === "day" ? "day" : `msg ${kind}`;
+  el.innerHTML = kind === "day" ? text : `${text}<time>${time}</time>${btns ? `<div class="btns">${btns.map((x) => `<span>${x}</span>`).join("")}</div>` : ""}`;
+  log.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
+  // keep only what fits: drop the oldest when the column overflows
+  const used = () => [...log.children].reduce((s, c) => s + c.offsetHeight + 8, 0);
+  while (used() > log.clientHeight - 20 && log.children.length > 1) log.removeChild(log.firstChild);
+  if (f !== undefined) document.querySelectorAll(".feat").forEach((x, i) => { x.classList.toggle("on", i === f); if (i <= f || x.classList.contains("seen")) x.classList.add("seen"); });
+}, t * PACE);
+setTimeout(() => document.querySelectorAll(".feat").forEach((x) => x.classList.add("on", "seen")), 15200 * PACE);
+</script>
+</body></html>

@@ -6,6 +6,7 @@ import { searchAll } from "./scholar.js";
 import * as kb from "./kb.js";
 import * as store from "./store.js";
 import { factSheet } from "./facts.js";
+import * as trace from "./trace.js";
 
 const AREAS = ["tactics", "technique", "fitness", "analyst", "nutrition"];
 const BASE = [
@@ -35,7 +36,7 @@ export async function needs(extra = []) {
     const r = await chat([
       { role: "system", content: "You plan literature searches for a badminton coaching staff. Turn the player's problems into the scientific topics a sports scientist would search: English, 3 to 7 words, no numbers, no player names. Good examples: \"badminton lunge knee joint loading\", \"perceptual training anticipation racket sports\", \"patellar tendinopathy return to sport\". Return one JSON array of strings only." },
       { role: "user", content: `Match facts:\n${s.facts.map((f) => f.text).join("\n")}\n\nWhat players told the coaches:\n${mem.join("\n") || "(nothing)"}\n\nExtra topics: ${extra.join("; ") || "none"}\n\nWrite 6 queries.` },
-    ], { maxTokens: 200, temperature: 0.3 });
+    ], { maxTokens: 200, temperature: 0.3, purpose: "plan the literature searches" });
     const q = strings(r.text).filter((x) => x.length > 8 && !/\d/.test(x)).slice(0, 6);
     const all = [...new Set([...extra, ...q])].slice(0, 8);
     return all.length >= 3 ? all : [...new Set([...all, ...BASE])].slice(0, 8);
@@ -46,7 +47,7 @@ async function screen(p) {
   const r = await chat([
     { role: "system", content: `You screen papers for a badminton coaching staff (areas: tactics, technique, fitness and injury, match data). Is this paper useful evidence for coaching badminton players? Racket sports and general sports science on the same topic count. Return JSON only: {"useful": true|false, "areas": [subset of ${JSON.stringify(AREAS)}], "why": "one short reason"}.` },
     { role: "user", content: `Title: ${p.title}\nAbstract: ${p.abstract.slice(0, 1800)}` },
-  ], { maxTokens: 120, temperature: 0 });
+  ], { maxTokens: 120, temperature: 0, purpose: "screen a paper" });
   const v = json(r.text, { useful: false });
   return { ...v, areas: (v.areas || []).filter((a) => AREAS.includes(a)) };
 }
@@ -55,7 +56,7 @@ async function extract(p, areas) {
   const r = await chat([
     { role: "system", content: `Extract at most 3 findings a coach could act on from this abstract. Use only what the abstract states; copy numbers exactly. Return a JSON array only: [{"claim": "what the study found, one sentence", "practice": "what a coach could do with it, one sentence", "studyType": "RCT|cohort|cross-sectional|review|case|biomechanics|other", "population": "who was studied", "confidence": "high|medium|low", "areas": ${JSON.stringify(areas)}}]` },
     { role: "user", content: `Title: ${p.title} (${p.year})\nAbstract: ${p.abstract.slice(0, 2500)}` },
-  ], { maxTokens: 500, temperature: 0 });
+  ], { maxTokens: 500, temperature: 0, purpose: "extract findings" });
   const abstractNums = new Set(nums(p.abstract));
   // grounding: a finding whose numbers are not in the abstract is dropped, not trusted
   return json(r.text, []).filter((f) => f?.claim && nums(f.claim).every((n) => abstractNums.has(n) || (Number.isInteger(n) && n <= 10)))
@@ -70,7 +71,7 @@ export async function run({ topics = [], maxPapers = 8 } = {}) {
   log.queries = await needs(topics);
   const candidates = [];
   for (const q of log.queries) {
-    const { papers, errors } = await searchAll(q);
+    const { papers, errors } = await trace.timed("tool", "search OpenAlex, arXiv, Semantic Scholar", { query: q, result: (v) => ({ papers: v.papers.length }) }, () => searchAll(q));
     log.errors.push(...errors.map((e) => `${q}: ${e}`));
     for (const p of papers) {
       if (kb.hasPaper(p.key) || candidates.some((c) => c.key === p.key)) { log.skipped++; continue; }
@@ -90,6 +91,7 @@ export async function run({ topics = [], maxPapers = 8 } = {}) {
     if (!found.length) continue;
     kb.addPaper({ key: p.key, title: p.title, authors: p.authors, year: p.year, venue: p.venue, doi: p.doi, url: p.url, cited: p.cited, source: p.source, query: p.query, why: sc.why, abstract: p.abstract });
     const added = await kb.addFindings(p.key, found);
+    trace.step("tool", "add to the knowledge base", { paper: p.title, findings: added.map((f) => f.id).join(" ") });
     log.kept++; log.findings.push(...added.map((f) => f.id));
   }
   log.seconds = Math.round((Date.now() - t0) / 1000);

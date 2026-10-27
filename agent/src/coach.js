@@ -7,6 +7,7 @@ import * as store from "./store.js";
 import * as kb from "./kb.js";
 import * as evolve from "./evolve.js";
 import * as life from "./life.js";
+import * as trace from "./trace.js";
 
 export const COACHES = {
   head: { name: "Head Coach", role: "chairs the coaching staff and keeps the weekly plan", keys: [] },
@@ -90,7 +91,9 @@ export async function reply({ text, coach, playerId, history = [], rulesOverride
   const sheet = factSheet(player?.athlete || "A");
   const coachId = coach && COACHES[coach] ? coach : route(text, player?.prefs?.coach || "head");
   const past = (player ? player.history.slice(-8) : history.slice(-8)).map((h) => ({ role: h.role, content: h.content }));
-  const evidence = await kb.search(text, { k: 3, area: coachId === "head" ? null : coachId }).catch(() => []);
+  trace.step("tool", "route to a coach", { coach: COACHES[coachId].name, facts: scoped(sheet, coachId).facts.length, memories: player?.memories?.length ?? 0 });
+  const evidence = await trace.timed("tool", "search the knowledge base", { query: text, result: (v) => ({ hits: v.map((e) => e.id).join(" ") || "none" }) },
+    () => kb.search(text, { k: 3, area: coachId === "head" ? null : coachId })).catch(() => []);
   const ruleSet = rulesOverride ?? evolve.rules(coachId);
   // numbers the player wrote, that are in their memory, or that the agreed playbook states (90 degrees) are allowed
   const extra = `${text} ${(player?.memories || []).map((m) => m.text).join(" ")} ${ruleSet.map((r) => r.text).join(" ")} ${life.context(player)}`;
@@ -99,8 +102,9 @@ export async function reply({ text, coach, playerId, history = [], rulesOverride
   let out, verdict, timing = null, tries = 0;
   try {
     for (; tries < 2; tries++) {
-      const r = await chat(msgs, { temperature: tries ? 0.1 : 0.25 });
+      const r = await chat(msgs, { temperature: tries ? 0.1 : 0.25, purpose: tries ? `rewrite the reply (${COACHES[coachId].name})` : `write the reply (${COACHES[coachId].name})` });
       out = r.text; timing = r.timing; verdict = check(out, sheet, extra, evidence);
+      trace.step("check", "verify every number", { ok: verdict.ok, numbers: verdict.numbers, bad: verdict.bad.join("; ") || null });
       if (verdict.ok) break;
       msgs.push({ role: "assistant", content: out }, { role: "user", content: `These numbers are not supported by the fact cited in their sentence: ${verdict.bad.join("; ")}. Rewrite the reply: every number must come from a fact or study cited in the same sentence, like [F4] or [E14].` });
     }
@@ -108,6 +112,7 @@ export async function reply({ text, coach, playerId, history = [], rulesOverride
       const rejected = verdict.bad, draft = out;
       if (record) evolve.rejection({ coach: coachId, question: text, draft, bad: rejected }); // feeds the next reflection run
       out = FALLBACK(sheet, coachId, player); verdict = { ...check(out, sheet), rejected, draft };
+      trace.step("check", "fall back to a measured fact", { reason: "the draft failed the verifier twice" });
     }
   } catch (e) {
     out = FALLBACK(sheet, coachId, player); verdict = { ...check(out, sheet), offline: String(e.message || e) };
@@ -128,8 +133,10 @@ export async function learn(playerId, text) {
     const r = await chat([
       { role: "system", content: "Extract durable facts a coach should remember about the player from their message: injuries or pain, goals, training schedule, availability, preferences. Return a JSON array of short English strings, or [] if none. JSON only." },
       { role: "user", content: text },
-    ], { maxTokens: 120, temperature: 0 });
+    ], { maxTokens: 120, temperature: 0, purpose: "extract what to remember" });
     const arr = JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]);
-    return [...saved, ...store.remember(playerId, arr.filter((x) => typeof x === "string").slice(0, 3))];
+    const kept = store.remember(playerId, arr.filter((x) => typeof x === "string").slice(0, 3));
+    if (kept.length || saved.length) trace.step("tool", "save to player memory", { items: [...saved, ...kept].join("; ") });
+    return [...saved, ...kept];
   } catch { return saved; }
 }

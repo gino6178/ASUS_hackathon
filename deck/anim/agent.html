@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booking agent architecture</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #04070A; }
+  body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  canvas { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// The booking agent, as an architecture animation: a message goes into the local LLM, the agent calls its tools
+// (each player's calendar, where each player starts, the sports centres), ranks the free courts by fairness, asks the
+// player, and books. The data is the real run logged on the station. Every frame is a pure function of t (?export=1).
+const L = 20;
+const params = new URLSearchParams(location.search);
+const SHOW_CAPTIONS = params.get('captions') !== '0';
+const C = { bg: '#04070A', panel: '#0A1014', panel2: '#111A20', line: 'rgba(220,230,235,0.14)', ink: '#EEF1F2', muted: '#8E989D', cream: '#F2E6C9',
+  blue: '#6FB6FF', coral: '#FF8A6B', green: '#5FD39A', amber: '#F2D46B', red: '#FF6B5E', violet: '#B9A2FF' };
+const HEAD = 'Bahnschrift, "Segoe UI", sans-serif', BODY = '"Segoe UI", Calibri, sans-serif', MONO = 'Consolas, monospace';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+
+// ---------- the real run (station trace and search) ----------
+const PEOPLE = [{ n: 'Hyeok', lat: 25.08, lon: 121.58, c: C.cream }, { n: 'Amy', lat: 25.03, lon: 121.54, c: C.blue }, { n: 'Ben', lat: 25.01, lon: 121.46, c: C.coral }];
+const VENUES = [["Zhongzheng",25.0386,121.5193,1,7.7],["Da'an",25.0207,121.546,1,8.8],["Xinyi",25.0317,121.5668,1,11],["Songshan",25.049,121.5504,0,10.1],["Zhongshan",25.0549,121.5214,0,7.9],["Datong",25.0653,121.5164,1,8.4],["Wanhua",25.0475,121.5066,1,8.2],["Wenshan",24.997,121.5594,1,10.1],["Nangang",25.0489,121.5819,1,13],["Neihu",25.0782,121.5751,1,13.9],["Shilin",25.0894,121.5215,1,10.8],["Beitou",25.1165,121.5099,0,12.9],["Sanchong",25.0546,121.4879,1,9.7],["Luzhou",25.0911,121.462,1,11.9],["Banqiao",25.0227,121.4577,0,13.9],["Zhonghe",24.993,121.4875,1,13.4],["Yonghe",25.0032,121.5246,0,10.2],["Tucheng",24.9857,121.4572,1,16.2]];
+const TOP = [['Zhongzheng', [7.7, 2.3, 6.8], 7.7], ['Wanhua', [8.2, 3.9, 6.3], 8.2], ['Datong', [6.6, 4.6, 8.4], 8.4]];
+const CENTER = { lat: 25.04, lon: 121.5267 };
+
+// ---------- layout ----------
+const MSG = { x: 70, y: 150, w: 440, h: 150 };
+const LLM = { x: 760, y: 225 };
+const AGT = { x: 760, y: 410 };
+const CAL = { x: 70, y: 520, w: 470, h: 470 };
+const MAP = { x: 600, y: 520, w: 720, h: 470 };
+const RANK = { x: 1380, y: 520, w: 470, h: 470 };
+const ASK = { x: 1400, y: 130, w: 450, h: 300 };
+const geo = (lat, lon) => { // the map panel: same scale on both axes (lon shrunk by cos lat)
+  const s = 3900; // zoomed on the three players; outlying centres sit at the panel's edge
+  return { x: MAP.x + MAP.w / 2 + (lon - 121.522) * Math.cos(25 * Math.PI / 180) * s, y: MAP.y + MAP.h / 2 + 34 - (lat - 25.046) * s };
+};
+
+// ---------- helpers ----------
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+const ramp = (t, t0, d = 0.5) => ease(clamp((t - t0) / d));
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function panel(p, title, color, a, sub) {
+  ctx.globalAlpha = a; rr(p.x, p.y, p.w, p.h, 18); ctx.fillStyle = C.panel; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = color; ctx.font = `700 15px ${MONO}`; ctx.textBaseline = 'alphabetic'; ctx.fillText(title.toUpperCase().split('').join(' '), p.x + 22, p.y + 34);
+  if (sub) { ctx.fillStyle = C.muted; ctx.font = `15px ${BODY}`; ctx.fillText(sub, p.x + 22, p.y + 58); }
+  ctx.globalAlpha = 1;
+}
+function text(s, x, y, size, color, weight = 400, font = BODY, align = 'left', a = 1) { ctx.globalAlpha = a; ctx.font = `${weight} ${size}px ${font}`; ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.textAlign = 'left'; ctx.globalAlpha = 1; }
+function edge(a, b, color, t, t0, dur = 0.6, alpha = 0.35) {
+  const on = t >= t0; ctx.strokeStyle = on ? color : C.line; ctx.globalAlpha = on ? alpha + 0.25 : 1; ctx.lineWidth = 2; ctx.setLineDash([6, 8]);
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const u = (t - t0) / dur;
+  if (u > 0 && u < 1) { const e = ease(u); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 18; ctx.beginPath(); ctx.arc(a.x + (b.x - a.x) * e, a.y + (b.y - a.y) * e, 9, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+}
+function check(x, y, a, color = C.green) { if (a <= 0) return; ctx.globalAlpha = a; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x - 1, y + 4); ctx.lineTo(x + 6, y - 5); ctx.stroke(); ctx.globalAlpha = 1; }
+
+// ---------- timeline (seconds) ----------
+const T = { msg: 0.3, toLLM: 1.0, json: 1.6, toAgt: 3.0, cal: 3.6, calRows: [4.3, 4.9, 5.5], loc: 6.2, pins: [6.8, 7.2, 7.6], mid: 8.1, venues: 8.6, rank: 10.4, best: 11.6, toAsk: 12.6, friends: [13.2, 13.7], ask: 14.3, tap: 15.6, done: 16.4 };
+const STAGES = [['Read', T.toLLM], ['Plan', T.json], ['Act', T.cal], ['Check', T.rank], ['Ask', T.toAsk], ['Done', T.done]];
+const CAPTIONS = [[0, 'A plain message on Telegram'], [T.toLLM, 'The local LLM reads it into a structured request'], [T.cal, 'The agent checks each player\'s calendar'],
+  [T.loc, 'Where each player starts, rounded to about 1 km'], [T.venues, '18 sports centres: which have a free court on Saturday evening?'], [T.rank, 'Ranked by the longest trip anyone would make'],
+  [T.toAsk, 'Friends invited; nothing is booked until the player says yes'], [T.done, 'Booked: in all three calendars, with a map pin']];
+
+function render(t) {
+  t = t % L;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = C.bg; ctx.fillRect(0, 0, 1920, 1080);
+  // stage strip
+  STAGES.forEach(([s, t0], i) => {
+    const x = 560 + i * 135, on = t >= t0, cur = on && (i === STAGES.length - 1 || t < STAGES[i + 1][1]);
+    rr(x, 40, 120, 44, 22); ctx.fillStyle = cur ? C.cream : on ? '#1b2730' : C.panel; ctx.fill(); ctx.strokeStyle = on ? C.cream : C.line; ctx.lineWidth = 1.5; ctx.stroke();
+    text(s, x + 60, 69, 19, cur ? C.bg : on ? C.ink : C.muted, 700, HEAD, 'center');
+    if (i < STAGES.length - 1) text('→', x + 127, 70, 18, C.muted, 400, BODY, 'center');
+  });
+  text('BOOKING AGENT · ON THE LOCAL MODEL', 70, 70, 18, C.cream, 700, MONO);
+
+  // edges (drawn under the nodes)
+  edge({ x: MSG.x + MSG.w, y: MSG.y + 75 }, { x: LLM.x - 170, y: LLM.y }, C.cream, t, T.toLLM);
+  edge({ x: LLM.x, y: LLM.y + 55 }, { x: AGT.x, y: AGT.y - 55 }, C.cream, t, T.toAgt);
+  edge({ x: AGT.x - 120, y: AGT.y + 40 }, { x: CAL.x + CAL.w / 2, y: CAL.y }, C.blue, t, T.cal);
+  edge({ x: AGT.x, y: AGT.y + 55 }, { x: MAP.x + MAP.w / 2, y: MAP.y }, C.blue, t, T.loc);
+  edge({ x: MAP.x + MAP.w, y: MAP.y + 190 }, { x: RANK.x, y: RANK.y + 190 }, C.green, t, T.rank);
+  edge({ x: AGT.x + 170, y: AGT.y - 20 }, { x: ASK.x, y: ASK.y + 150 }, C.amber, t, T.toAsk);
+
+  // message
+  const am = ramp(t, T.msg);
+  ctx.globalAlpha = am; rr(MSG.x, MSG.y, MSG.w, MSG.h, 18); ctx.fillStyle = '#2B5278'; ctx.fill(); ctx.globalAlpha = 1;
+  text('Hyeok · Telegram', MSG.x + 22, MSG.y + 36, 16, '#cfe3f5', 700, BODY, 'left', am);
+  text('I want to play doubles with Amy', MSG.x + 22, MSG.y + 76, 25, C.ink, 600, BODY, 'left', am);
+  text('and Ben on Saturday evening', MSG.x + 22, MSG.y + 110, 25, C.ink, 600, BODY, 'left', am);
+
+  // LLM node and its structured output
+  const al = ramp(t, T.toLLM - 0.3);
+  ctx.globalAlpha = 0.25 + 0.75 * al; rr(LLM.x - 170, LLM.y - 55, 340, 110, 55); ctx.fillStyle = C.panel2; ctx.fill(); ctx.strokeStyle = C.cream; ctx.lineWidth = t > T.toLLM + 0.5 && t < T.toAgt ? 4 : 2; ctx.stroke(); ctx.globalAlpha = 1;
+  text('Local LLM', LLM.x, LLM.y - 6, 30, C.cream, 700, HEAD, 'center', 0.4 + 0.6 * al);
+  text('Qwen3-4B · read the request · 0.7 s', LLM.x, LLM.y + 28, 17, C.muted, 400, BODY, 'center', 0.4 + 0.6 * al);
+  const aj = ramp(t, T.json);
+  const J = ['{ "days": ["Sat 2026-10-31"],', '  "window": "18:00-22:00", "hours": 2,', '  "format": "doubles",', '  "friends": ["Amy", "Ben"] }'];
+  J.forEach((s, i) => text(s, LLM.x + 200, LLM.y - 40 + i * 28, 19, C.cream, 400, MONO, 'left', ramp(t, T.json + i * 0.25)));
+  if (aj > 0) { ctx.globalAlpha = aj * 0.6; ctx.strokeStyle = C.cream; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(LLM.x + 185, LLM.y - 60); ctx.lineTo(LLM.x + 185, LLM.y + 60); ctx.stroke(); ctx.globalAlpha = 1; }
+
+  // agent hub
+  const ag = ramp(t, T.toAgt);
+  ctx.globalAlpha = 0.25 + 0.75 * ag; rr(AGT.x - 170, AGT.y - 55, 340, 110, 20); ctx.fillStyle = '#16222b'; ctx.fill(); ctx.strokeStyle = C.blue; ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+  text('Booking agent', AGT.x, AGT.y - 4, 30, C.ink, 700, HEAD, 'center', 0.4 + 0.6 * ag);
+  text('plans the tool calls', AGT.x, AGT.y + 28, 17, C.muted, 400, BODY, 'center', 0.4 + 0.6 * ag);
+
+  // tool 1 · calendars
+  const ac = ramp(t, T.cal);
+  panel(CAL, 'Tool · calendars', C.blue, 0.3 + 0.7 * ac, 'Sat 31 Oct, 18:00-22:00');
+  PEOPLE.forEach((p, i) => {
+    const y = CAL.y + 130 + i * 105, a = ramp(t, T.calRows[i] - 0.4);
+    text(p.n, CAL.x + 26, y + 8, 24, p.c, 700, HEAD, 'left', 0.3 + 0.7 * a);
+    ['Thu', 'Fri', 'Sat', 'Sun'].forEach((d, k) => {
+      const x = CAL.x + 140 + k * 66, sat = d === 'Sat';
+      ctx.globalAlpha = 0.3 + 0.7 * a; rr(x, y - 22, 58, 40, 8); ctx.fillStyle = sat ? (t > T.calRows[i] ? 'rgba(95,211,154,.25)' : '#1b2730') : '#131c22'; ctx.fill();
+      if (sat) { ctx.strokeStyle = t > T.calRows[i] ? C.green : C.line; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.globalAlpha = 1; text(d, x + 29, y + 4, 15, sat ? C.ink : C.muted, 600, BODY, 'center', 0.3 + 0.7 * a);
+    });
+    check(CAL.x + 425, y - 2, ramp(t, T.calRows[i], 0.3));
+  });
+  text('no clashes, no exam or match that day', CAL.x + 26, CAL.y + CAL.h - 24, 16, C.green, 600, BODY, 'left', ramp(t, T.calRows[2] + 0.3));
+
+  // tool 2 · the map: where everyone starts, the middle, the sports centres
+  const ap = ramp(t, T.loc);
+  panel(MAP, 'Tool · map', C.blue, 0.3 + 0.7 * ap, 'players\' areas · the middle · 18 sports centres (grey: no free court)');
+  ctx.save(); rr(MAP.x + 2, MAP.y + 70, MAP.w - 4, MAP.h - 72, 14); ctx.clip();
+  // a faint street grid and the river, to read as a map
+  ctx.globalAlpha = 0.5 * ap; ctx.strokeStyle = '#16222a'; ctx.lineWidth = 1;
+  for (let x = MAP.x; x < MAP.x + MAP.w; x += 36) { ctx.beginPath(); ctx.moveTo(x, MAP.y); ctx.lineTo(x + 40, MAP.y + MAP.h); ctx.stroke(); }
+  for (let y = MAP.y + 70; y < MAP.y + MAP.h; y += 36) { ctx.beginPath(); ctx.moveTo(MAP.x, y); ctx.lineTo(MAP.x + MAP.w, y - 20); ctx.stroke(); }
+  ctx.strokeStyle = '#1d4f6b'; ctx.lineWidth = 9; ctx.beginPath();
+  [[25.12, 121.46], [25.08, 121.49], [25.06, 121.505], [25.03, 121.495], [25.01, 121.52], [24.99, 121.55]].forEach(([la, lo], i) => { const g = geo(la, lo); i ? ctx.lineTo(g.x, g.y) : ctx.moveTo(g.x, g.y); });
+  ctx.stroke(); ctx.globalAlpha = 1;
+  // sports centres
+  VENUES.forEach(([n, la, lo, free], i) => {
+    const g = geo(la, lo), a = ramp(t, T.venues + i * 0.07, 0.3); if (a <= 0) return;
+    const best = n === 'Zhongzheng' && t > T.best, top = TOP.some((x) => x[0] === n) && t > T.rank;
+    ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(g.x, g.y, best ? 15 : top ? 11 : 7, 0, 7);
+    ctx.fillStyle = best ? C.green : free ? C.ink : '#3a454c'; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
+    const off = { Zhongzheng: [-20, -14, 'right'], Wanhua: [-16, -10, 'right'], Datong: [16, -12, 'left'] }[n] ?? [14, -10, 'left'];
+    if (top || best) text(n, g.x + off[0], g.y + off[1], best ? 19 : 16, best ? C.green : C.ink, 700, BODY, off[2], a);
+  });
+  // the middle
+  const amid = ramp(t, T.mid), gc = geo(CENTER.lat, CENTER.lon);
+  if (amid > 0) { ctx.globalAlpha = amid; ctx.setLineDash([5, 6]); ctx.strokeStyle = C.cream; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gc.x, gc.y, 34, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+  // trips to the fairest court
+  const ab = ramp(t, T.best, 0.8), gz = geo(25.0386, 121.5193);
+  PEOPLE.forEach((p, i) => {
+    const g = geo(p.lat, p.lon);
+    if (ab > 0) { ctx.globalAlpha = ab; ctx.strokeStyle = p.c; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(g.x + (gz.x - g.x) * ab, g.y + (gz.y - g.y) * ab); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      const k = i === 1 ? 0 : 0.42; text(`${TOP[0][1][i]} km`, g.x + (gz.x - g.x) * k + (i === 1 ? 46 : 0), g.y + (gz.y - g.y) * k + (i === 1 ? 8 : -12), 19, p.c, 800, BODY, 'center', ab); }
+    const a = ramp(t, T.pins[i], 0.35); if (a <= 0) return;
+    ctx.globalAlpha = a; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(g.x, g.y, 11, 0, 7); ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
+    text(p.n, g.x, g.y - 18, 18, p.c, 800, BODY, 'center', a);
+  });
+  ctx.restore();
+
+  // ranking by fairness
+  const ar = ramp(t, T.rank);
+  panel(RANK, 'Check · fairness', C.green, 0.3 + 0.7 * ar, 'rank by the longest trip anyone makes');
+  TOP.forEach(([n, d, mx], i) => {
+    const y = RANK.y + 125 + i * 105, a = ramp(t, T.rank + 0.2 + i * 0.25), win = i === 0 && t > T.best;
+    text(`${i + 1}. ${n}`, RANK.x + 24, y, 22, win ? C.green : C.ink, 700, HEAD, 'left', a);
+    text(`farthest ${mx} km`, RANK.x + RANK.w - 24, y, 17, win ? C.green : C.muted, 600, BODY, 'right', a);
+    d.forEach((km, k) => { ctx.globalAlpha = a; rr(RANK.x + 24 + k * 142, y + 14, Math.max(8, (km / 9) * 128), 12, 6); ctx.fillStyle = PEOPLE[k].c; ctx.fill(); ctx.globalAlpha = 1;
+      text(`${PEOPLE[k].n} ${km}`, RANK.x + 24 + k * 142, y + 46, 13, C.muted, 600, BODY, 'left', a); });
+  });
+  text('Zhongshan was closer but full', RANK.x + 24, RANK.y + RANK.h - 22, 15, C.muted, 600, BODY, 'left', ramp(t, T.best + 0.4));
+
+  // ask the player; friends answer; booked
+  const aa = ramp(t, T.toAsk);
+  panel(ASK, 'Person · asks first', C.amber, 0.3 + 0.7 * aa);
+  ['Amy', 'Ben'].forEach((n, i) => {
+    const a = ramp(t, T.friends[i], 0.3); rr(ASK.x + 22 + i * 150, ASK.y + 54, 136, 34, 17); ctx.globalAlpha = a; ctx.fillStyle = 'rgba(95,211,154,.18)'; ctx.fill(); ctx.globalAlpha = 1;
+    text(`${n}: I'm in ✓`, ASK.x + 90 + i * 150, ASK.y + 77, 16, C.green, 700, BODY, 'center', a);
+  });
+  text('Book Zhongzheng · Sat 18:00-20:00 · court 4?', ASK.x + 22, ASK.y + 122, 19, C.ink, 600, BODY, 'left', ramp(t, T.ask));
+  text('NT$1000 · NT$334 each', ASK.x + 22, ASK.y + 150, 16, C.muted, 400, BODY, 'left', ramp(t, T.ask));
+  const tap = t > T.tap; rr(ASK.x + 22, ASK.y + 168, 150, 40, 10); ctx.globalAlpha = ramp(t, T.ask); ctx.fillStyle = tap ? '#2AABEE' : '#22364a'; ctx.fill(); ctx.globalAlpha = 1;
+  text('Book it', ASK.x + 97, ASK.y + 195, 18, '#fff', 700, BODY, 'center', ramp(t, T.ask));
+  const ad = ramp(t, T.done);
+  if (ad > 0) { text('Booked ✓', ASK.x + 196, ASK.y + 197, 28, C.green, 800, HEAD, 'left', ad); text('in 3 calendars, with a map pin for each player', ASK.x + 22, ASK.y + 254, 17, C.muted, 600, BODY, 'left', ad); }
+
+  // caption
+  if (SHOW_CAPTIONS) {
+    const cap = [...CAPTIONS].reverse().find(([t0]) => t >= t0)[1];
+    text(cap, 960, 1050, 24, C.ink, 600, BODY, 'center', 0.9);
+  }
+}
+window.render = render;
+window.LOOP_SECONDS = L;
+if (params.get('export') !== '1') {
+  const start = performance.now();
+  const loop = (now) => { if (!window.PAUSED) render((now - start) / 1000); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+} else render(0);
+</script>
+</body>
+</html>

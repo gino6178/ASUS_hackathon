@@ -6,7 +6,9 @@ const MODEL = process.env.LLM_MODEL || "Qwen3-4B-int4-ov";
 const TIMEOUT = +(process.env.LLM_TIMEOUT_MS || 180000);
 const THINK = /<think>[\s\S]*?<\/think>\s*/g;
 
-export async function chat(messages, { maxTokens = 260, temperature = 0.4 } = {}) {
+import * as trace from "./trace.js";
+
+export async function chat(messages, { maxTokens = 260, temperature = 0.4, purpose = "LLM call" } = {}) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
   // Qwen3 reasoning off: coaching replies need to be quick (the OpenVINO server also does this itself)
   const msgs = messages.map((m, i) => (i === messages.length - 1 && m.role === "user" && !/\/no_think/.test(m.content) ? { ...m, content: m.content + " /no_think" } : m));
@@ -18,7 +20,9 @@ export async function chat(messages, { maxTokens = 260, temperature = 0.4 } = {}
     });
     if (!r.ok) throw new Error(`LLM server ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const j = await r.json(), secs = (Date.now() - t0) / 1000, n = j.usage?.completion_tokens;
-    return { text: j.choices[0].message.content.replace(THINK, "").trim(),
+    const text = j.choices[0].message.content.replace(THINK, "").trim();
+    trace.step("llm", purpose, { model: MODEL, ms: Date.now() - t0, tokens: n ?? null, out: text.replace(/\s+/g, " ") });
+    return { text,
       timing: j.timing ?? { seconds: +secs.toFixed(2), tokens_per_s: n ? +(n / secs).toFixed(1) : null, device: process.env.LLM_DEVICE || "GPU" } };
   } finally { clearTimeout(t); }
 }

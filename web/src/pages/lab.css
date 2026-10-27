@@ -27,3 +27,48 @@
 .chat-sources a { color: inherit; text-decoration: underline; }
 .chat-rate { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .chat-rate .chip { padding: 2px 8px; min-height: 0; }
+/* Messages: free courts per hour */
+.court-grid { display: grid; gap: 3px; margin: var(--s3) 0 var(--s4); overflow-x: auto; }
+.court-grid [role=row] { display: grid; grid-template-columns: 76px repeat(15, minmax(26px, 1fr)); gap: 3px; align-items: center; }
+.court-grid span:not(:first-child) { height: 26px; border-radius: 5px; display: grid; place-items: center; font-size: 12px; color: var(--ink); background: rgb(95 211 154 / calc(var(--f, 0) * .55 + .05)); }
+.court-grid [role=row]:first-child span { background: none; height: auto; }
+.court-grid span.closed { background: transparent; border: 1px dashed var(--rule); }
+/* Agent trace */
+.tr-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--s4); }
+.tr-grid { display: grid; grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+.tr-runs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 76vh; overflow: auto; }
+.tr-runs button { width: 100%; text-align: left; display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.tr-runs button[aria-pressed=true] { border-color: var(--accent); background: rgb(242 230 201 / .06); }
+.tr-runs b { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.tr-dots { display: flex; flex-wrap: wrap; gap: 3px; } .tr-dots i { width: 9px; height: 9px; border-radius: 50%; }
+.tr-run header { margin-bottom: var(--s3); }
+.tr-steps { list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 8px; position: relative; }
+.tr-step { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 12px; padding: 8px 10px; border-left: 4px solid var(--c); border-radius: 8px; background: rgb(255 255 255 / .02); }
+.tr-step.bad { background: rgb(255 107 94 / .08); }
+.tr-type { font: 700 11px/1.8 var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.tr-step p { margin: 2px 0 0; overflow-wrap: anywhere; }
+.tr-out { font-size: 13px; color: var(--ink-2); white-space: pre-line; border-left: 2px solid var(--rule); padding-left: 8px; margin-top: 4px !important; }
+.tr-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: var(--s4); } .tr-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+@media (max-width: 860px) { .tr-grid { grid-template-columns: 1fr; } .tr-runs { max-height: none; } }
+/* Find a court: the booking agent's search on a map */
+.cr-grid { display: grid; grid-template-columns: auto minmax(260px, 1fr); gap: var(--s4); align-items: start; }
+.cr-map { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--rule); background: #0b1015; max-width: 100%; }
+.cr-map img { position: absolute; width: 256px; height: 256px; filter: invert(1) hue-rotate(180deg) brightness(.78) contrast(.92) saturate(.35); user-select: none; }
+.cr-map svg { position: absolute; inset: 0; overflow: visible; font: 600 15px/1 var(--font); }
+.cr-v { animation: crIn .4s both; } .cr-v.free { fill: #EEF1F2; stroke: #04070A; stroke-width: 2; } .cr-v.full { fill: #3a454c; stroke: #04070A; stroke-width: 1.5; }
+.cr-mid circle { fill: rgb(242 230 201 / .08); stroke: #F2E6C9; stroke-width: 2; stroke-dasharray: 5 6; animation: crIn .6s both; } .cr-mid text { fill: #F2E6C9; font-size: 14px; }
+.cr-top circle { fill: #04070A; stroke: #F2E6C9; stroke-width: 3; animation: crIn .4s both; } .cr-top text { fill: #F2E6C9; font-weight: 800; }
+.cr-top .lbl { font-weight: 700; paint-order: stroke; stroke: #04070A; stroke-width: 5px; }
+.cr-top.win circle { fill: #5FD39A; stroke: #EEF1F2; } .cr-top.win text:not(.lbl) { fill: #04070A; } .cr-top.win .lbl { fill: #5FD39A; font-size: 18px; }
+.cr-trip line { stroke-width: 4; stroke-dasharray: 8 6; animation: crDash 1.2s linear both; } .cr-trip text { font-weight: 800; font-size: 18px; paint-order: stroke; stroke: #04070A; stroke-width: 5px; }
+.cr-p circle { fill: var(--c); stroke: #04070A; stroke-width: 3; animation: crIn .4s both; } .cr-p text { fill: var(--c); font-weight: 800; font-size: 17px; paint-order: stroke; stroke: #04070A; stroke-width: 5px; }
+.cr-attr { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: #9aa5ab; background: rgb(4 7 10 / .7); padding: 2px 6px; border-radius: 4px; }
+@keyframes crIn { from { opacity: 0; transform: scale(.4); transform-box: fill-box; transform-origin: center; } to { opacity: 1; transform: none; } }
+@keyframes crDash { from { stroke-dashoffset: 300; opacity: 0; } to { stroke-dashoffset: 0; opacity: 1; } }
+.cr-steps { list-style: none; counter-reset: s; margin: 0 0 var(--s4); padding: 0; display: grid; gap: 8px; }
+.cr-steps li { counter-increment: s; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rule); color: var(--ink-3); transition: all .4s; }
+.cr-steps li::before { content: counter(s); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; margin-right: 10px; background: var(--rule); color: var(--ink); font-size: 12px; font-weight: 700; }
+.cr-steps li.on { color: var(--ink); border-color: var(--accent); } .cr-steps li.on::before { background: var(--accent); color: #04070A; }
+.cr-top-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; } .cr-top-list li.win b { color: var(--good); } .cr-top-list p { margin: 2px 0 0; }
+.cr-games { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s3); }
+@media (max-width: 1500px) { .cr-grid { grid-template-columns: 1fr; } }
