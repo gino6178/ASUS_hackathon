@@ -11,15 +11,14 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 
 ## Demo video and deck
 
-[![ShuttleCoach demo video (2:57)](docs/media/video_title.jpg)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4)
+[![ShuttleCoach demo video (2:57), watch on YouTube](docs/media/video_title.jpg)](https://youtu.be/a7frKob9Zik)
 
 | | |
 |---|---|
-| ▶ **Demo video** (2:57, narrated) | [Play / download (MP4, 19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
+| ▶ **Demo video** (2:57, narrated) | [Watch on YouTube](https://youtu.be/a7frKob9Zik) · [download MP4 (19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
 | 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
-| 🎬 **Storyboard** (24 shots) | [deck/video/ShuttleCoach_storyboard.pdf](deck/video/ShuttleCoach_storyboard.pdf) |
 
-Click the picture to play or download the MP4.
+Click the picture to watch on YouTube.
 
 ## What it does
 
@@ -75,7 +74,7 @@ Next: the same measurements on the Arc Pro B70 with the OpenVINO backend in [`ll
 | [`agent/`](agent) | Agent gateway (Node): grounded coach chat on a local LLM with a number verifier, player memory, the research agent and knowledge base (RAG), self-evolving playbooks, and the 24-hour coach on Telegram |
 | [`llm-server/`](llm-server) | Qwen3-4B INT4 on OpenVINO GenAI behind an OpenAI-compatible API, for the Arc Pro B70 |
 | [`server/`](server) | `start.sh`: starts the LLM backend (Ollama or OpenVINO) and the gateway on the coaching station |
-| [`deck/`](deck) | Proposal deck (PDF, PPTX), the demo video's storyboard, and the scripts that build the deck and record the video |
+| [`deck/`](deck) | Proposal deck (PDF, PPTX) and the scripts that build the deck and record the video |
 | [`docs/`](docs) | Demo video and README media, demo video script, coach portrait prompts |
 
 ## Run it
