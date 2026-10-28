@@ -1,10 +1,11 @@
 # ShuttleCoach
 
-**One camera in. A full coaching staff out. 100% offline.**
+**One camera in. A self-evolving coaching staff out. 100% offline.**
 
-ShuttleCoach is a private, on-device team of AI badminton coaches. It turns a match video into 3D shuttle flight,
-shot speeds and heat zones; four coach agents read it together with each player's memory, debate the week at a round
-table and agree a training plan; on Telegram the team books a court that is fair to everyone. Every model runs on the
+ShuttleCoach is a private, on-device team of self-evolving AI badminton coaches. It turns a match video into 3D shuttle
+flight, shot speeds and heat zones; four coach agents read it together with each player's memory, debate the week at a
+round table and agree a training plan; every night each coach evolves its own playbook from new research and the
+player's feedback, behind safety gates; on Telegram the team books a court that is fair to everyone. Every model runs on the
 local machine, built for one Intel Arc Pro B70 (32 GB). Match video and player data never leave it.
 
 ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B70 32GB) · Theme: Everyday AI · Team rm-rf-2
@@ -90,12 +91,16 @@ player shares it.
 Between points, a short brief from the coaches; notes appear when a pattern shows up. In the prototype, recorded
 rallies are streamed as if live.
 
-### 7 · Coaches that keep learning, safely
+### 7 · Self-evolving coach agents
 
-Every night a research agent searches OpenAlex, arXiv and Semantic Scholar and adds findings to the knowledge base.
-Each coach proposes changes to its own playbook. A change is adopted only if it cites a study, passes the safety
+The coaches are not fixed prompts: each one is an agent that evolves its own playbook. Every night a research agent
+searches OpenAlex, arXiv and Semantic Scholar and adds findings to the knowledge base; each coach reflects on the
+player's feedback and the drafts its verifier rejected, and proposes a new version of its playbook, used from the next
+reply. A change is adopted only if it cites a study, passes the safety
 check and does not regress on the coach's test questions. Anything about health waits for a human coach, who can
 decline it; every version can be rolled back.
+
+![Every night each coach agent evolves its own playbook: research, reflect, propose, gate, adopt v+1](docs/media/gif/evolution_loop.gif)
 
 <p>
   <img src="docs/media/gif/research.gif" alt="Knowledge base: findings from the nightly research agent" width="49%">
@@ -168,7 +173,7 @@ Next: the same measurements on the Arc Pro B70 with the OpenVINO backend in [`ll
 | [`agent/`](agent) | Agent gateway (Node): grounded coach chat on a local LLM with a number verifier, player memory, the research agent and knowledge base (RAG), self-evolving playbooks, and the 24-hour coach on Telegram |
 | [`llm-server/`](llm-server) | Qwen3-4B INT4 on OpenVINO GenAI behind an OpenAI-compatible API, for the Arc Pro B70 |
 | [`server/`](server) | `start.sh`: starts the LLM backend (Ollama or OpenVINO) and the gateway on the coaching station |
-| [`deck/`](deck) | Proposal deck (PDF, PPTX) and the scripts that build the deck and record the video |
+| [`deck/`](deck) | Proposal deck (PDF, PPTX), the scripts that build it and record the app, and [`deck/promo`](deck/promo): the demo film in Remotion, built with [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) shot recipes |
 | [`docs/`](docs) | Demo video and README media, demo video script, coach portrait prompts |
 
 ## Run it
