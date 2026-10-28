@@ -16,9 +16,18 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 | | |
 |---|---|
 | ▶ **Demo video** (2:57, narrated) | [Watch on YouTube](https://youtu.be/a7frKob9Zik) · [download MP4 (19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
+| 🖱 **Full walkthrough** (8:43, no narration) | [download MP4 (21 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_walkthrough.mp4): every page operated in order, from opening the app to the agent trace |
 | 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
 
 Click the cover to watch the demo (2:57) on YouTube.
+
+### Full walkthrough
+
+Thirteen steps through the running app, each labelled on screen: open the app, analyse a match video, the match
+analysis tabs, the auto highlight reel, Rally 3D and the scouting report, the four coaches, asking a coach and the
+voice coach, the round table, live mode, the Lab, player memory and messages, finding a court, and the agent trace.
+
+[![Full walkthrough (8:43): click to play or download the MP4](docs/media/walkthrough_poster.jpg)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_walkthrough.mp4)
 
 ## Features
 
