@@ -1,10 +1,71 @@
 # ShuttleCoach
 
-A private, on-device multi-agent badminton coach. One camera in; 3D shuttle flight, shot speeds, heat zones, a
-coaching staff that debates the week at a round table, and a training plan out. Every model runs on the local
-machine; match video never leaves it.
+**One camera in. A full coaching staff out. 100% offline.**
 
-ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B70 32GB) · Theme: Everyday AI
+ShuttleCoach is a private, on-device team of AI badminton coaches. It turns a match video into 3D shuttle flight,
+shot speeds and heat zones; four coach agents read it together with each player's memory, debate the week at a round
+table and agree a training plan; on Telegram the team books a court that is fair to everyone. Every model runs on the
+local machine, built for one Intel Arc Pro B70 (32 GB). Match video and player data never leave it.
+
+ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B70 32GB) · Theme: Everyday AI · Team rm-rf-2
+
+## Demo video and deck
+
+[![ShuttleCoach demo video (2:57)](docs/media/video_title.jpg)](docs/media/ShuttleCoach_demo.mp4)
+
+| | |
+|---|---|
+| ▶ **Demo video** (2:57, narrated) | [docs/media/ShuttleCoach_demo.mp4](docs/media/ShuttleCoach_demo.mp4) |
+| 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
+| 🎬 **Storyboard** (24 shots) | [deck/video/ShuttleCoach_storyboard.pdf](deck/video/ShuttleCoach_storyboard.pdf) |
+
+If the video does not play in the browser, use "Download raw file" on its page.
+
+## What it does
+
+| Feature | What the player gets |
+|---|---|
+| **Match analysis** | 2D shuttle tracking, 3D flight, shot type and speed per rally, heat zones of points won and lost, poses |
+| **Four coach agents** | Coach Lin (tactics), Coach Kai (technique), Coach Ren (fitness), Coach Ada (data), each grounded in the match numbers and the player's memory |
+| **Round table** | The coaches argue for their priorities live on the local model; the head coach rules; four goals and a 7-day plan come out |
+| **Voice coach** | Ask by voice (Whisper on the device), the answer is spoken back |
+| **Auto highlights** | Rallies picked and cut, ready to post |
+| **Live mode** | A brief from the coaches between points, and notes when a pattern appears |
+| **Self-evolving playbooks** | A research agent reads new studies every night; coaches propose changes to their own playbooks, tested before a human approves |
+| **24-hour coach on Telegram** | Meals, schedule reminders, evening check-ins |
+| **Booking agent** | Finds the fairest court for the whole group and books it in a browser, stopping for the player's OK |
+| **Agent trace** | Every LLM call, tool call, check and human approval, step by step |
+
+## How it works
+
+![Architecture: match video to 3D shots and match data, coach agents with memory, simulator, coaching](docs/media/architecture.gif)
+
+1. **Perception.** TrackNetV5 finds the shuttle in 2D; monocular 3D reconstruction gives its flight; hits and poses
+   are detected. The result is structured match data: every shot, its speed, height and landing spot.
+2. **Facts, not guesses.** Deterministic code computes every number. The local LLM (Qwen3-4B, 4-bit) only explains
+   them, and a verifier rejects any reply whose figures do not match the data or the cited study.
+3. **Coach agents with memory.** Each coach reads the facts in its own area plus the player's memory (injuries,
+   schedule, feedback), and tests advice in a simulator before giving it.
+4. **On one card.** The LLM runs on OpenVINO GenAI on the Arc Pro B70 (Ollama on other GPUs); the web app talks to an
+   agent gateway on the same station. Nothing goes to the cloud.
+
+![The round table: Coach Ren challenges Coach Lin because of a sore right knee](docs/media/round_table.jpg)
+
+![Booking agent: request, calendars, travel map, court, confirmation](docs/media/booking_agent.gif)
+
+## Measured on the prototype
+
+Measured on our test GPU (Qwen3-4B, 4-bit), from the agent trace:
+
+| | |
+|---|---|
+| Coach reply, verified | 0.8 s |
+| Round table, 9–10 turns | 4.0 s |
+| Booking offer (calendars, 18 centres, travel times) | 3.3 s |
+| Browser booking, 28 steps | 9.4 s |
+| End-to-end tests | 23/23 booking · 21/21 gateway and Telegram |
+
+Next: the same measurements on the Arc Pro B70 with the OpenVINO backend in [`llm-server/`](llm-server).
 
 ## Repository
 
@@ -14,8 +75,8 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 | [`agent/`](agent) | Agent gateway (Node): grounded coach chat on a local LLM with a number verifier, player memory, the research agent and knowledge base (RAG), self-evolving playbooks, and the 24-hour coach on Telegram |
 | [`llm-server/`](llm-server) | Qwen3-4B INT4 on OpenVINO GenAI behind an OpenAI-compatible API, for the Arc Pro B70 |
 | [`server/`](server) | `start.sh`: starts the LLM backend (Ollama or OpenVINO) and the gateway on the coaching station |
-| [`deck/`](deck) | Stage I proposal deck (PDF, PPTX) and the scripts that build it and record its clips |
-| [`docs/`](docs) | Demo video script, coach portrait prompts |
+| [`deck/`](deck) | Proposal deck (PDF, PPTX), the demo video's storyboard, and the scripts that build the deck and record the video |
+| [`docs/`](docs) | Demo video and README media, demo video script, coach portrait prompts |
 
 ## Run it
 
@@ -63,6 +124,14 @@ End-to-end tests of the gateway and the Telegram bot (a fake Telegram API, the r
   names and locations are from OpenStreetMap; the booking site is a demo site on the station with sample schedules.
 - **Agent trace.** Every run records its LLM calls, tool calls, checks, messages and the moments it waits for a person,
   on the station (web: Agent trace; `GET /api/trace`).
+
+## Prototype status
+
+- The demo opens a sample match the station has already analysed; a newly uploaded video is not analysed live yet.
+- Live mode replays recorded rallies as if live.
+- The booking site is a demo site on the station with sample schedules; no real court is booked.
+- The Telegram scene in the video shows the end-to-end test's real output; a bot token is needed to run it on a phone.
+- The narration in the video is a synthetic voice (Kokoro TTS).
 
 ## Not in this repository
 
