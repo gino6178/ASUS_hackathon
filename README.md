@@ -11,14 +11,14 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 
 ## Demo video and deck
 
-[![ShuttleCoach in 16 seconds; click to watch the full demo on YouTube](docs/media/gif/overview.gif)](https://youtu.be/a7frKob9Zik)
+[![ShuttleCoach: one camera in, a full coaching staff out, 100% offline. Click to watch the demo on YouTube](docs/media/cover.jpg)](https://youtu.be/a7frKob9Zik)
 
 | | |
 |---|---|
 | ▶ **Demo video** (2:57, narrated) | [Watch on YouTube](https://youtu.be/a7frKob9Zik) · [download MP4 (19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
 | 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
 
-Click the animation to watch the full demo (2:57) on YouTube.
+Click the cover to watch the demo (2:57) on YouTube.
 
 ## Features
 
@@ -68,9 +68,13 @@ match data or the cited study before the reply is shown.
 
 ### 5 · Voice coach and auto highlights
 
-Ask by voice (Whisper runs in the browser on the device); rallies are picked and cut into highlights ready to post.
+Ask by voice (Whisper runs in the browser on the device). The highlight reel picks a player's best rallies from the
+labels (outright winners, rally length, smash finishes, pressure points) and renders them like a broadcast: the camera
+follows the shuttle, ramps into slow motion and pushes in on the winning shot, then freezes on the winner. The reel is
+recorded in the browser as a 9:16 or 16:9 video with a caption, ready to post; it never leaves the device until the
+player shares it.
 
-![Voice coach and auto highlights](docs/media/gif/voice_highlights.gif)
+![Auto highlight reel: the top five rallies, played with slow motion on the winning smash](docs/media/gif/auto_highlights.gif)
 
 ### 6 · Live mode
 
