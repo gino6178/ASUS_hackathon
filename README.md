@@ -11,15 +11,15 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 
 ## Demo video and deck
 
-[![ShuttleCoach demo video (2:57)](docs/media/video_title.jpg)](docs/media/ShuttleCoach_demo.mp4)
+[![ShuttleCoach demo video (2:57)](docs/media/video_title.jpg)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4)
 
 | | |
 |---|---|
-| ▶ **Demo video** (2:57, narrated) | [docs/media/ShuttleCoach_demo.mp4](docs/media/ShuttleCoach_demo.mp4) |
+| ▶ **Demo video** (2:57, narrated) | [Play / download (MP4, 19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
 | 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
 | 🎬 **Storyboard** (24 shots) | [deck/video/ShuttleCoach_storyboard.pdf](deck/video/ShuttleCoach_storyboard.pdf) |
 
-If the video does not play in the browser, use "Download raw file" on its page.
+Click the picture to play or download the MP4.
 
 ## What it does
 
