@@ -11,14 +11,14 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 
 ## Demo video and deck
 
-[![ShuttleCoach demo video (2:57), watch on YouTube](docs/media/video_title.jpg)](https://youtu.be/a7frKob9Zik)
+[![ShuttleCoach in 16 seconds; click to watch the full demo on YouTube](docs/media/gif/overview.gif)](https://youtu.be/a7frKob9Zik)
 
 | | |
 |---|---|
 | ▶ **Demo video** (2:57, narrated) | [Watch on YouTube](https://youtu.be/a7frKob9Zik) · [download MP4 (19 MB)](https://github.com/gino6178/ASUS_hackathon/raw/main/docs/media/ShuttleCoach_demo.mp4) |
 | 📑 **Proposal deck** (20 pages) | [PDF](deck/ShuttleCoach_StageI_Proposal_v4.pdf) · [PPTX with animations](deck/ShuttleCoach_StageI_Proposal_v4.pptx) · [PPTX, static images](deck/ShuttleCoach_StageI_Proposal_v4_static.pptx) |
 
-Click the picture to watch on YouTube.
+Click the animation to watch the full demo (2:57) on YouTube.
 
 ## Features
 
@@ -27,7 +27,7 @@ Click the picture to watch on YouTube.
 Drop in match footage; the station calibrates the court, tracks the shuttle in 2D and lifts every trajectory into 3D.
 Each rally becomes a 3D replay with shot type, speed, height and landing spot, beside the original video.
 
-![Rally 3D view: the match video beside the 3D replay of the same rally](docs/media/features/rally_3d.jpg)
+![Rally 3D view: the match video beside the 3D replay of the same rally](docs/media/gif/rally_3d.gif)
 
 ### 2 · Four coach agents
 
@@ -42,12 +42,12 @@ computed by code; the coach explains it.
 | **Coach Ada** | Data | The opponent's habits under pressure: after a lift or clear, smashes 38% |
 
 <p>
-  <img src="docs/media/features/coach_lin.jpg" alt="Coach Lin: heat map with the rear forehand zone circled" width="49%">
-  <img src="docs/media/features/coach_kai.jpg" alt="Coach Kai: every shot graded from its 3D flight" width="49%">
+  <img src="docs/media/gif/coach_lin.gif" alt="Coach Lin: heat map with the rear forehand zone circled" width="49%">
+  <img src="docs/media/gif/coach_kai.gif" alt="Coach Kai: every shot graded from its 3D flight" width="49%">
 </p>
 <p>
-  <img src="docs/media/features/coach_ren.jpg" alt="Coach Ren: 3D body with the muscles to train" width="49%">
-  <img src="docs/media/features/coach_ada.jpg" alt="Coach Ada: the opponent's replies after a lift or clear" width="49%">
+  <img src="docs/media/gif/coach_ren.gif" alt="Coach Ren: 3D body with the muscles to train" width="49%">
+  <img src="docs/media/gif/coach_ada.gif" alt="Coach Ada: the opponent's replies after a lift or clear" width="49%">
 </p>
 
 ### 3 · Round table
@@ -57,21 +57,20 @@ coach checks every request against the player's memory and challenges one that c
 fixed priorities (health first, then the points at stake) and writes four measurable goals and a 7-day plan. Every
 turn passes the number verifier.
 
-<p>
-  <img src="docs/media/features/round_table_ruling.jpg" alt="Head coach ruling: health first, then the points at stake" width="49%">
-  <img src="docs/media/features/ask_coach.jpg" alt="Ask a coach: local model reply in 0.76 s, every figure verified" width="49%">
-</p>
+![Round table: the conflict card, the head coach ruling and the plan](docs/media/gif/round_table.gif)
 
 ### 4 · Ask any coach
 
 Type or speak a question. The local model answers in about a second, and a verifier checks every figure against the
 match data or the cited study before the reply is shown.
 
+![Ask a coach: local model reply in 0.76 s, every figure verified](docs/media/gif/ask_coach.gif)
+
 ### 5 · Voice coach and auto highlights
 
 Ask by voice (Whisper runs in the browser on the device); rallies are picked and cut into highlights ready to post.
 
-![Voice coach and auto highlights](docs/media/features/voice_highlights.jpg)
+![Voice coach and auto highlights](docs/media/gif/voice_highlights.gif)
 
 ### 6 · Live mode
 
@@ -86,8 +85,8 @@ check and does not regress on the coach's test questions. Anything about health 
 decline it; every version can be rolled back.
 
 <p>
-  <img src="docs/media/features/research.jpg" alt="Knowledge base: findings from the nightly research agent" width="49%">
-  <img src="docs/media/features/safety_gate.jpg" alt="Safety gate: health changes need a human coach" width="49%">
+  <img src="docs/media/gif/research.gif" alt="Knowledge base: findings from the nightly research agent" width="49%">
+  <img src="docs/media/gif/safety_gate.gif" alt="Safety gate: health changes need a human coach" width="49%">
 </p>
 
 ### 8 · 24-hour coach on Telegram
@@ -97,8 +96,8 @@ an evening check-in that logs the session. Only text passes through Telegram; `/
 about a player.
 
 <p>
-  <img src="docs/media/features/telegram_meals.jpg" alt="Telegram: Coach Mei plans meals and the bot checks in" width="49%">
-  <img src="docs/media/features/telegram_booking.jpg" alt="Telegram: the court offer, invitations and Book it" width="49%">
+  <img src="docs/media/gif/telegram.gif" alt="Telegram: Coach Mei plans meals and the bot checks in" width="49%">
+  <img src="docs/media/gif/telegram_booking.gif" alt="Telegram: the court offer, invitations and Book it" width="49%">
 </p>
 
 ### 9 · Booking agent: a court that is fair to everyone
@@ -109,18 +108,15 @@ centres and ranks free courts by the longest trip anyone would make. Then it boo
 browser: code types the password (the model never sees it), and it stops before the final confirm until the player
 taps "Book it".
 
-![Find a court: the fairest centre, longest trip about 29 minutes, of 18 centres checked](docs/media/features/court_map.jpg)
-<p>
-  <img src="docs/media/features/browser_review.jpg" alt="Booking site: the agent fills in the booking, 1 hour, 3 players" width="49%">
-  <img src="docs/media/features/browser_confirmed.jpg" alt="Booking confirmed after the player said yes" width="49%">
-</p>
+![Find a court: the fairest centre, longest trip about 29 minutes, of 18 centres checked](docs/media/gif/court_map.gif)
+![The agent books in its own browser and stops for the player's yes](docs/media/gif/browser.gif)
 
 ### 10 · Agent trace
 
 Every run records its LLM calls, tool calls, checks, messages and the moments it waits for a person, step by step,
 on the station.
 
-![Agent trace: each LLM call, tool call and human approval](docs/media/features/agent_trace.jpg)
+![Agent trace: each LLM call, tool call and human approval](docs/media/gif/agent_trace.gif)
 
 ## How it works
 
@@ -134,8 +130,6 @@ on the station.
    schedule, feedback), and tests advice in a simulator before giving it.
 4. **On one card.** The LLM runs on OpenVINO GenAI on the Arc Pro B70 (Ollama on other GPUs); the web app talks to an
    agent gateway on the same station. Nothing goes to the cloud.
-
-![The round table: Coach Ren challenges Coach Lin because of a sore right knee](docs/media/round_table.jpg)
 
 ![Booking agent: request, calendars, travel map, court, confirmation](docs/media/booking_agent.gif)
 
