@@ -111,7 +111,7 @@ async function icon(Comp, color) {
   s.addImage({ path: STATIC ? "shots/cover_poster.png" : "clips/cover.gif", x: 0, y: 0, w: 13.333, h: 7.5, objectName: "3D rally reconstruction" });
   tag(s, "Private badminton intelligence", .7, 1.75);
   txt(s, "SHUTTLE\nCOACH", { x: .7, y: 2.15, w: 6.5, h: 2.6, fontSize: 80, bold: true, color: C.background1, fontFace: "Bahnschrift", charSpacing: 4, lineSpacingMultiple: .85 });
-  txt(s, "A private, on-device multi-agent badminton analyst", { x: .7, y: 4.75, w: 4.9, h: .9, fontSize: 22, color: C.background2 });
+  txt(s, "A self-evolving team of AI coach agents, private and on-device", { x: .7, y: 4.75, w: 5.6, h: .9, fontSize: 22, color: C.background2 });
   s.addText("BATTLEFIELD THUNDERSTORM · INTEL ARC PRO B70 32GB · EVERYDAY AI", { placeholder: "title" });
   txt(s, [{ text: "Team rm-rf-2  ·  " }, { text: GH, options: { hyperlink: { url: GH_URL }, color: H.accent1 } }],
     { x: .7, y: 6.2, w: 9, h: .4, fontSize: 14, color: C.accent5 });
@@ -127,7 +127,7 @@ async function icon(Comp, color) {
     ["Cost model", "Salary or per-match fee", "Monthly, per player", "One station + yearly update"],
     ["Works with no internet", "Yes", "No", "Yes"],
     ["3D flight and shot speed", "Rarely", "2D stats", "Every shot, metric 3D"],
-    ["Plan adapted to the player", "If there is time", "Generic tips", "A coaching staff that debates and learns"],
+    ["Gets better on its own", "If the analyst studies", "When the vendor updates", "Self-evolving: each coach agent evolves its own playbook"],
   ];
   const cx = [3.85, 6.85, 9.85], cw = 2.85, ry = 2.35, rh = .66;
   card(s, 9.75, 1.6, 3.05, 5.15, C.accent6, "shuttlecoach column", H.accent1);
@@ -165,7 +165,7 @@ async function icon(Comp, color) {
   // 4 Flow
   s = content("One camera in. A coaching staff out.", 2);
   [[I.video, "Record", "Any fixed camera behind the court"], [I.cube, "Reconstruct", "Shuttle flight in metric 3D, hits, player positions"],
-   [I.brain, "Reason", "Four coach agents analyse, remember and simulate"], [I.list, "Act", "Personified coaches flash zones, muscles and flights"]].forEach(([ic, h, b], i) => {
+   [I.brain, "Reason", "Four self-evolving coach agents analyse, remember and simulate"], [I.list, "Act", "Personified coaches flash zones, muscles and flights"]].forEach(([ic, h, b], i) => {
     const y = 1.75 + i * 1.22;
     s.addShape(pres.shapes.OVAL, { x: .7, y, w: .8, h: .8, fill: { color: i === 3 ? C.accent3 : C.accent1 }, line: { color: H.dk1, transparency: 100 }, objectName: "flow dot " + i });
     s.addImage({ data: ic, x: .9, y: y + .2, w: .4, h: .4, objectName: "flow icon " + i });
@@ -317,7 +317,7 @@ async function icon(Comp, color) {
   ]);
 
   // Self-evolving coaches (the main story), with the 24-hour Telegram coach as an extension on the right
-  s = content("Self-evolving coaches: they read, reflect and improve", 2);
+  s = content("Self-evolving coach agents: each one evolves its own playbook", 2);
   {
     tag(s, "Every night, on the station", .6, 1.5, C.accent1, 7);
     const LOOP = [["Research agent", "Turns the player's weak points into paper searches; keeps a finding only if its numbers are in the abstract.", H.accent2],

@@ -40,3 +40,6 @@ deck/anim/frames*/
 deck/video/build/
 deck/video/probe/
 deck/video/*.mp4
+# - promo film (deck/promo): footage, audio and renders are local only
+deck/promo/public/
+deck/promo/out/

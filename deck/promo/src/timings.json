@@ -1,0 +1,247 @@
+[
+ [
+  {
+   "text": "This is ShuttleCoach:",
+   "start": 0.0,
+   "end": 1.258
+  },
+  {
+   "text": "a self-evolving team of AI coaching agents that runs entirely on local hardware.",
+   "start": 1.478,
+   "end": 6.8
+  }
+ ],
+ [
+  {
+   "text": "Here is how it is built, all on one Intel Arc card.",
+   "start": 0.0,
+   "end": 3.09
+  },
+  {
+   "text": "The match video becomes 3D shots and match data.",
+   "start": 3.41,
+   "end": 6.387
+  },
+  {
+   "text": "Coach agents read it with your memory, test advice in a simulator, and coach you.",
+   "start": 6.707,
+   "end": 11.331
+  }
+ ],
+ [
+  {
+   "text": "Here is what it does.",
+   "start": 0.0,
+   "end": 1.115
+  },
+  {
+   "text": "One camera becomes a 3D replay of every rally.",
+   "start": 1.435,
+   "end": 4.578
+  },
+  {
+   "text": "Four specialist coaches debate your match at a round table.",
+   "start": 4.898,
+   "end": 8.356
+  },
+  {
+   "text": "Ask them by voice, and get highlights ready to post.",
+   "start": 8.676,
+   "end": 11.523
+  },
+  {
+   "text": "And between sessions, they stay with you on Telegram.",
+   "start": 11.843,
+   "end": 14.687
+  }
+ ],
+ [
+  {
+   "text": "Drop in match footage:",
+   "start": 0.0,
+   "end": 1.239
+  },
+  {
+   "text": "zero bytes leave your machine.",
+   "start": 1.459,
+   "end": 3.076
+  },
+  {
+   "text": "The pipeline calibrates the court, isolates the shuttle and lifts every trajectory into 3D.",
+   "start": 3.396,
+   "end": 9.102
+  },
+  {
+   "text": "This demo opens a sample match the station has already analysed.",
+   "start": 9.422,
+   "end": 13.263
+  }
+ ],
+ [
+  {
+   "text": "Four coaches read the same match.",
+   "start": 0.0,
+   "end": 1.82
+  },
+  {
+   "text": "Coach Lin flashes the zone that cost the most points.",
+   "start": 2.14,
+   "end": 5.192
+  },
+  {
+   "text": "Coach Kai grades every shot from its 3D flight.",
+   "start": 5.512,
+   "end": 8.238
+  },
+  {
+   "text": "Coach Ren shows which muscles to train, and adapts to a sore knee.",
+   "start": 8.558,
+   "end": 12.244
+  },
+  {
+   "text": "Coach Ada finds the opponent's habits under pressure.",
+   "start": 12.564,
+   "end": 15.413
+  }
+ ],
+ [
+  {
+   "text": "Like real coaches, they disagree, and each one speaks live from the local model.",
+   "start": 0.0,
+   "end": 4.734
+  },
+  {
+   "text": "Lin wants smash-defence blocks;",
+   "start": 5.054,
+   "end": 6.845
+  },
+  {
+   "text": "Ren says the knee is sore.",
+   "start": 7.065,
+   "end": 8.414
+  },
+  {
+   "text": "The head coach rules:",
+   "start": 8.734,
+   "end": 9.883
+  },
+  {
+   "text": "health first, then the points at stake, and writes four measurable goals and a seven-day plan.",
+   "start": 10.103,
+   "end": 15.222
+  },
+  {
+   "text": "Ask any coach a question:",
+   "start": 15.542,
+   "end": 16.961
+  },
+  {
+   "text": "a local model answers in about a second, and a verifier checks every number before you see it.",
+   "start": 17.181,
+   "end": 22.49
+  }
+ ],
+ [
+  {
+   "text": "And they evolve on their own.",
+   "start": 0.0,
+   "end": 1.348
+  },
+  {
+   "text": "Every night a research agent reads new sports-science papers, and each coach proposes a new version of its own playbook.",
+   "start": 1.668,
+   "end": 8.67
+  },
+  {
+   "text": "But AI that learns must be AI you can trust.",
+   "start": 8.99,
+   "end": 11.685
+  },
+  {
+   "text": "Every change must cite a study, pass a safety check and do no harm on its tests.",
+   "start": 12.005,
+   "end": 16.805
+  },
+  {
+   "text": "Anything about health waits for a human coach.",
+   "start": 17.125,
+   "end": 19.371
+  },
+  {
+   "text": "So this one is declined.",
+   "start": 19.691,
+   "end": 21.121
+  }
+ ],
+ [
+  {
+   "text": "Off the court, the same staff lives in Telegram.",
+   "start": 0.0,
+   "end": 2.709
+  },
+  {
+   "text": "Coach Mei plans meals from what is in your kitchen, and the bot checks in after the session to log it.",
+   "start": 3.029,
+   "end": 8.476
+  },
+  {
+   "text": "Say you want a game.",
+   "start": 8.796,
+   "end": 9.878
+  },
+  {
+   "text": "The agent opens the map, finds where everyone starts, checks every sports centre, and picks the court that is fairest for everyone's trip.",
+   "start": 10.198,
+   "end": 18.161
+  },
+  {
+   "text": "It invites your friends, and books only when you confirm.",
+   "start": 18.481,
+   "end": 21.454
+  }
+ ],
+ [
+  {
+   "text": "Here is the agent behind it.",
+   "start": 0.0,
+   "end": 1.646
+  },
+  {
+   "text": "The local model reads the request.",
+   "start": 1.966,
+   "end": 4.015
+  },
+  {
+   "text": "The agent checks each player's calendar and where they start, searches the sports centres for a free court, and ranks them by the longest trip anyone would make.",
+   "start": 4.335,
+   "end": 13.287
+  },
+  {
+   "text": "Then it books the court on the venue's own website, the way a person would, and stops before the final confirm until you say yes.",
+   "start": 13.607,
+   "end": 21.005
+  },
+  {
+   "text": "Every step is logged on the station.",
+   "start": 21.325,
+   "end": 23.23
+  }
+ ],
+ [
+  {
+   "text": "No cloud and no upload, built for a single Intel Arc Pro B70 workstation.",
+   "start": 0.0,
+   "end": 5.278
+  },
+  {
+   "text": "ShuttleCoach:",
+   "start": 5.598,
+   "end": 6.517
+  },
+  {
+   "text": "a private staff of AI agents that evolves with you, and never leaves your court.",
+   "start": 6.737,
+   "end": 11.281
+  }
+ ]
+]
