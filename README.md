@@ -20,20 +20,107 @@ ASUS UGen AI League 2026 · Battlefield Thunderstorm (ASUS UGen Intel Arc Pro B7
 
 Click the picture to watch on YouTube.
 
-## What it does
+## Features
 
-| Feature | What the player gets |
-|---|---|
-| **Match analysis** | 2D shuttle tracking, 3D flight, shot type and speed per rally, heat zones of points won and lost, poses |
-| **Four coach agents** | Coach Lin (tactics), Coach Kai (technique), Coach Ren (fitness), Coach Ada (data), each grounded in the match numbers and the player's memory |
-| **Round table** | The coaches argue for their priorities live on the local model; the head coach rules; four goals and a 7-day plan come out |
-| **Voice coach** | Ask by voice (Whisper on the device), the answer is spoken back |
-| **Auto highlights** | Rallies picked and cut, ready to post |
-| **Live mode** | A brief from the coaches between points, and notes when a pattern appears |
-| **Self-evolving playbooks** | A research agent reads new studies every night; coaches propose changes to their own playbooks, tested before a human approves |
-| **24-hour coach on Telegram** | Meals, schedule reminders, evening check-ins |
-| **Booking agent** | Finds the fairest court for the whole group and books it in a browser, stopping for the player's OK |
-| **Agent trace** | Every LLM call, tool call, check and human approval, step by step |
+### 1 · Match analysis and 3D replay
+
+Drop in match footage; the station calibrates the court, tracks the shuttle in 2D and lifts every trajectory into 3D.
+Each rally becomes a 3D replay with shot type, speed, height and landing spot, beside the original video.
+
+![Rally 3D view: the match video beside the 3D replay of the same rally](docs/media/features/rally_3d.jpg)
+
+### 2 · Four coach agents
+
+Four specialists read the same match, each in its own area, with the player's memory. Every number on screen is
+computed by code; the coach explains it.
+
+| Coach | Area | In the demo |
+|---|---|---|
+| **Coach Lin** | Tactics | The zone that cost the most points: rear forehand, 7 of 24 winners conceded |
+| **Coach Kai** | Technique | Every shot graded A / B / C from its 3D flight |
+| **Coach Ren** | Fitness | Which muscles to train on a 3D body; adapts to a sore right knee from memory |
+| **Coach Ada** | Data | The opponent's habits under pressure: after a lift or clear, smashes 38% |
+
+<p>
+  <img src="docs/media/features/coach_lin.jpg" alt="Coach Lin: heat map with the rear forehand zone circled" width="49%">
+  <img src="docs/media/features/coach_kai.jpg" alt="Coach Kai: every shot graded from its 3D flight" width="49%">
+</p>
+<p>
+  <img src="docs/media/features/coach_ren.jpg" alt="Coach Ren: 3D body with the muscles to train" width="49%">
+  <img src="docs/media/features/coach_ada.jpg" alt="Coach Ada: the opponent's replies after a lift or clear" width="49%">
+</p>
+
+### 3 · Round table
+
+The coaches debate the week live on the local model. Each argues for one priority from its own facts; the fitness
+coach checks every request against the player's memory and challenges one that clashes. The head coach rules by
+fixed priorities (health first, then the points at stake) and writes four measurable goals and a 7-day plan. Every
+turn passes the number verifier.
+
+<p>
+  <img src="docs/media/features/round_table_ruling.jpg" alt="Head coach ruling: health first, then the points at stake" width="49%">
+  <img src="docs/media/features/ask_coach.jpg" alt="Ask a coach: local model reply in 0.76 s, every figure verified" width="49%">
+</p>
+
+### 4 · Ask any coach
+
+Type or speak a question. The local model answers in about a second, and a verifier checks every figure against the
+match data or the cited study before the reply is shown.
+
+### 5 · Voice coach and auto highlights
+
+Ask by voice (Whisper runs in the browser on the device); rallies are picked and cut into highlights ready to post.
+
+![Voice coach and auto highlights](docs/media/features/voice_highlights.jpg)
+
+### 6 · Live mode
+
+Between points, a short brief from the coaches; notes appear when a pattern shows up. In the prototype, recorded
+rallies are streamed as if live.
+
+### 7 · Coaches that keep learning, safely
+
+Every night a research agent searches OpenAlex, arXiv and Semantic Scholar and adds findings to the knowledge base.
+Each coach proposes changes to its own playbook. A change is adopted only if it cites a study, passes the safety
+check and does not regress on the coach's test questions. Anything about health waits for a human coach, who can
+decline it; every version can be rolled back.
+
+<p>
+  <img src="docs/media/features/research.jpg" alt="Knowledge base: findings from the nightly research agent" width="49%">
+  <img src="docs/media/features/safety_gate.jpg" alt="Safety gate: health changes need a human coach" width="49%">
+</p>
+
+### 8 · 24-hour coach on Telegram
+
+Between sessions the same staff lives in Telegram: meals planned from what is in the kitchen, schedule reminders,
+an evening check-in that logs the session. Only text passes through Telegram; `/forget` deletes everything stored
+about a player.
+
+<p>
+  <img src="docs/media/features/telegram_meals.jpg" alt="Telegram: Coach Mei plans meals and the bot checks in" width="49%">
+  <img src="docs/media/features/telegram_booking.jpg" alt="Telegram: the court offer, invitations and Book it" width="49%">
+</p>
+
+### 9 · Booking agent: a court that is fair to everyone
+
+"Doubles with Amy and Ben on Saturday evening." The local model reads the request; the fitness coach agent sets the
+length (a sore knee means 1 hour); the agent checks each player's calendar and rough area, searches 18 sports
+centres and ranks free courts by the longest trip anyone would make. Then it books on the venue's website in its own
+browser: code types the password (the model never sees it), and it stops before the final confirm until the player
+taps "Book it".
+
+![Find a court: the fairest centre, longest trip about 29 minutes, of 18 centres checked](docs/media/features/court_map.jpg)
+<p>
+  <img src="docs/media/features/browser_review.jpg" alt="Booking site: the agent fills in the booking, 1 hour, 3 players" width="49%">
+  <img src="docs/media/features/browser_confirmed.jpg" alt="Booking confirmed after the player said yes" width="49%">
+</p>
+
+### 10 · Agent trace
+
+Every run records its LLM calls, tool calls, checks, messages and the moments it waits for a person, step by step,
+on the station.
+
+![Agent trace: each LLM call, tool call and human approval](docs/media/features/agent_trace.jpg)
 
 ## How it works
 
