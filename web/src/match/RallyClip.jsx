@@ -16,7 +16,7 @@ const RallyClip = forwardRef(function RallyClip({ rally, names, autoPlay = true,
   return (
     <div className={`rclip ${live ? "live" : ""}`}>
       <div className="rclip-stage">
-        <video ref={vid} key={rally.clip} src={rally.clip ? `/media/rallies/${rally.clip}` : undefined} autoPlay={autoPlay} muted playsInline controls={!live}
+        <video ref={vid} key={rally.clip} src={rally.clip ? `${import.meta.env.BASE_URL}media/rallies/${rally.clip}` : undefined} autoPlay={autoPlay} muted playsInline controls={!live}
           onTimeUpdate={(e) => setT(e.currentTarget.currentTime)} onEnded={onEnded} />
         {cur && !done && (
           <div className="rclip-cap" key={shown.length}>

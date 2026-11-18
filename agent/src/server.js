@@ -8,7 +8,8 @@ for (const f of [".env"]) if (fs.existsSync(f)) for (const l of fs.readFileSync(
   const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
 }
 const { reply, learn, COACHES } = await import("./coach.js");
-const { health } = await import("./llm.js");
+const { health, background, laneStats } = await import("./llm.js");
+const jobs = await import("./jobs.js");
 const tg = await import("./telegram.js");
 const store = await import("./store.js");
 const { factSheet } = await import("./facts.js");
@@ -34,17 +35,18 @@ const bodyOf = (req) => new Promise((ok) => { let b = ""; req.on("data", (c) => 
 
 async function remind(force = false) {
   const now = new Date(), day = now.toISOString().slice(0, 10), out = [];
-  for (const p of store.players()) {
-    if (!p.plan || (!force && (now.getHours() !== (p.prefs.reminderHour ?? 7) || p.prefs.lastReminder === day))) continue;
+  const due = store.players().filter((p) => p.plan && (force || (now.getHours() === (p.prefs.reminderHour ?? 7) && p.prefs.lastReminder !== day)));
+  await jobs.pool(due, async (p) => {
     try { await tg.send(p.id, tg.todayText(p, now)); store.markReminded(p.id, day); out.push(p.id); } catch (e) { out.push(`${p.id}: ${e.message}`); }
-  }
+  });
   return out;
 }
 // the 24-hour coach: a message an hour before each session (with what to eat from the pantry), and an evening
 // check-in on training days that have nothing logged yet. force=true (tests, the web button) ignores the clock.
 async function lifeTick({ kind = "all", force = false } = {}) {
   const now = new Date(), day = life.ymd(now), out = [];
-  for (const p of store.players()) {
+  // every player is one job in the background pool (at most BG_CONCURRENCY at a time, behind live questions)
+  await jobs.pool(store.players(), async (p) => {
     try {
       if (kind === "all" || kind === "presession") {
         const soon = p.events.filter((e) => ["training", "match"].includes(e.kind) && e.start && !e.reminded && (force ? life.at(e) > now : life.at(e) - now > 0 && life.at(e) - now <= 75 * 60000));
@@ -64,7 +66,7 @@ async function lifeTick({ kind = "all", force = false } = {}) {
         }
       }
     } catch (e) { out.push(`${p.id}: ${e.message}`); }
-  }
+  });
   return out;
 }
 // nightly: the research agent reads new papers, then the coaches reflect and evolve their playbooks
@@ -78,7 +80,10 @@ async function nightly() {
     done.evolve = day; busy.evolve = true; await trace.run("reflection", { who: "nightly" }, () => evolve.run()).catch(() => {}); busy.evolve = false;
   }
 }
-setInterval(() => { remind().catch(() => {}); lifeTick().catch(() => {}); booking.expire(tg.send).catch(() => {}); nightly().catch(() => {}); }, 60000);
+// the clock: once a minute, in the background lane; a tick still running (thousands of players) is not started twice
+const ticking = {};
+const once = (name, fn) => { if (ticking[name]) return; ticking[name] = true; background(fn).catch(() => {}).finally(() => { ticking[name] = false; }); };
+setInterval(() => { once("remind", () => remind()); once("life", () => lifeTick()); once("booking", () => booking.expire(tg.send)); once("nightly", () => nightly()); }, 60000);
 
 http.createServer(async (req, res) => {
   const o = req.headers.origin, u = new URL(req.url, "http://x");
@@ -87,7 +92,7 @@ http.createServer(async (req, res) => {
     if (u.pathname === "/api/status") {
       const s = factSheet("A");
       const pbs = evolve.playbooks();
-      return json(res, 200, { llm: await health(), kb: kb.stats(), busy, feedback: evolve.feedbackStats(),
+      return json(res, 200, { llm: await health(), lanes: laneStats(), jobs: { concurrency: jobs.BG_CONCURRENCY, ...jobs.stats }, store: store.saveStats, kb: kb.stats(), busy, feedback: evolve.feedbackStats(),
         playbooks: Object.fromEntries(Object.entries(pbs).map(([c, p]) => [c, { version: p.version, rules: p.rules.length, pending: p.proposals.filter((x) => x.status === "pending").length }])), telegram: { enabled: tg.state.enabled, bot: tg.state.bot?.username ?? null, error: tg.state.error, lastPoll: tg.state.lastPoll },
         players: store.players().length, athlete: s.name, facts: s.facts.length }, o);
     }
@@ -119,13 +124,13 @@ http.createServer(async (req, res) => {
     if (u.pathname === "/api/research/run" && req.method === "POST") {
       if (busy.research) return json(res, 409, { error: "a research run is already going" }, o);
       const b = await bodyOf(req); busy.research = true;
-      try { return json(res, 200, await trace.run("research", { who: "web", input: (b.topics || []).join(", ") }, () => researcher.run({ topics: b.topics || [], maxPapers: b.maxPapers || 6 })), o); } finally { busy.research = false; }
+      try { return json(res, 200, await trace.run("research", { who: "web", input: (b.topics || []).join(", ") }, () => background(() => researcher.run({ topics: b.topics || [], maxPapers: b.maxPapers || 6 }))), o); } finally { busy.research = false; }
     }
     if (u.pathname === "/api/playbooks") return json(res, 200, { playbooks: evolve.playbooks(), feedback: evolve.feedbackStats() }, o);
     if (u.pathname === "/api/evolve/run" && req.method === "POST") {
       if (busy.evolve) return json(res, 409, { error: "an evolution run is already going" }, o);
       const b = await bodyOf(req); busy.evolve = true;
-      try { return json(res, 200, await trace.run("reflection", { who: "web" }, () => evolve.run(b.coaches ? { coaches: b.coaches } : {})), o); } finally { busy.evolve = false; }
+      try { return json(res, 200, await trace.run("reflection", { who: "web" }, () => background(() => evolve.run(b.coaches ? { coaches: b.coaches } : {}))), o); } finally { busy.evolve = false; }
     }
     if (u.pathname === "/api/evolve/decide" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, await trace.run("human decision", { who: "web", input: `${b.approve ? "approve" : "decline"} ${b.coach}` }, async () => evolve.decide(b.coach, b.id, !!b.approve)), o); }
     const sh = u.pathname.match(/^\/api\/shot\/(r[a-z0-9]+|g[a-z0-9]+)\/(\d{2}\.jpg)$/);

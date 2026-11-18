@@ -8,8 +8,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 let bodyCache;
 function loadBody(onProgress) {
   if (!bodyCache) bodyCache = (async () => {
-    const meta = await fetch("/body/body.json").then((r) => r.json());
-    const res = await fetch("/body/body.bin");
+    const meta = await fetch(import.meta.env.BASE_URL + "body/body.json").then((r) => r.json());
+    const res = await fetch(import.meta.env.BASE_URL + "body/body.bin");
     const total = +res.headers.get("content-length") || 0;
     const reader = res.body.getReader(); const parts = []; let got = 0;
     for (;;) { const { done, value } = await reader.read(); if (done) break; parts.push(value); got += value.length; onProgress?.(total ? got / total : 0); }

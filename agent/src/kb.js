@@ -10,10 +10,13 @@ const EMBED_MODEL = process.env.EMBED_MODEL || "qwen3-embedding:0.6b";
 let db = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : { papers: {}, findings: [], runs: [] };
 const save = () => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db)); };
 
+// EMBED_URL ending in /v1 is an OpenAI-compatible server (vLLM on the B70); otherwise Ollama's /api/embed
+const OPENAI_EMBED = /\/v1$/.test(EMBED_URL);
 export async function embed(texts) {
-  const r = await fetch(`${EMBED_URL}/api/embed`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: EMBED_MODEL, input: texts }) });
+  const r = await fetch(OPENAI_EMBED ? `${EMBED_URL}/embeddings` : `${EMBED_URL}/api/embed`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: EMBED_MODEL, input: texts }) });
   if (!r.ok) throw new Error(`embed ${r.status}`);
-  return (await r.json()).embeddings;
+  const j = await r.json();
+  return OPENAI_EMBED ? j.data.map((d) => d.embedding) : j.embeddings;
 }
 const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; } return d / Math.sqrt(na * nb); };
 

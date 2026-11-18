@@ -5,7 +5,7 @@ export const COURT = { W: 6.1, L: 13.4, NET: 6.7, SHORT: 1.98, LONG_D: 0.76, SIN
 
 let cache;
 export function loadSample() {
-  if (!cache) cache = fetch("/data/sample.json").then((r) => r.json()).then(derive);
+  if (!cache) cache = fetch(import.meta.env.BASE_URL + "data/sample.json").then((r) => r.json()).then(derive);
   return cache;
 }
 

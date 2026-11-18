@@ -45,7 +45,7 @@ export default function Report({ data, video }) {
 
       <section id="replay" className="block">
         <div className="replay-grid">
-          <RallyPlayer rally={rally} src="/media/sample_rally.mp4" onFrame={setFrame} seekRef={seek} names={{ near: data.names.A, far: data.names.B }} />
+          <RallyPlayer rally={rally} src={import.meta.env.BASE_URL + "media/sample_rally.mp4"} onFrame={setFrame} seekRef={seek} names={{ near: data.names.A, far: data.names.B }} />
           <div className="court-wrap">
             <Court3D rally={rally} frame={frame} interactive />
             <span className="hud-tag">3D reconstruction · drag to orbit</span>

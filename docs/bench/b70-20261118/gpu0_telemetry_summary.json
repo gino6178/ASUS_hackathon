@@ -1,0 +1,5 @@
+{"device": "Intel Arc Pro B70 (GPU 0, Qwen3-8B)", "source": "xpu-smi dump --metrics POWER,CLOCK,MEMORY --interval 1, 224 samples during the 4- and 8-user runs and the app benchmark",
+ "power_w": {"mean": 195.8, "min": 67.05, "max": 241.78, "limit": 230.0},
+ "graphics_clock_mhz": {"mean": 2730.8, "min": 1450, "max": 2800},
+ "memory_used_mib": {"mean": 27831.1, "total": 32656, "note": "vLLM preallocates 85% of VRAM (weights ~16 GB + KV cache)"},
+ "utilization": "N/A (not reported by xpu-smi 2.0 on this driver)"}

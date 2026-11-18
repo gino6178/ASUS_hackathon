@@ -6,7 +6,22 @@ import path from "node:path";
 
 const FILE = path.resolve(process.env.STORE_FILE || "data/players.json");
 let db = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : { players: {} };
-const save = () => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db, null, 1)); };
+// Writes are batched: the whole file is rewritten at most once per STORE_FLUSH_MS (default 500 ms), so thousands of
+// players updated in the same moment cost one write, not thousands. STORE_FLUSH_MS=0 writes on every change.
+const FLUSH_MS = +(process.env.STORE_FLUSH_MS ?? 500);
+export const saveStats = { requested: 0, written: 0, writeMs: 0, lastWriteMs: 0, bytes: 0 };
+let timer = null;
+const write = () => {
+  timer = null;
+  const t0 = performance.now(), s = JSON.stringify(db, null, 1);
+  fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, s);
+  const ms = performance.now() - t0;
+  saveStats.written++; saveStats.writeMs = Math.round(saveStats.writeMs + ms); saveStats.lastWriteMs = +ms.toFixed(1); saveStats.bytes = s.length;
+};
+const save = () => { saveStats.requested++; if (!FLUSH_MS) return write(); timer ??= setTimeout(write, FLUSH_MS); };
+export const flush = () => { if (timer) { clearTimeout(timer); write(); } };
+process.on("exit", flush);
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(0));
 
 // players linked before the 24-hour coach existed get its empty lists
 const shape = (p) => { if (p) { p.pantry ??= []; p.events ??= []; p.logs ??= []; } return p; };

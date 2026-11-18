@@ -163,7 +163,18 @@ Measured on our test GPU (Qwen3-4B, 4-bit), from the agent trace:
 | Browser booking, 28 steps | 9.4 s |
 | End-to-end tests | 23/23 booking · 21/21 gateway and Telegram |
 
-Next: the same measurements on the Arc Pro B70 with the OpenVINO backend in [`llm-server/`](llm-server).
+## Measured on the Arc Pro B70
+
+Measured on the organizer's B70 instance, with Qwen3-8B bf16 under vLLM 0.26 for XPU (`server/b70.sh`):
+
+| | |
+|---|---|
+| Single user | 34.6 tok/s, first token 0.14 s ([performance_b70.md](docs/performance_b70.md)) |
+| Live Telegram coaching inside a 10 s reply target (p95) | 3 questions/s at the edge, planned at 2/s: about 12,000 daily active players ([capacity_b70.md](docs/capacity_b70.md)) |
+| Pre-session advice for 5,000 players due at once | 9.8 min with pacing and priority, against 2 h 20 min one at a time, with live chat still under 10 s ([scheduling_5000_users.md](docs/scheduling_5000_users.md)) |
+| Failed requests | 0 of 16,410 live questions and 25,015 background messages |
+
+`server/b70.sh` now serves Qwen3-8B as INT4 (AWQ) weights with an FP8 KV cache, the fastest of 14 serving options measured: 2× single-user speed, 1.67× throughput at 32 users, Telegram inside 10 s at 4 questions/s, and GSM8K 93.5% against 94.0% for bf16 ([inference_opt_b70.md](docs/inference_opt_b70.md)). The figures above are bf16; capacity has not yet been remeasured with the new setting.
 
 ## Repository
 

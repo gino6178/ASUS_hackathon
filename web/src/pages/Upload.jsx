@@ -106,7 +106,7 @@ export default function Upload({ onVideo }) {
         <summary>Court calibration <span className="muted">{meta ? meta.name : "sample match"} · corners found automatically</span></summary>
         <div className="disclose-body">
           <p className="muted small">Maps every pixel to court metres. Drag a corner if it is off, and check the projected lines and the top-down view.</p>
-          {cal && <CourtCalib key={meta ? meta.url : "sample"} src={meta ? meta.url : "/media/sample_rally.mp4"} onChange={setCalib} />}
+          {cal && <CourtCalib key={meta ? meta.url : "sample"} src={meta ? meta.url : import.meta.env.BASE_URL + "media/sample_rally.mp4"} onChange={setCalib} />}
         </div>
       </details>
     </div>

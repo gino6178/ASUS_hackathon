@@ -6,9 +6,33 @@ const MODEL = process.env.LLM_MODEL || "Qwen3-4B-int4-ov";
 const TIMEOUT = +(process.env.LLM_TIMEOUT_MS || 180000);
 const THINK = /<think>[\s\S]*?<\/think>\s*/g;
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import * as trace from "./trace.js";
 
-export async function chat(messages, { maxTokens = 260, temperature = 0.4, purpose = "LLM call" } = {}) {
+// Two lanes share the model. "live": a player is waiting (web chat, voice, Telegram replies, round table).
+// "background": work the station starts on a clock (pre-session meal advice, research, reflection). Code run inside
+// background(fn) is in the background lane, including every LLM call it makes further down.
+// With LLM_PRIORITY=1 the lane becomes the request priority (vLLM --scheduling-policy priority: lower runs first),
+// so a player's question never queues behind a batch of proactive messages. Other servers ignore it, so it is off by default.
+const lane = new AsyncLocalStorage();
+const PRIORITY = process.env.LLM_PRIORITY === "1";
+const BG_PRIORITY = +(process.env.LLM_BG_PRIORITY || 10);
+export const background = (fn) => lane.run("background", fn);
+export const laneOf = () => lane.getStore() || "live";
+
+// per-lane counters for /api/status and load tests
+const lanes = { live: { calls: 0, inFlight: 0, ms: 0, tokens: 0, errors: 0 }, background: { calls: 0, inFlight: 0, ms: 0, tokens: 0, errors: 0 } };
+export const laneStats = () => Object.fromEntries(Object.entries(lanes).map(([k, v]) => [k, { ...v, meanMs: v.calls ? Math.round(v.ms / v.calls) : null }]));
+
+export async function chat(messages, opts = {}) {
+  const L = lanes[laneOf()]; L.inFlight++;
+  const t0 = Date.now();
+  try { const r = await chatOnce(messages, opts); L.calls++; L.ms += Date.now() - t0; L.tokens += r.tokens ?? 0; return r; }
+  catch (e) { L.errors++; throw e; }
+  finally { L.inFlight--; }
+}
+
+async function chatOnce(messages, { maxTokens = 260, temperature = 0.4, purpose = "LLM call" } = {}) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
   // Qwen3 reasoning off: coaching replies need to be quick (the OpenVINO server also does this itself)
   const msgs = messages.map((m, i) => (i === messages.length - 1 && m.role === "user" && !/\/no_think/.test(m.content) ? { ...m, content: m.content + " /no_think" } : m));
@@ -16,13 +40,14 @@ export async function chat(messages, { maxTokens = 260, temperature = 0.4, purpo
   try {
     const r = await fetch(`${URL_}/chat/completions`, {
       method: "POST", headers: { "content-type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ model: MODEL, messages: msgs, max_tokens: maxTokens, temperature }),
+      body: JSON.stringify({ model: MODEL, messages: msgs, max_tokens: maxTokens, temperature,
+        ...(PRIORITY ? { priority: laneOf() === "background" ? BG_PRIORITY : 0 } : {}) }),
     });
     if (!r.ok) throw new Error(`LLM server ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const j = await r.json(), secs = (Date.now() - t0) / 1000, n = j.usage?.completion_tokens;
     const text = j.choices[0].message.content.replace(THINK, "").trim();
-    trace.step("llm", purpose, { model: MODEL, ms: Date.now() - t0, tokens: n ?? null, out: text.replace(/\s+/g, " ") });
-    return { text,
+    trace.step("llm", purpose, { model: MODEL, lane: laneOf(), ms: Date.now() - t0, tokens: n ?? null, out: text.replace(/\s+/g, " ") });
+    return { text, tokens: n,
       timing: j.timing ?? { seconds: +secs.toFixed(2), tokens_per_s: n ? +(n / secs).toFixed(1) : null, device: process.env.LLM_DEVICE || "GPU" } };
   } finally { clearTimeout(t); }
 }

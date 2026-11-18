@@ -85,7 +85,7 @@ export default function RallyPlayer({ rally, src, onFrame, seekRef, overlay = tr
   const onRef = useRef(on); onRef.current = on;
   const poseRef = useRef(pose); poseRef.current = pose;
 
-  useEffect(() => { fetch("/data/pose.json").then((r) => (r.ok ? r.json() : null)).then(setPose).catch(() => {}); }, []);
+  useEffect(() => { fetch(import.meta.env.BASE_URL + "data/pose.json").then((r) => (r.ok ? r.json() : null)).then(setPose).catch(() => {}); }, []);
   useEffect(() => {
     if (seekRef) seekRef.current = (frame) => { const v = vid.current; if (v) { v.currentTime = frame / rally.fps + 1e-3; v.play(); } };
   }, [rally]);

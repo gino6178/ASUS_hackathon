@@ -167,7 +167,7 @@ async function run(canvas, F, list, m, stopRef, onStep) {
     const h = list[k], r = h.r, last = r.shots[r.shots.length - 1];
     card(ctx, F, h, k, list.length, m.names);
     const v = document.createElement("video");
-    v.muted = true; v.playsInline = true; v.src = `/media/rallies/${r.clip}`;
+    v.muted = true; v.playsInline = true; v.src = `${import.meta.env.BASE_URL}media/rallies/${r.clip}`;
     await Promise.all([new Promise((ok) => { v.oncanplay = ok; v.onerror = ok; }), wait(1000)]);
     const cam = { x: SRC.w / 2, y: SRC.h / 2, z: 1 };
     // camera: eases toward a point in clip pixels; zoom has its own (slower or faster) rate

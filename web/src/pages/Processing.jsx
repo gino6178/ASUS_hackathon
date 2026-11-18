@@ -61,7 +61,7 @@ export default function Processing({ video, onDone }) {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const src = video?.url ?? "/media/sample_rally.mp4";
+  const src = video?.url ?? import.meta.env.BASE_URL + "media/sample_rally.mp4";
   return (
     <div className="page processing">
       <header className="sec-head">

@@ -295,7 +295,7 @@ function PoseCheck({ pose, joint }) {
 function Fatigue({ m, p }) {
   const fa = fatigue(m, p), ld = load(m, p);
   const [pose, setPose] = useState(null);
-  useEffect(() => { fetch("/data/pose.json").then((r) => (r.ok ? r.json() : null)).then(setPose).catch(() => {}); }, []);
+  useEffect(() => { fetch(import.meta.env.BASE_URL + "data/pose.json").then((r) => (r.ok ? r.json() : null)).then(setPose).catch(() => {}); }, []);
   const joint = retrieve("knee ankle injury sore", 1).find((h) => /knee|ankle/i.test(h.m.text));
   const marks = fa.series.map((x, i) => (i && x.set !== fa.series[i - 1].set ? { i, label: `Game ${x.set}` } : null)).filter(Boolean);
   const change = (o, lowerIsBetter = true) => {

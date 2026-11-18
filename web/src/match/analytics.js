@@ -3,7 +3,7 @@ import { zoneOf } from "../coaches/analysis.js";
 
 let cache;
 export function loadMatches() {
-  if (!cache) cache = fetch("/data/matches.json").then((r) => r.json());
+  if (!cache) cache = fetch(import.meta.env.BASE_URL + "data/matches.json").then((r) => r.json());
   return cache;
 }
 

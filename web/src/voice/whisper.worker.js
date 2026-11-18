@@ -6,7 +6,7 @@ import ortWasm from "../../node_modules/@huggingface/transformers/dist/ort-wasm-
 
 env.allowRemoteModels = false;
 env.allowLocalModels = true;
-env.localModelPath = "/models/";
+env.localModelPath = import.meta.env.BASE_URL + "models/";
 env.backends.onnx.wasm.wasmPaths = { mjs: ortMjs, wasm: ortWasm };
 env.backends.onnx.wasm.numThreads = 1;
 
